@@ -1,0 +1,92 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.importFiles = void 0;
+const ngx = require("./lua/ngx");
+const vscode_1 = require("vscode");
+const path_1 = require("path");
+const fs = require("fs");
+const MIN_LEN = 17;
+/** 导入文件 */
+function importFiles(doc, pos, tok) {
+    // 取得nginx路径
+    let path = ngx.getPath(doc.fileName);
+    if (!path.ngxPath) {
+        return;
+    }
+    let textLine = doc.lineAt(pos.line);
+    let textRang = textLine.range;
+    let items = [];
+    let itemsLoaded = {};
+    switch (textLine.text) {
+        case "#":
+            path.appPath && loadFiles("# ", path.utiPath, `_load "#`);
+            break;
+        case "$":
+            path.appPath && loadFiles("$ ", path.daoPath, `_load "$`);
+            break;
+        case "%":
+            path.appPath && loadFiles("% ", path.comPath, `_load "%`);
+            path.appPath && loadFiles("% ", path.libPath, `_load "%`);
+            break;
+        case ".":
+            if (path.appPath) {
+                loadFiles(". dao   $ ", path.daoPath, `_load "$`);
+                loadFiles(". com   % ", path.comPath, `_load "%`);
+                loadFiles(". lib   % ", path.libPath, `_load "%`);
+                loadFiles(". utils # ", path.utiPath, `_load "#`);
+                loadFiles(". api   . ", path.appPath + "/api/", `_load "api.`);
+            }
+            loadFiles(". resty . ", path.ngxPath + "/resty/", `require "resty.`);
+            loadFiles(". resty . ", path.ngxPath + "/lualib/resty/", `require "resty.`);
+            addClibItem("lfs");
+            addClibItem("cjson");
+            addClibItem("cjson", "cjson.safe");
+            break;
+        default:
+            return;
+    }
+    return items;
+    function addClibItem(name, modName = name) {
+        let item = new vscode_1.CompletionItem(". clib  . " + modName);
+        if (name.length < MIN_LEN) {
+            name = name + " ".repeat(MIN_LEN - name.length);
+        }
+        item.insertText = `local ${name} = require "${modName}"\n`;
+        item.kind = vscode_1.CompletionItemKind.File;
+        item.range = textRang;
+        items.push(item);
+    }
+    function loadFiles(pName, pPath, pLoader) {
+        let files;
+        try {
+            files = fs.readdirSync(pPath);
+        }
+        catch (e) {
+            return;
+        }
+        files.forEach(name => {
+            if (name === "_bk" || name.startsWith(".")) {
+                return;
+            }
+            let fPath = path_1.join(pPath, name);
+            let fStat = fs.statSync(fPath);
+            if (fStat.isFile() && name.endsWith(".lua")) {
+                name = name.substr(0, name.length - 4);
+                if (itemsLoaded[pName + name])
+                    return;
+                itemsLoaded[pName + name] = true;
+                let item = new vscode_1.CompletionItem(pName + name);
+                let modName = name;
+                if (name.length < MIN_LEN) {
+                    name = name + " ".repeat(MIN_LEN - name.length);
+                }
+                item.insertText = `local ${name} = ${pLoader}${modName}"\n`;
+                item.kind = vscode_1.CompletionItemKind.File;
+                item.range = textRang;
+                items.push(item);
+            }
+        });
+    }
+}
+exports.importFiles = importFiles;
+//# sourceMappingURL=importFiles.js.map

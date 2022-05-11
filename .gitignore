@@ -1,0 +1,6 @@
+
+_bk
+*.zip
+*.vsix
+
+node_modules
