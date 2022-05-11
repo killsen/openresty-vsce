@@ -4,3 +4,4 @@ _bk
 *.vsix
 
 node_modules
+out
