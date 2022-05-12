@@ -87,7 +87,7 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
             if (fStat.isFile() && name.endsWith(".lua")) {
                 name = name.substr(0, name.length - 4);
 
-                if (itemsLoaded[pName + name]) return;
+                if (itemsLoaded[pName + name]) {return;}
                     itemsLoaded[pName + name] = true;
 
                 let item = new CompletionItem(pName + name);
@@ -104,7 +104,7 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
                 items.push(item);
             }
 
-        })
+        });
 
     }
 

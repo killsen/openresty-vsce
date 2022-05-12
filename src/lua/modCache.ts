@@ -44,7 +44,7 @@ export function setModCache(fileName: string, mod: LuaModule) {
 
 /** 设置模块引用关系 */
 export function setDepend(fileName: string, dependFile: string){
-    if (fileName === dependFile) return;
+    if (fileName === dependFile) {return;}
     MOD_DEPENDS[dependFile] = MOD_DEPENDS[dependFile] || [];
     MOD_DEPENDS[dependFile].push(fileName);
 }
@@ -75,20 +75,20 @@ export function cleanUp(fileName: string){
 
 /** 文档保存时 */
 workspace.onDidSaveTextDocument(function (event) {
-    cleanUp(event.fileName)
+    cleanUp(event.fileName);
 });
 
-const WATCH_FILES : any = {}
+const WATCH_FILES : any = {};
 
 /** 监听文件变化 */
 export function watchFile(file : string) {
 
-    if (WATCH_FILES[file]) return;
+    if (WATCH_FILES[file]) {return;}
         WATCH_FILES[file] = true;
 
     _watch(file, ()=>{
         // console.log("监听文件: ", file);
         cleanUp(file);  // 清理模块缓存
-    })
+    });
 
 }

@@ -106,7 +106,7 @@ export function getModFile(path: NgxPath, name: string) {
 
     // 优先使用 *.lua.api 伪代码进行类型推导
     let file = getLuaApiFile(path, name);
-    if (file) return file;
+    if (file) {return file;}
 
     const { ngxPath, appPath } = path;
 
@@ -126,18 +126,18 @@ export function getModFile(path: NgxPath, name: string) {
 
     } else if (modType === "%") {
         file = appPath && _join(appPath, "com", apiFile);
-        if (!_exist(file)) file = appPath && _join(appPath, "com", modFile);
-        if (!_exist(file)) file = _join(ngxPath, "app", "lib", modFile);
+        if (!_exist(file)) {file = appPath && _join(appPath, "com", modFile);}
+        if (!_exist(file)) {file = _join(ngxPath, "app", "lib", modFile);}
 
     } else if (modType === "#") {
         file = _join(ngxPath, "app", "utils", modFile);
 
     } else {
         file = appPath && _join(appPath, apiFile);
-        if (!_exist(file)) file = appPath && _join(appPath, modFile);
-        if (!_exist(file)) file = _join(ngxPath, modFile);
-        if (!_exist(file)) file = _join(ngxPath, "lua", modFile);
-        if (!_exist(file)) file = _join(ngxPath, "lualib", modFile);
+        if (!_exist(file)) {file = appPath && _join(appPath, modFile);}
+        if (!_exist(file)) {file = _join(ngxPath, modFile);}
+        if (!_exist(file)) {file = _join(ngxPath, "lua", modFile);}
+        if (!_exist(file)) {file = _join(ngxPath, "lualib", modFile);}
     }
 
     if (!_exist(file)) { return; }
@@ -150,7 +150,7 @@ export function getModFile(path: NgxPath, name: string) {
 export function getModCode(path: NgxPath, name: string) {
 
     let file = getModFile(path, name);
-    if (!file) return;
+    if (!file) {return;}
 
     watchFile(file);  // 监听文件变化
 

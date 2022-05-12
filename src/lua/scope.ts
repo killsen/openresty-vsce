@@ -8,11 +8,11 @@ export interface LuaScope {
 }
 
 /** 创建新作用域 */
-export function newScope(_G: LuaScope, $file?: string): LuaScope {
+export function newScope(_g: LuaScope, $file?: string): LuaScope {
     return {
         ["$local"]: {},
-        ["$scope"]: _G,
-        ["$file"]: $file || _G["$file"]
+        ["$scope"]: _g,
+        ["$file"]: $file || _g["$file"]
     };
 }
 
@@ -54,8 +54,8 @@ export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, 
 
     if (_g["$local"][key]) {
         // 预定义类型 v21.11.25
-        let type_val = _g["$type_" + key]
-        if (type_val) val = type_val;
+        let typeVal = _g["$type_" + key];
+        if (typeVal) {val = typeVal;}
     }
 
     _g[key] = val;
@@ -66,7 +66,7 @@ export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, 
 export function getValue(_g: LuaScope, key: string) {
 
     // 优先使用类型声明 v22.03.25
-    let keyT = "$type_" + key
+    let keyT = "$type_" + key;
     let _GT = getScope(_g, keyT);
 
     let _G = getScope(_g, key);
@@ -79,7 +79,7 @@ export function getValue(_g: LuaScope, key: string) {
 export function getType(_g: LuaScope, key: string) {
 
     // 优先使用类型声明 v22.03.25
-    let keyT = "$type_" + key
+    let keyT = "$type_" + key;
     let _GT = getScope(_g, keyT);
 
     return _GT[keyT];

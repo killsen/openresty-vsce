@@ -13,7 +13,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     // 取得nginx路径
     let path = ngx.getPath(doc.fileName);
-    if (!path.appPath) return;
+    if (!path.appPath) {return;}
 
     // "%dd."
     let r0 = /['"]\S+['"]/;
@@ -39,19 +39,19 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         // _load "%dd.load_data"
         let r0 = /\b(_load|require)\s*\,?\s*\(?\s*["']\S+["']\s*\)?/;
         let text = getText(r0);
-        if (!text) return;
+        if (!text) {return;}
 
         if (text.startsWith("_load")) {
-            modType = "_load"
+            modType = "_load";
         } else {
-            modType = "require"
+            modType = "require";
         }
 
         let r1 = /[\w\-\.]*["']/;
         let r2 = /[\w\-\.]/;
         text = getLinkText(doc, pos, r1, r2, r0);
-        if (!text || text.startsWith(".")) return;
-        if (text.startsWith("lua")) return;
+        if (!text || text.startsWith(".")) {return;}
+        if (text.startsWith("lua")) {return;}
 
         modPath = text.replace(/\./g, "\\");
     }
@@ -75,7 +75,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
         case "@":
             let mod = loadModuleByCode(path, doc.getText());
-            let types = mod && mod["$types"] as any
+            let types = mod && mod["$types"] as any;
             if (types) {
                 loadKeys(items, types, "", 0);
             }
@@ -110,14 +110,14 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         }
 
         files.forEach(name => {
-            if (name === "_bk" || name.startsWith(".")) return;
+            if (name === "_bk" || name.startsWith(".")) {return;}
 
             let fPath = join(pPath, name);
             let fStat = fs.statSync(fPath);
 
             // 含有 lua 文件的目录
             if (fStat.isDirectory() && hasLuaFile(fPath)) {
-                if (modLoaded[name]) return;
+                if (modLoaded[name]) {return;}
                     modLoaded[name] = true;
 
                 items.push({
@@ -132,7 +132,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
                 name = name.substr(0, name.length - 4);
 
-                if (modLoaded[name]) return;
+                if (modLoaded[name]) {return;}
                     modLoaded[name] = true;
 
                 items.push({
@@ -143,7 +143,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
             }
 
-        })
+        });
 
     }
 

@@ -114,7 +114,7 @@ function genArgs(node: FunctionDeclaration) {
             case "Identifier":  return p.name;
             case "VarargLiteral":   return p.raw;
         }
-    }).join(", ")
+    }).join(", ");
 
 }
 

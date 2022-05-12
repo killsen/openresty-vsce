@@ -1,5 +1,5 @@
 
-import { Node, Comment } from 'luaparse'
+import { Node, Comment } from 'luaparse';
 
 /** 是否数组 */
 export function isArray(t: any) {
@@ -110,11 +110,11 @@ export function isInScope(node: Node, $$node: Node) {
 
     if (!loc || !$$loc) { return false; }
 
-    if (loc.start.line > $$loc.start.line) return false;
-    if (loc.end.line < $$loc.end.line) return false;
+    if (loc.start.line > $$loc.start.line) {return false;}
+    if (loc.end.line < $$loc.end.line) {return false;}
 
-    if (loc.start.line === $$loc.start.line && loc.start.column > $$loc.start.column) return false;
-    if (loc.end.line === $$loc.end.line && loc.end.column < $$loc.end.column) return false;
+    if (loc.start.line === $$loc.start.line && loc.start.column > $$loc.start.column) {return false;}
+    if (loc.end.line === $$loc.end.line && loc.end.column < $$loc.end.column) {return false;}
 
     return true;
 
@@ -135,14 +135,14 @@ export function isDownScope(node: Node, $$node: Node) {
 /** 解析注释中的类型定义 */
 export function parseComments(comments: Comment[] | undefined) {
 
-    if (!comments) return;
+    if (!comments) {return;}
 
     let $$comm: { [key: number]: { name: string, value: string, desc: string } } = {};
 
     comments.forEach(c => {
         let loc = c.loc;
-        if (!loc) return;
-        if (loc.start.line !== loc.end.line) return;
+        if (!loc) {return;}
+        if (loc.start.line !== loc.end.line) {return;}
 
         let str = c.value.trim();
         let desc = "";
@@ -170,14 +170,14 @@ export function parseComments(comments: Comment[] | undefined) {
 
         // @req : $pos_dd_store  // 后面是注释
         let arr = str.split(":");
-        if (arr.length !== 2) return;
+        if (arr.length !== 2) {return;}
 
         let name = arr[0].replace(/[\@\s]/g, "");
         arr = arr[1].split("//");
         let value = arr[0].trim();
         desc = (arr[1] || "").trim();
 
-        if (!name || !value) return;
+        if (!name || !value) {return;}
 
         $$comm[loc.start.line] = { name, value, desc };
     });
@@ -191,21 +191,21 @@ export function findKeys(mod: any, key: string, val: any) {
 
     let keys: string[] = [];
 
-    if (!(mod instanceof Object)) return;
+    if (!(mod instanceof Object)) {return;}
 
-    if (findNode(mod)) return keys.reverse();
+    if (findNode(mod)) {return keys.reverse();}
 
     function findNode(t: any) {
-        if (!(t instanceof Object)) return;
+        if (!(t instanceof Object)) {return;}
 
         let ti = t["."];
-        if (!(ti instanceof Object)) return;
+        if (!(ti instanceof Object)) {return;}
 
         let isFound = false;
 
         Object.keys(ti).forEach(k=>{
-            if (isFound) return;
-            if (k.startsWith("$")) return;
+            if (isFound) {return;}
+            if (k.startsWith("$")) {return;}
 
             let v = ti[k];
             if (/\d+/.test(k) && v instanceof Object && v[key] === val) {

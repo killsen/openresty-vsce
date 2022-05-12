@@ -26,7 +26,7 @@ const ERRORS: { [key: string] : string } = {
 
     [`'}' expected near '='`        ] : `(), _ `,  // { _____(), _ = ... }  // 光标在 {} 表达式等号(=)前面
     [`unexpected symbol '=' near`   ] : `(); _ `,  // { _____(), _ = ... }  // 光标在赋值语句等号(=)前面
-}
+};
 
 /** 取得上量或成员变量 */
 export function getUpValues(doc: TextDocument, pos: Position) {
@@ -69,7 +69,7 @@ export function getUpValues(doc: TextDocument, pos: Position) {
             return scope;
 
         } catch (err) {
-            if (!(err instanceof SyntaxError)) return;
+            if (!(err instanceof SyntaxError)) {return;}
 
             let msg = err.message;
             // console.log(codes[1], codes[2], "\t", msg)
@@ -83,7 +83,7 @@ export function getUpValues(doc: TextDocument, pos: Position) {
                 }
             }
 
-            if (!code2) return;
+            if (!code2) {return;}
             codes[2] = code2;
         }
     }

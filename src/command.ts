@@ -3,9 +3,9 @@ import * as vscode from 'vscode';
 import * as ngx from './lua/ngx';
 import * as http from 'http';
 
-const DEBUG_CODE = 'require "app.comm.debuger".debug();'
+const DEBUG_CODE = 'require "app.comm.debuger".debug();';
 const WATCH_CODE = 'require "app.comm.debuger".watch(' +
-                   '[=========[word]=========], {word});'
+                   '[=========[word]=========], {word});';
 
 let LAST_SUBMIT = 0;
 
@@ -23,7 +23,7 @@ export function openrestyDebug () {
 function openrestyRun(isAction: boolean) {
 
     let editor = vscode.window.activeTextEditor;
-    if (!editor) return;
+    if (!editor) {return;}
 
     let doc = editor.document;
     let {appName, modName} = ngx.getPath(doc.fileName);
@@ -98,8 +98,8 @@ function httpRequest(path: string, codes: string, languageId?: string){
         vscode.window.showInformationMessage(e.message);
     });
 
-    req.write(codes)
-    req.end()
+    req.write(codes);
+    req.end();
 
 }
 
@@ -129,7 +129,7 @@ function getlanguageId(headers: http.IncomingHttpHeaders) {
 async function openDocument(content: string, languageId: string) {
 
     for (let editor of vscode.window.visibleTextEditors) {
-        if (editor.viewColumn == 2){
+        if (editor.viewColumn === 2){
             editor.edit(editorEdit=>{
 
                 let doc = editor.document;
@@ -150,7 +150,7 @@ async function openDocument(content: string, languageId: string) {
     let doc = await vscode.workspace.openTextDocument({
         language: languageId,
         content,
-    })
+    });
 
     vscode.window.showTextDocument(doc, {
         viewColumn : vscode.ViewColumn.Two,

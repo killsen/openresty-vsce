@@ -82,7 +82,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         // 构造器 @@ <Constructor>
         let self = getValue(newG, "self");
         if (!self) {
-            let func = getValue(_g, "@@")
+            let func = getValue(_g, "@@");
             if (typeof func === "function" && func !== myFunc) {
                 self = callFunc(func);
                 if (self) {
@@ -99,7 +99,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             }
             let value = params[i];
 
-            if ( i == 0 && $$req) {
+            if ( i === 0 && $$req) {
                 value = $$req;                          // 生成请求参数类型
 
             } else if (types && types[name]) {
@@ -149,7 +149,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
     // 构造器 @@ <Constructor>
     if (types && types["@@"]) {
-        setValue(_g, "@@", myFunc, true)
+        setValue(_g, "@@", myFunc, true);
     }
 
     return myFunc;
@@ -160,10 +160,10 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 function loadType(typeName: string, _g: LuaScope) {
 
     // 自定义类型命名: 兼容处理
-    typeName = typeName.replace("@", "")
+    typeName = typeName.replace("@", "");
 
-    let isArray = typeName.indexOf("[]") !== -1
-    if (isArray) typeName = typeName.replace("[]", "");
+    let isArray = typeName.indexOf("[]") !== -1;
+    if (isArray) {typeName = typeName.replace("[]", "");}
 
     if (typeName.startsWith("$")) {
         // 加载 dao 类型
@@ -177,7 +177,7 @@ function loadType(typeName: string, _g: LuaScope) {
                 let t = { doc, ".": { ...daoRow } };  // 复制字段定义
                 if (isArray) {
                     doc = "## "+ typeName +"[]\ndao 类型多行数据\n" + daoType.doc;
-                    return { doc, "[]": t }  // 数组
+                    return { doc, "[]": t };  // 数组
                 } else {
                     return t;
                 }
@@ -195,7 +195,7 @@ function loadType(typeName: string, _g: LuaScope) {
                 let t = { doc, ".": { ...userType } };  // 复制字段定义
                 if (isArray) {
                     doc = "## "+ typeName +"[]\n自定义类型数组\n" + mod.doc;
-                    return { doc, "[]": t }  // 数组
+                    return { doc, "[]": t };  // 数组
                 } else {
                     return t;
                 }
@@ -210,10 +210,10 @@ function loadType(typeName: string, _g: LuaScope) {
 function loadTypes(node: Node, _g: LuaScope) {
 
     let nloc = node.loc;
-    if (!nloc) return;
+    if (!nloc) {return;}
 
     let $$comm = getValue(_g, "$$comm");
-    if (!($$comm instanceof Object)) return;
+    if (!($$comm instanceof Object)) {return;}
 
     let types: { [key: string]: string } = {};
 
@@ -235,10 +235,10 @@ function loadTypes(node: Node, _g: LuaScope) {
 export function parseFuncDoc(node: FunctionDeclaration, _g: LuaScope) {
 
     let nloc = node.loc;
-    if (!nloc) return;
+    if (!nloc) {return;}
 
     let $$comm = getValue(_g, "$$comm");
-    if (!($$comm instanceof Object)) return;
+    if (!($$comm instanceof Object)) {return;}
 
     let docs: string[] = [];
 
@@ -322,13 +322,13 @@ export function setScopeCall(scope: any, $$node: Node, _g: LuaScope){
 
     $$node.scope = scope;
 
-    if (!(scope instanceof Object)) return;
+    if (!(scope instanceof Object)) {return;}
 
     let args: string[] = [];
 
     Object.keys(scope).forEach(k=>{
-        if (k.startsWith("$")) return;
-        if (/\d+/.test(k)) return;
+        if (k.startsWith("$")) {return;}
+        if (/\d+/.test(k)) {return;}
         args.push(k);
     });
 

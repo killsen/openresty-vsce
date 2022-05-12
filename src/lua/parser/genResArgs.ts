@@ -50,7 +50,7 @@ export function genResArgs(body: luaparse.Statement[], resArgs?: string[]): stri
                 let res = genResArg(node);
                 if (res) {
                     res = "-> " + res;
-                    if (!resArgs.includes(res)) resArgs.push(res);
+                    if (!resArgs.includes(res)) {resArgs.push(res);}
                 }
                 break;
 

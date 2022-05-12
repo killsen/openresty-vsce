@@ -9,11 +9,11 @@ export function getSignature(doc: TextDocument, pos: Position, tok: Cancellation
     // console.log("getSignature");
 
     let scope = getUpValues(doc, pos);
-    if (!scope) return;
+    if (!scope) {return;}
 
     let t = scope ["$$call"];
-    if (!(t instanceof Object)) return;
-    if (!t.args || t.args==="()") return;
+    if (!(t instanceof Object)) {return;}
+    if (!t.args || t.args==="()") {return;}
 
     let index = t.index || 0;
     let args: string = t.args || "";

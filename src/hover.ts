@@ -7,17 +7,17 @@ export function getHover(doc: TextDocument, pos: Position) {
 
     let regx = /[a-zA-Z_]\w*/;
     let range = doc.getWordRangeAtPosition(pos, regx);
-    if (!range) return;
+    if (!range) {return;}
 
     let name = doc.getText(range);
-    if (!name) return;
+    if (!name) {return;}
 
     let scope: any = getUpValues(doc, pos);
-    if (!scope) return;
+    if (!scope) {return;}
 
-    let t = scope[name]
-    if (t === undefined) t = scope["*"];
-    if (t === undefined) return;
+    let t = scope[name];
+    if (t === undefined) {t = scope["*"];}
+    if (t === undefined) {return;}
 
     let contents = getContents(name, t);
     let hover = { contents };
@@ -32,14 +32,14 @@ export function getContents(name: string, t: any) {
     let contents: string[] = [];
 
     if (t instanceof Object) {
-        if (t.type === "lib" || t.type === "api") return [t.doc];
+        if (t.type === "lib" || t.type === "api") {return [t.doc];}
 
         let doc = t.doc;
 
         if (typeof doc === "string" && doc) {
             doc = doc.replace("{{name}}", name); // 替换函数名
             contents.push(doc);
-            if (doc.split("\n").length > 1) return contents;
+            if (doc.split("\n").length > 1) {return contents;}
         }
 
         doc = funcToDoc(name, t);
@@ -76,21 +76,21 @@ export function getContents(name: string, t: any) {
 
 function funcToDoc(name: string, t: any){
 
-    if (!(t instanceof Object)) return;
+    if (!(t instanceof Object)) {return;}
 
     let docs : string[] = [];
 
     if (t.args || typeof t["()"] === "function") {
         let args = t.args || "()";
-        let doc = "### " + name + " " + args
+        let doc = "### " + name + " " + args;
         docs.push(doc);
 
         let resArgs: string = t.resArgs;
         if (typeof resArgs === "string" && resArgs) {
-            docs.push("返回值：")
+            docs.push("返回值：");
             resArgs.split("\n").forEach(s=>{
                 s = "* " + s;
-                if (!docs.includes(s)) docs.push(s);
+                if (!docs.includes(s)) {docs.push(s);}
             });
         }
     }
@@ -101,12 +101,12 @@ function funcToDoc(name: string, t: any){
 
 function objectToDoc(name: string, t: any) {
 
-    if (!(t instanceof Object)) return;
+    if (!(t instanceof Object)) {return;}
 
     let docs: string[] = [];
 
     Object.keys(t).forEach(k=>{
-        if (k.startsWith("$")) return;
+        if (k.startsWith("$")) {return;}
         let v = t[k];
         if (v instanceof Object) {
             if (v.args || typeof v["()"] === "function") {

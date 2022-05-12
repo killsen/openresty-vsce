@@ -134,15 +134,15 @@ function splitName(name: string): string[] {
 /** ipairs 迭代 */
 function ipairs(t: any) {
 
-    if (!(t instanceof Object)) return;
+    if (!(t instanceof Object)) {return;}
 
     let ti = t["."];
     let ta = t["[]"];
 
-    if (!(ti instanceof Object)) ti = null;
-    if (!(ta instanceof Object)) ta = null;
+    if (!(ti instanceof Object)) {ti = null;}
+    if (!(ta instanceof Object)) {ta = null;}
 
-    if (!ti && !ta) return;
+    if (!ti && !ta) {return;}
 
     let i = 0;
 
@@ -155,14 +155,14 @@ function ipairs(t: any) {
             let v = ti[i];
             return v && [i, v] || null;
         }
-    }
+    };
 
 }
 
 /** pairs 迭代 */
 function pairs(t: any) {
 
-    if (!(t instanceof Object)) return;
+    if (!(t instanceof Object)) {return;}
 
     let arr: any = [];
 
@@ -172,7 +172,7 @@ function pairs(t: any) {
             // if (!k.startsWith("$")) {
                 arr.push([ "." + k, ti[k] ]);
             // }
-        })
+        });
     }
 
     let ta = t[":"];
@@ -181,7 +181,7 @@ function pairs(t: any) {
             // if (!k.startsWith("$")) {
                 arr.push([ ":" + k, ta[k] ]);
             // }
-        })
+        });
     }
 
     let i = -1;
@@ -190,7 +190,7 @@ function pairs(t: any) {
     return function() {
         i = i + 1;
         return arr[i];
-    }
+    };
 
 }
 

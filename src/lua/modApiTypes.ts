@@ -20,7 +20,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
         modFile = modFile.replace(".editing", "");
         modFile = "(file:"+ modFile +")";
     let modDocs : string[] = [];
-    if (mod.doc) modDocs.push(mod.doc);
+    if (mod.doc) {modDocs.push(mod.doc);}
 
     loadTypes(); // 加载全部类型
 
@@ -42,7 +42,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
             let apiDocs : string[] = [];
 
             let title = "### [" + modName + "]" + modFile + "." + name;
-            apiDocs.push(title)
+            apiDocs.push(title);
 
             apiDocs.push(desc);
             apiDocs.push("");
@@ -84,16 +84,16 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
             let doc = apiDocs.join("\n");
 
             if (isObject(req)) {
-                let doc = title + "\n#### 请求参数：\n" + req["doc"]
-                req = { ...req, doc }   // 克隆: 避免覆盖原类型的 doc
+                let doc = title + "\n#### 请求参数：\n" + req["doc"];
+                req = { ...req, doc };   // 克隆: 避免覆盖原类型的 doc
             }
 
             if (isObject(res)) {
-                let doc = title + "\n#### 返回参数：\n" + res["doc"]
-                res = { ...res, doc }   // 克隆: 避免覆盖原类型的 doc
+                let doc = title + "\n#### 返回参数：\n" + res["doc"];
+                res = { ...res, doc };   // 克隆: 避免覆盖原类型的 doc
             }
 
-            if (!req && !res) return;
+            if (!req && !res) {return;}
 
             REQ_TYPES[name] = req;
             RES_TYPES[name] = res;
@@ -158,7 +158,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
 
         let obj: any = {};
 
-        if (!isObject(t)) return obj;
+        if (!isObject(t)) {return obj;}
 
         let doc : string[] = [];
 
@@ -189,15 +189,15 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
                 if (typeof v === "string") {
 
                     v = v.split("//")[0].trim();
-                    if (!v) return;
+                    if (!v) {return;}
 
                     let p = genRefType("", v, typeName);  // 数字做序表示继承
-                    let pt = p && p["."]
+                    let pt = p && p["."];
 
                     if (isObject(pt)) {
                         Object.keys(pt).forEach(pk => {
                             obj[pk] = pt[pk];
-                        })
+                        });
                         doc.push("* 继承属性：`<" + v + ">`");
                     }
                     return;
@@ -211,7 +211,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
                         name = name.replace("?", "");
 
                         if (typeof type === "string") {
-                            if (desc && typeof desc === "string") type += "//" + desc;
+                            if (desc && typeof desc === "string") {type += "//" + desc;}
                             doc.push(genApiDoc(name, type));
                             obj[name] = genRefType(name, type, typeName);
                         } else if (isObject(type)) {
@@ -221,7 +221,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
                         }
 
                         // 变量定义的位置信息
-                        obj["$" + name + "$"] = t["$" + k + "$"]
+                        obj["$" + name + "$"] = t["$" + k + "$"];
                     }
 
                 }
@@ -242,7 +242,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
 
                     obj[name] = genType(type, typeName + "." + name);
 
-                    let typeDesc = type["1"]
+                    let typeDesc = type["1"];
                     if (typeof typeDesc === "string" && typeDesc.trim().startsWith("//")) {
                         typeDesc = "object " + typeDesc;
                     } else {
@@ -266,17 +266,17 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
     // 生成自定义类型代理
     function genTypeProxy(t: any, typeName: string) {
 
-        if (!isObject(t)) return {};
+        if (!isObject(t)) {return {};}
 
         let mod: any;
         let loaded  = false;
         let loading = false;
 
         function getMod() {
-            if (mod) return mod;
+            if (mod) {return mod;}
 
             // 避免自己继承自己或者相互继承死循环的问题
-            if (loading) return {};
+            if (loading) {return {};}
 
             loading = true;
             mod = genType(t, typeName) || {};
@@ -290,18 +290,18 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
         return new Proxy({}, {
             // 读
             get(target, prop) {
-                let m = getMod()
-                if (prop === "loaded") return loaded;
-                return m[prop]
+                let m = getMod();
+                if (prop === "loaded") {return loaded;}
+                return m[prop];
             },
             // 写
             set(target, prop, value) {
-                let m = getMod()
+                let m = getMod();
                 m[prop] = value;
                 return true;  // 返回 true 避免修改属性时抛出错误
             },
             ownKeys(target) {
-                let m = getMod()
+                let m = getMod();
                 return Object.keys(m);
             },
             getOwnPropertyDescriptor(k) {
@@ -310,7 +310,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
                     configurable: k !== "loaded",
                 };
             }
-        })
+        });
 
     }
 
@@ -318,7 +318,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
     function genRefType(key: string, name: string, typeName: string = "") {
 
         // 自定义类型命名: 兼容处理
-        name = name.replace("@", "")
+        name = name.replace("@", "");
 
         if (typeName && modName) {
             typeName = "### [" + modName + "]" + modFile + "." + typeName;
@@ -347,7 +347,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
 
         if (name.startsWith("$")) {
             let daoMod = lua.load(API_PATH, name);
-            if (daoMod) daoType = daoMod["$dao"];
+            if (daoMod) {daoType = daoMod["$dao"];}
         } else {
             userType = API_TYPES[name];
         }
@@ -355,11 +355,11 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
         if (userType) {
             // userType 使用 proxy 创建可解决自引用问题
             // userType 加载完成后才能解构 (即访问相关属性)
-            let userObj = userType
+            let userObj = userType;
 
             if (userType.loaded) {
                 doc = doc + "\n---\n" + userType.doc;   // 补上 userType 文档
-                userObj = { ... userObj, doc }
+                userObj = { ... userObj, doc };
             }
 
             if (isArray) {
@@ -381,7 +381,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
 
         } else {
 
-            return { doc }
+            return { doc };
 
         }
 
@@ -399,9 +399,9 @@ function genApiDoc(name: string, typeDesc: string, level: number = 0) {
         desc = desc.split(/[\:\：]/)[0].trim();
 
     // 自定义类型命名: 兼容处理
-    type = type.replace("@", "")
+    type = type.replace("@", "");
 
-    let span = "  ".repeat(level)
+    let span = "  ".repeat(level);
 
     if (name === "") {
         return "#### `<" + type + ">`";

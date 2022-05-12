@@ -133,11 +133,11 @@ export function loadNode(node: Node, _g: any): any {
                     if (res[i] instanceof Object && typeof res[i]["()"] === "function" ){
                         // 生成请求参数类型
                         let $$req = getValue(_g, "$$req");
-                        if ($$req && $$req[k]) res[i]["()"]["$$req"] = $$req[k];
+                        if ($$req && $$req[k]) {res[i]["()"]["$$req"] = $$req[k];}
 
                         // 生成返回值类型 v21.11.25
                         let $$res = getValue(_g, "$$res");
-                        if ($$res && $$res[k]) res[i]["()"]["$$res"] = $$res[k];
+                        if ($$res && $$res[k]) {res[i]["()"]["$$res"] = $$res[k];}
                     }
 
                     setChild(_g, t, n.indexer, k, res[i], n.identifier.loc);
@@ -148,7 +148,7 @@ export function loadNode(node: Node, _g: any): any {
                     let k = loadNode(n.index, _g);
                     let t = loadNode(n.base, _g);
 
-                    if (typeof k !== "string") return;
+                    if (typeof k !== "string") {return;}
 
                     let indexer = ".";
 
@@ -262,7 +262,7 @@ export function loadNode(node: Node, _g: any): any {
             if (iter) { // 迭代函数
                 while(1){
                     let res = iter(); // 执行迭代函数
-                    if (!(res instanceof Array)) break;
+                    if (!(res instanceof Array)) {break;}
                     runCount++;
                     node.variables.forEach((v, i)=>{
                         setValue(newG, v.name, res[i], true, v.loc);
@@ -287,7 +287,7 @@ export function loadNode(node: Node, _g: any): any {
             if (node === $$node) {
                 $$node.scope = _g; // 找到光标所在的位置
                 return function() {
-                    return { $$node } // 返回当前节点
+                    return { $$node }; // 返回当前节点
                 };
             } else {
                 return getValue(_g, node.name);
@@ -442,11 +442,11 @@ export function loadNode(node: Node, _g: any): any {
 
                         // 生成请求参数类型
                         let $$req = getValue(_g, "$$req");
-                        if ($$req && $$req[k]) fun["()"]["$$req"] = $$req[k];
+                        if ($$req && $$req[k]) {fun["()"]["$$req"] = $$req[k];}
 
                         // 生成返回值类型 v21.11.25
                         let $$res = getValue(_g, "$$res");
-                        if ($$res && $$res[k]) fun["()"]["$$res"] = $$res[k];
+                        if ($$res && $$res[k]) {fun["()"]["$$res"] = $$res[k];}
 
                         setChild(_g, t, ni.indexer, k, fun, ni.identifier.loc);
                         return;
@@ -488,7 +488,7 @@ export function loadNode(node: Node, _g: any): any {
                 } else {
                     $$node.scope = {};
                 }
-                return function() {}  // 返回空函数
+                return function() {};  // 返回空函数
             }
 
             if (t instanceof Object) {

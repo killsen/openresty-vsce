@@ -9,12 +9,12 @@ import { isObject } from './lua/utils';
 export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationToken) {
 
     let path = ngx.getPath(doc.fileName);
-    if (!path) return;
+    if (!path) {return;}
 
     let links = getModLink(doc, pos, [ /[$](\w+\.)*\w+/ ]) ||
                 getModLink(doc, pos, [ /['"]?[%#](\w+\.)*\w+(\[\])?['"]?/, /[%#](\w+\.)*\w+/ ]) ||
-                getModLink(doc, pos, [ /\b(_load|require)\s*\,?\s*\(?\s*["']\S+["']\s*\)?/, /(\w+\.)*\w+/ ])
-    if (links) return links;
+                getModLink(doc, pos, [ /\b(_load|require)\s*\,?\s*\(?\s*["']\S+["']\s*\)?/, /(\w+\.)*\w+/ ]);
+    if (links) {return links;}
 
     return getDefineLink(doc, pos);
 
@@ -24,25 +24,25 @@ export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationT
 function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) {
 
     let path = ngx.getPath(doc.fileName);
-    if (!path) return;
+    if (!path) {return;}
 
-    let range
+    let range;
     for (let regex of regexList) {
         range = doc.getWordRangeAtPosition(pos, regex);
-        if (!range) return;
+        if (!range) {return;}
     }
-    if (!range) return;     //不匹配则退出
+    if (!range) {return;}     //不匹配则退出
 
     let text = doc.getText(range);
     let file = ngx.getModFile(path, text);
 
-    if (!file) return [];   //文件不存在则返回空数组
+    if (!file) {return [];}   //文件不存在则返回空数组
 
     let link: LocationLink = {
         originSelectionRange: range,
         targetUri: Uri.file(file),
         targetRange: new Range(new Position(0, 0), new Position(0, 0)),
-    }
+    };
     return [link];
 
 }
@@ -51,7 +51,7 @@ function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) {
 export function getLinkText(doc: TextDocument, pos: Position, regx1: RegExp, regx2: RegExp, regx0?: RegExp) {
 
     let path = ngx.getPath(doc.fileName);
-    if (!path) return;
+    if (!path) {return;}
 
     if (regx0) {
         let r0 = doc.getWordRangeAtPosition(pos, regx0);
@@ -81,7 +81,7 @@ export function getLinkText(doc: TextDocument, pos: Position, regx1: RegExp, reg
 function getDefineLink(doc: TextDocument, pos: Position) {
 
     let path = ngx.getPath(doc.fileName);
-    if (!path) return;
+    if (!path) {return;}
 
     let t: any;
 
@@ -97,19 +97,19 @@ function getDefineLink(doc: TextDocument, pos: Position) {
         t = getDefine(doc, pos);
     }
 
-    if (!isObject(t)) return;
+    if (!isObject(t)) {return;}
 
     let file = t['$file'];
     if (typeof file === "string") {
         // 当前编辑中的文件
-        if (file.endsWith(".editing")) file = "";
+        if (file.endsWith(".editing")) {file = "";}
     }else{
         file = "";
     }
 
     let loc = t['$loc'];
 
-    if (!file && !loc) return;
+    if (!file && !loc) {return;}
 
     let targetRange = loc && new Range(
         new Position(loc['start']['line'] - 1, loc['start']['column']),
@@ -123,7 +123,7 @@ function getDefineLink(doc: TextDocument, pos: Position) {
         originSelectionRange: rangeSel,
         targetUri: Uri.file(file || doc.fileName),
         targetRange,
-    }
+    };
     return [link];
 
 }
