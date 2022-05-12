@@ -29,3 +29,29 @@
 * [VSCode插件开发全攻略](http://blog.haoji.me/vscode-plugin-overview.html)
 * [VS Code 插件开发文档](https://www.bookstack.cn/read/VS-Code-Extension-Doc-ZH/README.md)
 * [从零开始开发一款属于你的 Visual Studio Code 插件](https://www.bilibili.com/video/BV1CJ411v7CU/)
+
+## 快速开始
+
+```PowerShell
+
+# 克隆本仓库
+git clone git@gitee.com:sumdoo/openresty-vsce.git
+cd openresty-vsce
+
+# 清除文件
+# rimraf .\node_modules\
+# rimraf .\out\
+
+# 依赖安装
+yarn
+
+# 覆盖文件
+copy .\ast.d.ts   .\node_modules\@types\luaparse\lib\ast.d.ts
+
+# 监听文件并编译ts文件
+# yarn watch
+
+# 打包
+# yarn package
+
+```
