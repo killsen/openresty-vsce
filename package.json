@@ -6,9 +6,9 @@
 	"description": "",
 	"license": "MIT",
 	"private": true,
-	"version": "0.4.3",
+	"version": "1.0.0",
 	"engines": {
-		"vscode": "^1.50.0"
+		"vscode": "^1.67.0"
 	},
 	"categories": [
 		"Other"
@@ -16,7 +16,7 @@
 	"activationEvents": [
 		"onLanguage:lua"
 	],
-	"main": "./out/extension.js",
+	"main": "./out/main.js",
 	"contributes": {
 		"commands": [
 			{
@@ -30,28 +30,30 @@
 		]
 	},
 	"scripts": {
-		"vscode:prepublish": "yarn run compile",
-		"compile": "tsc -p ./",
+		"vscode:prepublish": "npm run esbuild-base -- --minify",
+		"esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
+		"esbuild": "npm run esbuild-base -- --sourcemap",
+		"esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+		"test-compile": "tsc -p ./",
 		"lint": "eslint src --ext ts",
-		"watch": "tsc -watch -p ./",
-		"pretest": "yarn run compile && yarn run lint",
-		"test": "node ./out/test/runTest.js",
-		"package": "yarn run vsce package"
+		"package": "pnpm vsce package --no-dependencies",
+		"publish": "pnpm vsce publish --no-dependencies"
 	},
 	"devDependencies": {
-		"@types/glob": "^7.1.3",
-		"@types/luaparse": "^0.2.6",
-		"@types/mocha": "^8.0.0",
-		"@types/node": "^12.11.7",
-		"@types/vscode": "^1.50.0",
-		"@typescript-eslint/eslint-plugin": "^4.1.1",
-		"@typescript-eslint/parser": "^4.1.1",
-		"eslint": "^7.9.0",
-		"glob": "^7.1.6",
-		"mocha": "^8.1.3",
-		"typescript": "^4.0.2",
+		"@types/vscode": "^1.67.0",
+		"@types/glob": "^7.2.0",
+		"@types/mocha": "^9.1.1",
+		"@types/node": "14.x",
+		"@typescript-eslint/eslint-plugin": "^5.21.0",
+		"@typescript-eslint/parser": "^5.21.0",
+		"eslint": "^8.14.0",
+		"glob": "^8.0.1",
+		"mocha": "^9.2.2",
+		"typescript": "^4.6.4",
+		"@vscode/test-electron": "^2.1.3",
 		"vsce": "^2.7.0",
-		"vscode-test": "^1.4.0"
+		"esbuild": "^0.14.39",
+		"@types/luaparse": "^0.2.6"
 	},
 	"dependencies": {
 		"luaparse": "^0.3.0"

@@ -14,7 +14,7 @@
     ],
     "extends": "eslint:recommended",
     "rules": {
-        "@typescript-eslint/naming-convention": "warn",
+        "@typescript-eslint/naming-convention": "off",
         "@typescript-eslint/semi": "warn",
         "curly": "warn",
         "eqeqeq": "warn",
@@ -22,5 +22,10 @@
         "semi": "off",
         "no-unused-vars": "off",
         "no-constant-condition": "off"
-    }
+    },
+    "ignorePatterns": [
+        "out",
+        "dist",
+        "**/*.d.ts"
+    ]
 }

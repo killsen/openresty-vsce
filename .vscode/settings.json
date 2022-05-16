@@ -12,7 +12,7 @@
 
     "editor.mouseWheelZoom": true,
 
-    "eslint.packageManager": "yarn",
+    "eslint.packageManager": "pnpm",
     "eslint.alwaysShowStatus": true,
     "editor.codeActionsOnSave": {
         "source.fixAll.eslint": true, // 开启自动保存修复

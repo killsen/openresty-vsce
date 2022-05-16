@@ -1,7 +1,10 @@
 
 _bk
 *.zip
+*.log
 *.vsix
 
-node_modules
 out
+dist
+node_modules
+.vscode-test/

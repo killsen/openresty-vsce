@@ -43,15 +43,15 @@ cd openresty-vsce
 # rimraf .\out\
 
 # 依赖安装
-yarn
+pnpm i
 
 # 覆盖文件
 copy .\ast.d.ts   .\node_modules\@types\luaparse\lib\ast.d.ts
 
 # 监听文件并编译ts文件
-# yarn watch
+# pnpm esbuild-watch
 
 # 打包
-# yarn package
+# pnpm package
 
 ```
