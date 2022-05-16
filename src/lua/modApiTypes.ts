@@ -396,7 +396,7 @@ function genApiDoc(name: string, typeDesc: string, level: number = 0) {
     let arr = typeDesc.split("//");
     let type = arr[0].trim();
     let desc = (arr[1] || "").trim();
-        desc = desc.split(/[\:\：]/)[0].trim();
+        desc = desc.split(/[:：]/)[0].trim();
 
     // 自定义类型命名: 兼容处理
     type = type.replace("@", "");

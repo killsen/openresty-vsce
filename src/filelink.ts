@@ -13,7 +13,7 @@ export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationT
 
     let links = getModLink(doc, pos, [ /[$](\w+\.)*\w+/ ]) ||
                 getModLink(doc, pos, [ /['"]?[%#](\w+\.)*\w+(\[\])?['"]?/, /[%#](\w+\.)*\w+/ ]) ||
-                getModLink(doc, pos, [ /\b(_load|require)\s*\,?\s*\(?\s*["']\S+["']\s*\)?/, /(\w+\.)*\w+/ ]);
+                getModLink(doc, pos, [ /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/, /(\w+\.)*\w+/ ]);
     if (links) {return links;}
 
     return getDefineLink(doc, pos);
@@ -91,7 +91,7 @@ function getDefineLink(doc: TextDocument, pos: Position) {
         let text = doc.getText(rangeSel).replace("@", "");
         let key  = "$" + text + "$";
         let mod  = loadModuleByCode(path, doc.getText());
-        let types = mod && mod["$types"] as any;
+        let types = mod && mod["$types"];
         t = types && types[key];
     } else {
         t = getDefine(doc, pos);

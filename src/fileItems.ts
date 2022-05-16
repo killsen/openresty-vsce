@@ -17,13 +17,13 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     // "%dd."
     let r0 = /['"]\S+['"]/;
-    let r1 = /[$%#@][\w\.]*/;
-    let r2 = /[$%#@\w\.]/;
+    let r1 = /[$%#@][\w.]*/;
+    let r2 = /[$%#@\w.]/;
     let text = getLinkText(doc, pos, r1, r2, r0);
 
     // -- @order : $pos_bi_order
     if (!text) {
-        let r0 = /\s*--\s*\@\w*\s*\:\s*[$@]\w*/;
+        let r0 = /\s*--\s*@\w*\s*:\s*[$@]\w*/;
         let r1 = /[$@]\w*/;
         let r2 = /[$@\w]/;
         text = getLinkText(doc, pos, r1, r2, r0);
@@ -37,7 +37,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     } else {
         // _load "%dd.load_data"
-        let r0 = /\b(_load|require)\s*\,?\s*\(?\s*["']\S+["']\s*\)?/;
+        let r0 = /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
         let text = getText(r0);
         if (!text) {return;}
 
@@ -47,8 +47,8 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
             modType = "require";
         }
 
-        let r1 = /[\w\-\.]*["']/;
-        let r2 = /[\w\-\.]/;
+        let r1 = /[\w\-.]*["']/;
+        let r2 = /[\w\-.]/;
         text = getLinkText(doc, pos, r1, r2, r0);
         if (!text || text.startsWith(".")) {return;}
         if (text.startsWith("lua")) {return;}
@@ -74,12 +74,14 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
             break;
 
         case "@":
+        {
             let mod = loadModuleByCode(path, doc.getText());
-            let types = mod && mod["$types"] as any;
+            let types = mod && mod["$types"];
             if (types) {
                 loadKeys(items, types, "", 0);
             }
             break;
+        }
 
         case "_load":
             loadItems(path.appPath, modPath);
@@ -163,6 +165,8 @@ function hasLuaFile(pPath: string) {
             }
         }
 
-    } catch (e) {}
+    } catch (e) {
+        // console.log(e);
+    }
 
 }

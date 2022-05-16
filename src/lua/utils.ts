@@ -172,7 +172,7 @@ export function parseComments(comments: Comment[] | undefined) {
         let arr = str.split(":");
         if (arr.length !== 2) {return;}
 
-        let name = arr[0].replace(/[\@\s]/g, "");
+        let name = arr[0].replace(/[@\s]/g, "");
         arr = arr[1].split("//");
         let value = arr[0].trim();
         desc = (arr[1] || "").trim();

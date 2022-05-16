@@ -22,7 +22,7 @@ export function getSignature(doc: TextDocument, pos: Position, tok: Cancellation
     const info = new SignatureInformation(args);
 
     if (args.startsWith("(")) {
-        let arr = args.replace(/[\(\)\s]/g, "").split(",");
+        let arr = args.replace(/[()\s]/g, "").split(",");
         info.parameters = arr.map(s=>{
             return new ParameterInformation(s);
         });

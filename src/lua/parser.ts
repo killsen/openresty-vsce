@@ -273,7 +273,7 @@ export function loadNode(node: Node, _g: any): any {
 
             // 一次都没有运行，跑一次代码
             if (runCount === 0) {
-                node.variables.forEach((v, i)=>{
+                node.variables.forEach(v => {
                     setValue(newG, v.name, null, true, v.loc);
                 });
                 loadBody(node.body, newG);
@@ -309,14 +309,16 @@ export function loadNode(node: Node, _g: any): any {
             }
 
         // 逻辑运算符表达式: "or" | "and"
-        case "LogicalExpression": {
-                let left = loadNode(node.left, _g);
-                let right = loadNode(node.right, _g);
-                switch (node.operator) {
-                    case "and":  return right;
-                    case "or":   return left;
-                }
+        case "LogicalExpression":
+        {
+            let left = loadNode(node.left, _g);
+            let right = loadNode(node.right, _g);
+            switch (node.operator) {
+                case "and":  return right;
+                case "or":   return left;
             }
+            break;
+        }
 
         // 二元运算符表达式: "+" | "-" | "*" | "%" | "^" | "/" | "//" | "&" | "|" | "~" |
         //                  "<<" | ">>" | ".." | "~=" | "=="  | "<" | "<=" | ">" | ">="
@@ -437,6 +439,7 @@ export function loadNode(node: Node, _g: any): any {
                         return;
 
                     case "MemberExpression":
+                    {
                         let k = ni.identifier.name;
                         let t = loadNode(ni.base, _g);
 
@@ -450,6 +453,7 @@ export function loadNode(node: Node, _g: any): any {
 
                         setChild(_g, t, ni.indexer, k, fun, ni.identifier.loc);
                         return;
+                    }
                 }
             }
 
@@ -512,12 +516,14 @@ export function loadNode(node: Node, _g: any): any {
 
                 switch (f.type) {
                     case "TableKey":           // 索引表达式 { [k] = v }
+                    {
                         let k = loadNode(f.key, _g);
                         if (k instanceof Array) { k = k[0]; } // 返回的可能是数组
                         if (typeof k === "string" || typeof k === "number") {
                             setChild(_g, t, ".", k, v, f.key.loc);
                         }
                         break;
+                    }
 
                     case "TableKeyString":      // 对象表达式 { k = v }
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);

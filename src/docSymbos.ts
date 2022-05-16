@@ -67,7 +67,8 @@ export function loadDocSymbols(doc: TextDocument, tok: CancellationToken) {
                     break;
 
                 case "LocalStatement":
-                case "AssignmentStatement":
+                case "AssignmentStatement": {
+
                     if (node.variables.length !== 1) { return; }
                     if (node.init.length !== 1) { return; }
                     if (node.init[0].type !== "FunctionDeclaration" ) { return; }
@@ -88,6 +89,8 @@ export function loadDocSymbols(doc: TextDocument, tok: CancellationToken) {
                             }
                             break;
                     }
+                    break;
+                }
 
                 default:
                     break;

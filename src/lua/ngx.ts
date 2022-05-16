@@ -41,7 +41,7 @@ export function getPath(fileName: string): NgxPath{
     let daoPath = appPath && _join(appPath, "dao") || '';
     let comPath = appPath && _join(appPath, "com") || '';
 
-    modName = modName.replace(/[\\\/]/g, ".");
+    modName = modName.replace(/[\\/]/g, ".");
 
     return {
         fileName,
@@ -64,7 +64,7 @@ export function getPath(fileName: string): NgxPath{
 
 /** 取得模块名称 */
 export function getModType(text: string) {
-    let m = /["']?([\$\#\%])?(([\w+\-]+\.)*[\w\-]+)["']?/.exec(text);
+    let m = /["']?([$#%])?(([\w+-]+\.)*[\w-]+)["']?/.exec(text);
     return {
         modType: m && m[1] || '',
         modName: m && m[2] || '',

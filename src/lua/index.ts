@@ -20,7 +20,7 @@ const LIBS = ["io", "os", "string", "table", "math",
 /** 加载模块(懒加载) */
 function load(path: NgxPath, name: string): LuaModule | undefined {
 
-    name = name.replace(/(\'|\")/g, "");
+    name = name.replace(/('|")/g, "");
     if (!name || !path.fileName || !path.ngxPath) {return;}
 
     let apiFile = getApiFile(path, name);
@@ -170,7 +170,9 @@ function loadNames (pPath: string) {
                 names.push(name);
             }
         });
-    } catch (e) {}
+    } catch (e) {
+        // console.log(e);
+    }
 
     return names;
 

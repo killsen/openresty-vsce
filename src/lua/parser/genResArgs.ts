@@ -47,12 +47,14 @@ export function genResArgs(body: luaparse.Statement[], resArgs?: string[]): stri
 
         switch (node.type) {
             case "ReturnStatement":
+            {
                 let res = genResArg(node);
                 if (res) {
                     res = "-> " + res;
                     if (!resArgs.includes(res)) {resArgs.push(res);}
                 }
                 break;
+            }
 
             case 'IfStatement':
                 node.clauses.forEach(n => {

@@ -1,12 +1,21 @@
 // Place your settings in this file to overwrite default and user settings.
 {
     "files.exclude": {
-        "out": false // set this to true to hide the "out" folder with the compiled JS files
+        "out": false, // set this to true to hide the "out" folder with the compiled JS files
     },
     "search.exclude": {
-        "out": true // set this to false to include "out" folder in search results
+        "out": true, // set this to false to include "out" folder in search results
+        "node_modules": true,
     },
     // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
     "typescript.tsc.autoDetect": "off",
-    "editor.mouseWheelZoom": true
+
+    "editor.mouseWheelZoom": true,
+
+    "eslint.packageManager": "yarn",
+    "eslint.alwaysShowStatus": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true, // 开启自动保存修复
+      },
+    "eslint.run": "onSave", // 也可以 "onType“，边写边检查
 }
