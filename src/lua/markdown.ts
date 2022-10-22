@@ -2,7 +2,7 @@
 import * as fs from 'fs';
 import { NgxPath } from './ngx';
 import { LuaLoc, LuaApiDocs } from './types';
-import { join as _join } from 'path';
+import { join as _join, dirname as _dirname } from 'path';
 import { setDepend } from "./modCache";
 
 // 以 === --- 作为标题
@@ -119,14 +119,14 @@ function loadDoc(fileMdDoc: string) {
 
 }
 
-export function loadDocs(path: NgxPath, name: string) {
+export function loadDocs(apiFile: string, name: string) {
 
 	// 检查路径是否存在
-    if (!path.apiPath || !name) { return; }
+    if (!apiFile || !name) { return; }
 
-    let apiFile = _join(path.apiPath, name + ".api");
-    let fileMD = _join(path.apiPath, name + ".md");
-    let fileEN = _join(path.apiPath, name + "_en.md");
+    let apiPath = _dirname(apiFile);
+    let fileMD  = _join(apiPath, `${ name }.md`);
+    let fileEN  = _join(apiPath, `${ name }._en.md`);
 
     /** 设置模块引用关系 */
     setDepend(apiFile, fileMD);

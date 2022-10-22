@@ -7,7 +7,7 @@ import { loadDocSymbols } from "./docSymbos";
 import { getSignature } from './signature';
 import { openrestyDebug, openrestyAction } from './command';
 
-const selector = [{ scheme: 'file', language: "lua", pattern: '**/nginx/**' }];
+const selector = [{ scheme: 'file', language: "lua" }];
 
 export function activate(context: vscode.ExtensionContext) {
 

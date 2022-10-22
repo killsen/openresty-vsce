@@ -75,14 +75,14 @@ function genApi(s: string): LuaApi | undefined {
 export function loadApiDoc(path: NgxPath, name: string){
 
     // 检查路径是否存在
-    let fileName = getApiFile(path, name);
-    if (!fileName) { return; }
+    let apiFile = getApiFile(path, name);
+    if (!apiFile) { return; }
 
-    let docs = loadDocs(path, name);
+    let docs = loadDocs(apiFile, name);
     let lines: string[] = [];
 
     try {
-        let data = fs.readFileSync(fileName);
+        let data = fs.readFileSync(apiFile);
         lines = data.toString().split("\n");
     } catch (e) {
         return;
