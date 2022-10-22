@@ -20,7 +20,7 @@
 
 ## 依赖 (Dependences)
 
-* [luaparse](https://github.com/oxyc/luaparse)
+* [luaparse](https://github.com/fstirlitz/luaparse)
 * [luacheck](https://github.com/mpeterv/luacheck)
 * [lua-fmt](https://github.com/trixnz/lua-fmt)
 
@@ -44,9 +44,6 @@ cd openresty-vsce
 
 # 依赖安装
 pnpm i
-
-# 覆盖文件
-copy .\ast.d.ts   .\node_modules\@types\luaparse\lib\ast.d.ts
 
 # 监听文件并编译ts文件
 # pnpm esbuild-watch
