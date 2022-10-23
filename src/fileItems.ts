@@ -2,17 +2,96 @@
 import * as vscode from 'vscode';
 import * as ngx from './lua/ngx';
 import { CompletionItem, CompletionItemKind } from 'vscode';
-import { join } from 'path';
+import { join as _join, basename as _basename, extname as _extname, parse as _parse } from 'path';
 import * as fs from 'fs';
 import { getLinkText } from './filelink';
 import { loadModuleByCode } from "./lua/modLoader";
 import { loadKeys } from './completion';
+
+function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Position) {
+
+    // require   "resty.http"
+    // require ( "resty.http" )
+    // pcall ( require, "resty.http" )
+
+    let regex1 = /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
+    let regex2 = /\w[\w.]*/;
+
+    let range1 = doc.getWordRangeAtPosition(pos, regex1);
+    if (!range1) {return;}
+
+    let range2 = doc.getWordRangeAtPosition(pos, regex2);
+    if (!range2) {return;}
+
+    let rang = new vscode.Range(range2.start, pos);
+    let name = doc.getText(rang);
+
+    name = name.trim().toLowerCase().replace(/\./g,"\\");
+    name = _parse(`${ name }.lua`).dir;
+
+    console.log("name -----------------> ", name);
+
+    let items = [] as CompletionItem[];
+    let paths = [] as string[];
+
+    function addPath(path = "") {
+        paths.push(_join(ngxPath, path, name));
+        paths.push(_join(ngxPath, "..", "lua_modules", path, name));
+    }
+
+    if (name === "resty" || name.startsWith("resty\\")) {
+        console.log("name!!!!!!!!", name);
+        addPath();
+    }
+
+    if (name === "app" || name.startsWith("app\\")) {
+        addPath();
+    }
+
+    addPath("clib"  );
+    addPath("lua"   );
+    addPath("lualib");
+
+    paths.forEach(pPath => {
+        try {
+            let files = fs.readdirSync(pPath, { withFileTypes: true });
+            files.forEach(f => {
+                if (f.isFile()) {
+                    let p = _parse(f.name);
+                    if (![".lua", ".dll", ".so"].includes(p.ext)) {return;}
+                    items.push({
+                        label: p.name,
+                        detail: p.base,
+                        kind : CompletionItemKind.File,
+                    });
+                } else {
+                    items.push({
+                        label: f.name,
+                        kind : CompletionItemKind.Folder,
+                        commitCharacters: ["."],
+                    });
+                }
+
+            });
+        } catch (error) {
+            //
+        }
+    });
+
+    return items;
+
+}
 
 /** 文件加载补全 */
 export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, tok: vscode.CancellationToken) {
 
     // 取得nginx路径
     let path = ngx.getPath(doc.fileName);
+    if (!path.ngxPath) {return;}
+
+    let files = requireFiles(path.ngxPath, doc, pos);
+    if (files) {return files;}
+
     if (!path.appPath) {return;}
 
     // "%dd."
@@ -102,7 +181,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     function loadItems(...path: string[]) {
 
-        let pPath = join(...path);
+        let pPath = _join(...path);
         let files;
 
         try {
@@ -114,7 +193,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         files.forEach(name => {
             if (name === "_bk" || name.startsWith(".")) {return;}
 
-            let fPath = join(pPath, name);
+            let fPath = _join(pPath, name);
             let fStat = fs.statSync(fPath);
 
             // 含有 lua 文件的目录
@@ -158,7 +237,7 @@ function hasLuaFile(pPath: string) {
         let files = fs.readdirSync(pPath);
 
         for (const name of files) {
-            let fPath = join(pPath, name);
+            let fPath = _join(pPath, name);
             let fStat = fs.statSync(fPath);
             if (fStat.isFile() && name.endsWith(".lua")) {
                 return true;

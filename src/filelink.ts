@@ -13,7 +13,7 @@ export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationT
 
     let links = getModLink(doc, pos, [ /[$](\w+\.)*\w+/ ]) ||
                 getModLink(doc, pos, [ /['"]?[%#](\w+\.)*\w+(\[\])?['"]?/, /[%#](\w+\.)*\w+/ ]) ||
-                getModLink(doc, pos, [ /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/, /(\w+\.)*\w+/ ]);
+                getModLink(doc, pos, [ /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/, /[\w.-]+/ ]);
     if (links) {return links;}
 
     return getDefineLink(doc, pos);

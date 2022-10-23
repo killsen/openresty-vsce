@@ -40,7 +40,14 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
             }
 
                 loadFiles (". resty . "  , path.ngxPath + "/resty/", `require "resty.`);
+                loadFiles (". resty . "  , path.ngxPath + "/lua/resty/", `require "resty.`);
                 loadFiles (". resty . "  , path.ngxPath + "/lualib/resty/", `require "resty.`);
+
+                if (path.rootPath) {
+                    loadFiles (". resty . "  , path.rootPath + "/lua_modules/resty/", `require "resty.`);
+                    loadFiles (". resty . "  , path.rootPath + "/lua_modules/lua/resty/", `require "resty.`);
+                    loadFiles (". resty . "  , path.rootPath + "/lua_modules/lualib/resty/", `require "resty.`);
+                }
 
                 addClibItem("lfs");
                 addClibItem("cjson");
