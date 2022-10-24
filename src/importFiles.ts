@@ -21,6 +21,7 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
     switch (textLine.text) {
         case "#":
             path.appPath && loadFiles ("# ", path.utiPath, `_load "#`);
+            path.appPath && loadFiles ("# ", path.utiPathX, `_load "#`);
             break;
         case "$":
             path.appPath && loadFiles ("$ ", path.daoPath, `_load "$`);
@@ -28,6 +29,7 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
         case "%":
             path.appPath && loadFiles ("% ", path.comPath, `_load "%`);
             path.appPath && loadFiles ("% ", path.libPath, `_load "%`);
+            path.appPath && loadFiles ("% ", path.libPathX, `_load "%`);
             break;
 
         case ".":
@@ -35,7 +37,9 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
                 loadFiles (". dao   $ "  , path.daoPath, `_load "$`);
                 loadFiles (". com   % "  , path.comPath, `_load "%`);
                 loadFiles (". lib   % "  , path.libPath, `_load "%`);
+                loadFiles (". lib   % "  , path.libPathX, `_load "%`);
                 loadFiles (". utils # "  , path.utiPath, `_load "#`);
+                loadFiles (". utils # "  , path.utiPathX, `_load "#`);
                 loadFiles (". api   . "  , path.appPath + "/api/", `_load "api.`);
             }
 
@@ -43,11 +47,9 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
                 loadFiles (". resty . "  , path.ngxPath + "/lua/resty/", `require "resty.`);
                 loadFiles (". resty . "  , path.ngxPath + "/lualib/resty/", `require "resty.`);
 
-                if (path.rootPath) {
-                    loadFiles (". resty . "  , path.rootPath + "/lua_modules/resty/", `require "resty.`);
-                    loadFiles (". resty . "  , path.rootPath + "/lua_modules/lua/resty/", `require "resty.`);
-                    loadFiles (". resty . "  , path.rootPath + "/lua_modules/lualib/resty/", `require "resty.`);
-                }
+                loadFiles (". resty . "  , path.rootPath + "/lua_modules/resty/", `require "resty.`);
+                loadFiles (". resty . "  , path.rootPath + "/lua_modules/lua/resty/", `require "resty.`);
+                loadFiles (". resty . "  , path.rootPath + "/lua_modules/lualib/resty/", `require "resty.`);
 
                 addClibItem("lfs");
                 addClibItem("cjson");

@@ -146,10 +146,12 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         case "%":
             loadItems(path.comPath, modPath);
             loadItems(path.libPath, modPath);
+            loadItems(path.libPathX, modPath);
             break;
 
         case "#":
             loadItems(path.utiPath, modPath);
+            loadItems(path.utiPathX, modPath);
             break;
 
         case "@":

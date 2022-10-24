@@ -8,7 +8,9 @@ import * as fs   from 'fs';
 export interface NgxPath {
     fileName: string;       // d:\openresty\nginx\app\pos\api\demo.lua
 
-    rootPath: string;
+    rootPath: string;       // d:\openresty\
+    libPathX: string;       // d:\openresty\lua_modules\app\lib\
+    utiPathX: string;       // d:\openresty\lua_modules\app\utils\
 
     ngxPath : string;	    // d:\openresty\nginx\
     apiPath : string;       // d:\openresty\nginx\api\
@@ -45,16 +47,23 @@ function getRootPath(p1: string): string {
 export function getPath(fileName: string): NgxPath{
 
     let rootPath = getRootPath(fileName);
-    console.log("rootPath: ", rootPath);
+    // console.log("rootPath: ", rootPath);
 
     let m = /(.*\\nginx\\).+\.lua/.exec(fileName);
 
     let ngxPath = m && m[1] || '';
-    if (rootPath) {ngxPath = _join(rootPath, "nginx");}
+    if (rootPath) {
+        ngxPath = _join(rootPath, "nginx");
+    } else if (ngxPath) {
+        rootPath = _join(ngxPath, "..");
+    }
 
     let apiPath = ngxPath && _join(ngxPath, "api") || '';
     let libPath = ngxPath && _join(ngxPath, "app", "lib") || '';
     let utiPath = ngxPath && _join(ngxPath, "app", "utils") || '';
+
+    let libPathX = rootPath && _join(rootPath, "lua_modules", "app", "lib") || '';
+    let utiPathX = rootPath && _join(rootPath, "lua_modules", "app", "utils") || '';
 
     m = /(.*\\nginx\\app\\(\w+)\\)(.+)\.lua/.exec(fileName);
 
@@ -69,9 +78,12 @@ export function getPath(fileName: string): NgxPath{
 
     return {
         fileName,
-        rootPath,
         modType : "",
         modName,
+
+        rootPath,       // d:\openresty\
+        libPathX,       // d:\openresty\lua_modules\app\lib\
+        utiPathX,       // d:\openresty\lua_modules\app\utils\
 
         ngxPath,	    // d:\openresty\nginx\
         apiPath,        // d:\openresty\nginx\api\
@@ -187,10 +199,12 @@ export function getModFile(path: NgxPath, name: string) {
             files.push(_join(appPath, "com", apiFile));
             files.push(_join(appPath, "com", modFile));
             files.push(_join(ngxPath, "app", "lib", modFile));
+            files.push(_join(rootPath, "lua_modules",  "app", "lib", modFile));
         }
 
     } else if (modType === "#") {
         files.push(_join(ngxPath,  "app", "utils", modFile));
+        files.push(_join(rootPath, "lua_modules",  "app", "utils", modFile));
 
     } else {
         if (appPath) {
