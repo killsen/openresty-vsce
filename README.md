@@ -17,3 +17,8 @@
 
 * [luaparse](https://github.com/fstirlitz/luaparse)
 * [luacheck](https://github.com/mpeterv/luacheck)
+
+## 截图 (Screenshots)
+
+![screenshots](https://raw.githubusercontent.com/killsen/openresty-vsce/master/images/screenshots.png)
+
