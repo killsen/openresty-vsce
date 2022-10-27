@@ -1,0 +1,23 @@
+
+-- Nonblocking Lua MySQL driver library for ngx_lua or OpenResty
+-- https://github.com/openresty/lua-resty-mysql
+
+require("resty.mysql")                          -> mysql
+
+mysql:new()                                     -> db, err
+
+db:set_timeout(time)
+db:set_compact_arrays(boolean)
+db:server_ver()                                 -> str
+db:set_keepalive(max_idle_timeout, pool_size)   -> ok, err
+db:get_reused_times()                           -> times, err
+
+db:close()                                      -> ok, err
+db:send_query(query)                            -> bytes, err
+
+db:connect(options)                             -> ok,  err, errcode, sqlstate
+
+db:read_result()                                -> res, err, errcode, sqlstate
+db:read_result(nrows)                           -> res, err, errcode, sqlstate
+db:query(query)                                 -> res, err, errcode, sqlstate
+db:query(query, nrows)                          -> res, err, errcode, sqlstate

@@ -1,0 +1,33 @@
+
+lfs
+
+lfs.attributes(filepath[, aname])  -> attr
+lfs.symlinkattributes (filepath[, aname])  -> attr
+
+    attr
+    attr.dev
+    attr.ino
+    attr.mode
+    attr.nlink
+    attr.uid
+    attr.gid
+    attr.rdev
+    attr.access
+    attr.modification
+    attr.change
+    attr.size
+    attr.permissions
+--  attr.blocks
+--  attr.blksize
+
+lfs.chdir (path)
+lfs.currentdir ()
+lfs.dir (path)
+lfs.link (old, new[, symlink])
+lfs.lock (filehandle, mode[, start[, length]])
+lfs.lock_dir(path, [seconds_stale])
+lfs.mkdir (dirname)
+lfs.rmdir (dirname)
+lfs.setmode (file, mode)
+lfs.touch (filepath [, atime [, mtime]])
+lfs.unlock (filehandle[, start[, length]])

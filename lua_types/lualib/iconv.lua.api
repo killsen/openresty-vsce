@@ -1,0 +1,42 @@
+
+-- Lua-iconv: performs character set conversions in Lua
+-- (c) 2005-11 Alexandre Erwin Ittner <alexandre@ittner.com.br>
+-- Project page: http://ittner.github.com/lua-iconv/
+
+local iconv = {
+	VERSION          = "iconv 7"
+,	ERROR_NO_MEMORY  = 1
+,	ERROR_INVALID    = 2
+,	ERROR_INCOMPLETE = 3
+,	ERROR_UNKNOWN    = 4
+,   ERROR_FINALIZED  = 5
+}
+
+local converter = {}
+
+-- Converts the 'str' string to the desired charset
+function converter:iconv(str)
+
+    local nstr, err
+
+    if err == 1 then return nil, ERROR_NO_MEMORY  end
+    if err == 2 then return nil, ERROR_INVALID    end
+    if err == 3 then return nil, ERROR_INCOMPLETE end
+    if err == 4 then return nil, ERROR_UNKNOWN    end
+    if err == 5 then return nil, ERROR_FINALIZED  end
+
+    return nstr, err
+
+end
+
+-- Opens a new conversion descriptor
+function iconv.new(to, from)
+    return converter, err
+end
+
+-- Opens a new conversion descriptor
+function iconv.open(to, from)
+    return converter, err
+end
+
+return iconv

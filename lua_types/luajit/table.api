@@ -1,0 +1,7 @@
+
+table
+table.concat(t[,sep[,i[,j]]])
+table.insert(t,[pos,]value)
+table.maxn(t)
+table.remove(t[,pos])
+table.sort(t[,comp])

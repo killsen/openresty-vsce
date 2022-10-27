@@ -1,0 +1,36 @@
+
+dao
+
+dao.table_name                  -- 表名
+dao.table_desc                  -- 描述
+dao.table_index                 -- 索引
+dao.field_list  -> field[]      -- 字段列表
+
+    field.name                  -- 名称
+    field.desc                  -- 描述
+    field.type                  -- 类型
+    field.def                   -- 默认值
+    field.len                   -- 长度
+    field.pk                    -- 主键
+
+dao.create()    -> ok, err      -- 创建表
+dao.drop()      -> ok, err      -- 删除表
+dao.clear()     -> ok, err      -- 清空表
+
+dao.new  (data)         -> row          -- 创建数据
+
+dao.add  (data)         -> ok, err      -- 增
+dao.del  (where)        -> ok, err      -- 删
+dao.set  (where{data})  -> ok, err      -- 改
+dao.get  (where)        -> row, err     -- 查询一条数据
+dao.list (where)        -> row[], err   -- 查询多条数据
+
+dao:create()    -> sql          -- 创建表
+dao:drop()      -> sql          -- 删除表
+dao:clear()     -> sql          -- 清空表
+
+dao:add  (data)         -> ok, err      -- 增
+dao:del  (where)        -> ok, err      -- 删
+dao:set  (where{data})  -> ok, err      -- 改
+dao:get  (where)        -> row[], err   -- 查询一条数据
+dao:list (where)        -> row[], err   -- 查询多条数据

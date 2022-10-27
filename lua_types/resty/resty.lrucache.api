@@ -1,0 +1,15 @@
+
+-- Lua-land LRU cache based on the LuaJIT FFI.
+-- https://github.com/openresty/lua-resty-lrucache
+
+require("resty.lrucache")                       -> lrucache
+
+lrucache.new(max_items [, load_factor])         -> cache, err
+
+cache:set(key, value, ttl?, flags?)
+cache:get(key)                                  -> data, stale_data, flags
+cache:delete(key)
+cache:count()                                   -> count
+cache:capacity()                                -> size
+cache:get_keys(max_count?, res?)                -> keys
+cache:flush_all()

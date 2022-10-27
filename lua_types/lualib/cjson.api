@@ -1,0 +1,19 @@
+
+-- lua-cjson - Fast JSON encoding/parsing
+-- https://github.com/openresty/lua-cjson
+
+require("cjson")                                -> cjson
+require("cjson.safe")                           -> cjson
+
+cjson.decode(json_text)                         -> value
+cjson.encode(value)                             -> json_text
+
+cjson.encode_number_precision(precision)
+cjson.encode_escape_forward_slash(enabled)
+cjson.decode_array_with_array_mt(enabled)
+
+cjson.encode_empty_table_as_object(enabled)
+cjson.empty_array
+cjson.array_mt
+cjson.empty_array_mt
+cjson.null

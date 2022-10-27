@@ -1,0 +1,31 @@
+
+io
+io.close(file?)                         -- 关闭默认的输出文件
+io.flush()                              -- 输出所有缓冲中的内容到默认输出文件
+
+io.input()                              -- 返回当前的默认输入文件
+io.input(filename)                      -- 打开指定名字的文件为默认输入文件
+io.input(file)                          -- 将指定文件句柄设为默认输入文件
+
+io.output()                             -- 返回当前的默认输出文件
+io.output(filename)                     -- 打开指定名字的文件为默认输出文件
+io.output(file)                         -- 将指定文件句柄设为默认输出文件
+
+io.lines(filename?)                     -- 打开文件并返回按行读取的迭代函数
+
+io.open(filename, mode?)  -> file       -- 按指定的模式[rwa+b]打开一个文件
+io.openx(filename, mode?) -> file       -- 按指定的模式[rwa+b]打开一个文件
+io.popen(prog, mode?)                   -- 开始程序prog于额外的进程
+io.read(...)                            -- 相当于io.input():read
+io.tmpfile()                            -- 返回一个临时文件句柄
+io.type(obj)                            -- 检测obj是否一个可用的文件句柄
+io.write(...)                           -- 相当于io.output():write
+
+file                                    -- 文件对象
+file:close()                            -- 关闭文件
+file:flush()                            -- 向文件写入缓冲中的所有数据
+file:lines()                            -- 返回按行读取的迭代函数
+file:read(...)                          -- 按指定的格式读取一个文件
+file:seek(whence?, offset?)             -- 设置和获取当前文件位置
+file:setvbuf(mode, size?)               -- 设置输出文件的缓冲模式
+file:write(...)                         -- 按指定的参数格式输出文件内容

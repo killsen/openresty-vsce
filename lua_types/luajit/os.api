@@ -1,0 +1,13 @@
+
+os
+os.clock()
+os.date([format[,time]])
+os.difftime(t2,t1)
+os.execute([command])
+os.exit([code])
+os.getenv(varname)
+os.remove(filename)
+os.rename(oldname,newname)
+os.setlocale(locale[,category])
+os.time([table])
+os.tmpname()

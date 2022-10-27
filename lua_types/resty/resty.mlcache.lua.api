@@ -1,0 +1,60 @@
+
+-- lua-resty-mlcache
+-- Fast and automated layered caching for OpenResty.
+-- https://github.com/thibaultcha/lua-resty-mlcache
+
+local mlcache = {}
+local cache = {}
+local bulk = {}
+
+function mlcache.new(name, shm, opts)
+    return cache
+end
+
+function mlcache.new_bulk(n_lookups)
+    return bulk
+end
+
+function bulk:add(key, opts, callback)
+
+end
+
+function mlcache.each_bulk_res(res)
+    return iter, res, i
+end
+
+function cache:get(key, opts, callback, ...)
+    local value, err = callback(...)
+    return value, err, hit_level
+end
+
+function cache:get_bulk(bulk, opts)
+    return res, err
+end
+
+-- 读取缓存
+function cache:peek(key, stale)
+    return ttl, err, value
+end
+
+-- 修改缓存
+function cache:set(key, opts, value)
+    return ok, err
+end
+
+-- 删除缓存
+function cache:delete(key)
+    return ok, err
+end
+
+-- 清空缓存
+function cache:purge(flush_expired)
+    return ok, err
+end
+
+-- 更新缓存
+function cache:update(timeout)
+    return ok, err
+end
+
+return mlcache

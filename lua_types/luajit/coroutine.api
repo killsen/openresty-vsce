@@ -1,0 +1,8 @@
+
+coroutine
+coroutine.create(f)
+coroutine.resume(co[,val1,...])
+coroutine.running()
+coroutine.status(co)
+coroutine.wrap(f)
+coroutine.yield(...)

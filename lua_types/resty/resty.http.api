@@ -1,0 +1,41 @@
+
+-- Lua HTTP client cosocket driver for OpenResty / ngx_lua.
+-- https://github.com/ledgetech/lua-resty-http
+
+require("resty.http")                           -> http
+
+http.new()                                      -> httpc
+
+-- Connection
+httpc:connect(host, port, options_table?)                                   -> ok, err
+httpc:connect_proxy(proxy_uri, scheme, host, port, proxy_authorization)     -> ok, err
+httpc:set_timeout(time)                                                     ->
+httpc:set_timeouts(connect_timeout, send_timeout, read_timeout)             ->
+httpc:ssl_handshake(session, host, verify)                                  -> session, err
+httpc:set_keepalive(max_idle_timeout, pool_size)                            -> ok, err
+httpc:set_proxy_options(opts)                                               ->
+httpc:get_reused_times()                                                    -> times, err
+httpc:close()                                                               -> ok, err
+
+-- Requesting
+httpc:request(params)               -> res, err
+httpc:request_uri(uri, params)      -> res, err
+httpc:request_pipeline(params)      -> responses, err
+
+-- Response
+res.status
+res.reason
+res.headers
+res.has_body
+res.body_reader(bytes?)             -> chunk, err
+res:read_body()                     -> body, err
+res:read_trailers()                 ->
+
+-- Proxy
+httpc:proxy_request(request_body_chunk_size?) -> res, err
+httpc:proxy_response(res, chunksize?) ->
+
+-- Utility
+httpc:parse_uri(uri, query_in_path?)                -> { scheme, host, port, path, query }
+httpc:get_client_body_reader(chunksize?, sock?)     -> reader, err
+reader(bytes?)                                      -> chunk, err

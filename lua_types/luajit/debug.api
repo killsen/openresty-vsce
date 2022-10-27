@@ -1,0 +1,37 @@
+
+debug
+
+debug.debug()               -- 进入一个用户交互模式
+debug.getfenv(obj)          -- 返回对象的环境变量
+
+debug.gethook()             -> hook, mask, count
+debug.gethook(thread)       -> hook, mask, count
+
+debug.getinfo(thread, f, what?)
+debug.getinfo(f, what?)
+
+debug.getlocal(level, local)
+debug.getlocal(thread, level, local)
+
+debug.getmetatable(obj)                     -- 返回元表
+debug.getregistry()                         -- 返回注册表
+debug.getupvalue(func, up)   -> value       -- 取得函数第up个上值
+debug.getuservalue(u)
+debug.setfenv(obj, tbl)
+
+debug.sethook(hook, mask, count?)           -- 设为钩子函数
+debug.sethook(thread, hook, mask, count?)   -- 设为钩子函数
+
+debug.setlocal(level, local, value)
+debug.setlocal(thread, level, local, value)
+
+debug.setmetatable(obj, tbl)
+debug.setupvalue(func, up, value)           -- 设为函数第up个上值
+debug.setuservalue(udata, value)
+
+debug.traceback(thread)
+debug.traceback(thread, message, level?)
+debug.traceback(message, level?)
+
+debug.upvalueid(f, n)
+debug.upvaluejoin(f1, n1, f2, n2)

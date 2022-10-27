@@ -1,0 +1,11 @@
+
+-- lua-resty-lock - Simple shm-based nonblocking lock API
+-- https://github.com/openresty/lua-resty-lock
+
+require("resty.lock")                           -> lock
+
+lock:new(dict_name, opts?)                      -> obj, err
+
+obj:lock(key)                                   -> elapsed, err
+obj:unlock()                                    -> ok, err
+obj:expire(timeout)                             -> ok, err

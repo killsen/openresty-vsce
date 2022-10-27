@@ -1,0 +1,27 @@
+
+-- ffi.* API Functions
+-- https://luajit.org/ext_ffi_api.html
+
+ffi
+
+ffi.C
+ffi.os
+ffi.arch
+
+ffi.new()
+ffi.cdef(def)
+
+ffi.load(name [,global])            -> clib
+ffi.new(ct [,nelem] [,init...])     -> cdata
+ffi.typeof(ct)                      -> ctype
+ffi.cast(ct, init)                  -> cdata
+ffi.metatype(ct, metatable)         -> ctype
+ffi.gc(cdata, finalizer)            -> cdata
+ffi.sizeof(ct [,nelem])             -> size
+ffi.alignof(ct)                     -> align
+ffi.istype(ct, obj)                 -> boolean
+ffi.errno([newerr])                 -> err
+ffi.string(ptr [,len])              -> string
+ffi.copy(dst, src [,len])
+ffi.fill(dst, len [,c])
+ffi.abi(param)                      -> boolean

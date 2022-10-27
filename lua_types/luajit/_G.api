@@ -1,0 +1,61 @@
+
+and                                         -- 关键字
+break                                       -- 关键字
+do                                          -- 关键字
+else                                        -- 关键字
+elseif                                      -- 关键字
+end                                         -- 关键字
+false                                       -- 关键字
+for                                         -- 关键字
+function                                    -- 关键字
+if                                          -- 关键字
+in                                          -- 关键字
+local                                       -- 关键字
+nil                                         -- 关键字
+not                                         -- 关键字
+or                                          -- 关键字
+repeat                                      -- 关键字
+return                                      -- 关键字
+then                                        -- 关键字
+true                                        -- 关键字
+until                                       -- 关键字
+while                                       -- 关键字
+
+ngx                                         -- ngx 库
+ndk                                         -- ndk 库
+coroutine                                   -- 协程库
+debug                                       -- 调试库
+io                                          -- 读写库
+math                                        -- 数学库
+os                                          -- 系统库
+package                                     -- 模块库
+string                                      -- 字符库
+table                                       -- 表库
+
+assert(v, message?)                         -- 断言
+collectgarbage(opt?, arg?)                  -- 垃圾回收
+dofile(filename?)                           -- 执行文件
+error(message, level?)                      -- 抛出错误信息
+getfenv(f?)                                 -- 取得环境变量
+getmetatable(t)                             -- 取得元表
+ipairs(t)                                   -- 遍历数组
+load(func, chunkname?)
+loadfile(filename?)                         -- 加载文件
+loadstring(string, chunkname?)              -- 加载代码
+module(name, ···)                           -- 模块定义
+next(t, index?)
+pairs(t)                                    -- 遍历表
+pcall(f, arg1, ···)                         -- 调用
+print(···)                                  -- 打印输出
+rawequal(v1, v2)
+rawget(t, index)                            -- 原始取值
+rawset(t, index, value)                     -- 原始赋值
+require(modname)                            -- 加载模块
+select(index, ···)
+setfenv(f, t)                               -- 设置环境变量
+setmetatable(t, mt)                         -- 设置元表
+tonumber(e, base?)                          -- 转数字
+tostring(e)                                 -- 转字符串
+type(v)                                     -- 变量类型
+unpack(list, i?, j?)                        -- 拆开数组
+xpcall(f, err)                              -- 调用

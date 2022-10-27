@@ -1,0 +1,69 @@
+
+-- LuaDate v2.1
+-- https://github.com/iorichina/dateModuleForOpenresty
+-- http://tieske.github.io/date/
+
+require("resty.date")                                           -> date
+
+date(...)                                                       -> dateObject
+date.new(...)                                                   -> dateObject
+
+date.epoch()                                                    -> dateObject
+date.isleapyear(var_year)                                       -> boolean
+
+date.diff(var_date1, var_date2)                                 -> dateObject
+
+dateObject:spandays()                                           -> number
+dateObject:spanhours()                                          -> number
+dateObject:spanminutes()                                        -> number
+dateObject:spanseconds()                                        -> number
+dateObject:spanticks()                                          -> number
+
+
+dateObject:copy()                                               -> dateObject
+dateObject:fmt(str_code)                                        -> string
+dateObject:tolocal()                                            -> dateObject
+dateObject:toutc()                                              -> dateObject
+
+dateObject:addyears(int_years)                                  -> dateObject
+dateObject:addmonths(int_months)                                -> dateObject
+dateObject:adddays(int_days)                                    -> dateObject
+dateObject:addhours(num_hours)                                  -> dateObject
+dateObject:addminutes(num_minutes)                              -> dateObject
+dateObject:addseconds(num_sec)                                  -> dateObject
+dateObject:addticks(num_ticks)                                  -> dateObject
+
+dateObject:getyear()                                            -> number
+dateObject:getmonth()                                           -> number
+dateObject:getday()                                             -> number
+dateObject:gethours()                                           -> number
+dateObject:getminutes()                                         -> number
+dateObject:getseconds()                                         -> number
+dateObject:getticks()                                           -> number
+
+dateObject:getdate()                                            -> year, month, day
+dateObject:gettime()                                            -> hour, minute, second, tick
+
+dateObject:getyearday()                                         -> number
+dateObject:getweeknumber()                                      -> number
+dateObject:getweekday()                                         -> number
+
+dateObject:getisoyear()                                         -> number
+dateObject:getisoweeknumber()                                   -> number
+dateObject:getisoweekday()                                      -> number
+
+dateObject:getbias()                                            -> number
+dateObject:getclockhour()                                       -> number
+dateObject:getfracsec()                                         -> number
+
+dateObject:setyear(int_year, var_month, int_mday)               -> dateObject
+dateObject:setmonth(var_month, int_mday)                        -> dateObject
+dateObject:setday(int_mday)                                     -> dateObject
+dateObject:sethours(num_hour, num_min, num_sec, num_ticks)      -> dateObject
+dateObject:setminutes(num_min, num_sec, num_ticks)              -> dateObject
+dateObject:setseconds(num_sec, num_ticks)                       -> dateObject
+dateObject:setticks(num_ticks)                                  -> dateObject
+
+dateObject:setisoyear(int_year, int_week, int_wday)             -> dateObject
+dateObject:setisoweeknumber(int_week, int_wday)                 -> dateObject
+dateObject:setisoweekday(int_wday)                              -> dateObject
