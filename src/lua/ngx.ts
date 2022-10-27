@@ -4,6 +4,7 @@ import { join as _join } from 'path';
 import { watchFile } from "./modCache";
 import * as path from 'path';
 import * as fs   from 'fs';
+import * as vscode from 'vscode';
 
 export interface NgxPath {
     fileName: string;       // d:\openresty\nginx\app\pos\api\demo.lua
@@ -75,6 +76,16 @@ export function getPath(fileName: string): NgxPath{
         ngxPath = _join(rootPath, "nginx");
     } else if (ngxPath) {
         rootPath = _join(ngxPath, "..");
+    } else {
+        let folders = vscode.workspace.workspaceFolders;
+        let folder = folders && folders[0];
+        if (folder) {
+            // 使用单第一个工作区目录
+            ngxPath = rootPath = folder.uri.fsPath;
+        } else {
+            // 使用当前文件所在的目录
+            ngxPath = rootPath = path.dirname(fileName);
+        }
     }
 
     let apiPath = ngxPath && _join(ngxPath, "api") || '';
@@ -148,6 +159,14 @@ export function getApiFile(path: NgxPath, name: string) {
         files.push(_join(rootPath, "lua_types", "resty", apiFile));
     }
 
+    {   // 使用插件内置 lua_types api 声明文件
+        files.push(_join(__dirname, "..", "lua_types", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "luajit", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "lualib", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "ngx", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "resty", apiFile));
+    }
+
     for (let file of files) {
         if (_exist(file)) { return file; }
     }
@@ -175,6 +194,14 @@ export function getLuaApiFile(path: NgxPath, name: string) {
         files.push(_join(rootPath, "lua_types", "lualib", apiFile));
         files.push(_join(rootPath, "lua_types", "ngx", apiFile));
         files.push(_join(rootPath, "lua_types", "resty", apiFile));
+    }
+
+    {   // 使用插件内置 lua_types api 声明文件
+        files.push(_join(__dirname, "..", "lua_types", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "luajit", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "lualib", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "ngx", apiFile));
+        files.push(_join(__dirname, "..", "lua_types", "resty", apiFile));
     }
 
     for (let file of files) {
