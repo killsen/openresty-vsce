@@ -2,15 +2,12 @@
 
 ## 功能 (Features)
 
-* 支持 require 文件跳转
-* 支持 _load 文件跳转
-* 支持变量定义跳转
-* 支持全局库（api）代码补全
-* 本地变量（upvalue）代码补全
-* 支持有限制的 api 声明类型推导
-* 支持 dao 模块类型推导
-* 支持引用模块类型推导
-* 支持本地变量类型推导
+* 支持 io, math, os, string, table 等内置库代码补全
+* 支持 ngx, ndk 等 openresty 库代码补全
+* 支持 lfs, cjson 等 clib 库代码补全
+* 支持 require 文件路径补全及定义跳转
+* 支持 upvalue 变量补全及定义跳转
+* 支持部分第三方库类型推导
 * 支持文档大纲
 
 ## 依赖 (Dependences)
