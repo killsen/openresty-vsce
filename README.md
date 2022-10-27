@@ -17,6 +17,8 @@
 
 * [luaparse](https://github.com/fstirlitz/luaparse)
 * [luacheck](https://github.com/mpeterv/luacheck)
+* [openresty](https://openresty.org/)
+* [openresty-orpm](https://github.com/killsen/openresty-orpm)
 
 ## 截图 (Screenshots)
 
