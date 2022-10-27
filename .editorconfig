@@ -7,35 +7,18 @@ root = true
 # 默认配置
 [*]
 charset                     = utf-8     # UTF8 编码
-end_of_line                 = crlf      # 回车换行
+end_of_line                 = lf        # 回车换行
 insert_final_newline        = true      # 在文件的最后插入一个空行
 trim_trailing_whitespace    = true      # 删除行尾的空格
 indent_style                = space     # 缩进风格: 空格
 indent_size                 = 4         # 缩进大小: 4个空格
 
-[*.lua]
-
-[*.{bat,cmd}]
-
-[*.sh]
-end_of_line = lf
-
 [*.md]
 trim_trailing_whitespace = false
-
-[*.{js,ts}]
-
-[*.vue]
-
-[*.py]
 
 [Makefile]
 indent_style = tab
 
-[lib/**.js]
-indent_style = space
-indent_size = 2
-
-[{package.json,.travis.yml}]
+[pnpm-lock.yaml]
 indent_style = space
 indent_size = 2
