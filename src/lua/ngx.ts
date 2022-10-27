@@ -28,6 +28,7 @@ export interface NgxPath {
     modName : string;
 }
 
+/** 取得 .orpmrc 所在的目录 */
 function getRootPath(p1: string): string {
 
     if (!p1 || p1 === "." || p1 === "..") {return "";}
@@ -43,6 +44,22 @@ function getRootPath(p1: string): string {
 
 }
 
+/** 取得 nginx.exe 所在的目录 */
+function getNginxPath(p1: string): string {
+
+    if (!p1 || p1 === "." || p1 === "..") {return "";}
+
+    if (fs.existsSync(`${p1}/nginx.exe`)) {
+        return p1;
+    }
+
+    let p2 = path.dirname(p1);
+    if (p2 === p1) {return "";}
+
+    return getNginxPath(p2);
+
+}
+
 /** 取得应用路径 */
 export function getPath(fileName: string): NgxPath{
 
@@ -51,7 +68,9 @@ export function getPath(fileName: string): NgxPath{
 
     let m = /(.*\\nginx\\).+\.lua/.exec(fileName);
 
-    let ngxPath = m && m[1] || '';
+    let ngxPath = m && m[1] || getNginxPath(fileName) || "";
+    // console.log("ngxPath: ", ngxPath);
+
     if (rootPath) {
         ngxPath = _join(rootPath, "nginx");
     } else if (ngxPath) {
