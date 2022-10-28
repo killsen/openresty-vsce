@@ -26,21 +26,19 @@ function openrestyRun(isAction: boolean) {
     if (!editor) {return;}
 
     let doc = editor.document;
-    let {appName, modName} = ngx.getPath(doc.fileName);
-    if (!appName || !modName) { return; }
+    let codes = doc.getText();
+    if (!codes.trim()) {return;}
 
-    if (modName.startsWith("act.")) {
+    let path = '/debug';
+
+    let { appName, modName } = ngx.getPath(doc.fileName);
+    if ( appName && modName.startsWith("act.")) {
         modName = modName.substr(4);
-    } else {
-        return;
+        path = `/${appName}/${modName}.jsony`;
     }
 
-    let codes = doc.getText();
-
-    let path = `/${appName}/${modName}.jsony`;
-
     if (isAction) {
-        httpRequest(path, codes);
+        httpRequest(path, codes, appName, modName);
         return;
     }
 
@@ -60,12 +58,12 @@ function openrestyRun(isAction: boolean) {
         codes.substring(endOffset)
     ].join("\n");
 
-    httpRequest(path, codes, "lua");
+    httpRequest(path, codes, appName, modName, "lua");
 
 }
 
 /** 请求服务器 */
-function httpRequest(path: string, codes: string, languageId?: string){
+function httpRequest(path: string, codes: string, appName="", modName="", languageId?: string){
 
     let currSubmit = LAST_SUBMIT = LAST_SUBMIT + 1;
 
@@ -73,22 +71,26 @@ function httpRequest(path: string, codes: string, languageId?: string){
         host: "127.0.0.1",
         path,
         method: "POST",
-        headers: { "user-agent" : "sublime" }
+        headers: {
+            "user-agent" : "sublime",
+            "app-name"   : appName,
+            "mod-name"   : modName,
+        }
     };
 
     const req = http.request(opt, async (res) => {
-        if (currSubmit !== LAST_SUBMIT) { req.abort(); return; }
+        if (currSubmit !== LAST_SUBMIT) { req.destroy(); return; }
 
         res.setEncoding('utf8');
         let contents: string[] = [];
 
         res.on('data', async (chunk) => {
-            if (currSubmit !== LAST_SUBMIT) { req.abort(); return; }
+            if (currSubmit !== LAST_SUBMIT) { req.destroy(); return; }
             contents.push(chunk);
         });
 
         res.on('end', () => {
-            if (currSubmit !== LAST_SUBMIT) { req.abort(); return; }
+            if (currSubmit !== LAST_SUBMIT) { req.destroy(); return; }
             languageId = languageId || getlanguageId(res.headers);
             openDocument(contents.join(""), languageId);
         });
