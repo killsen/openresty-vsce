@@ -20,7 +20,7 @@ export function openrestyDebug () {
 }
 
 /** 上传代码并执行 */
-function openrestyRun(isAction: boolean) {
+async function openrestyRun(isAction: boolean) {
 
     let editor = vscode.window.activeTextEditor;
     if (!editor) {return;}
@@ -30,15 +30,17 @@ function openrestyRun(isAction: boolean) {
     if (!codes.trim()) {return;}
 
     let path = '/debug';
+    let fileName = doc.fileName;
 
-    let { appName, modName } = ngx.getPath(doc.fileName);
+    let { appName, modName } = ngx.getPath(fileName);
     if ( appName && modName.startsWith("act.")) {
-        modName = modName.substr(4);
+        modName = modName.substring(4);
         path = `/${appName}/${modName}.jsony`;
     }
 
     if (isAction) {
-        httpRequest(path, codes, appName, modName);
+        await editor.document.save();  // 自动保存
+        httpRequest(path, "", appName, modName, fileName, "");
         return;
     }
 
@@ -58,23 +60,25 @@ function openrestyRun(isAction: boolean) {
         codes.substring(endOffset)
     ].join("\n");
 
-    httpRequest(path, codes, appName, modName, "lua");
+    httpRequest(path, codes, appName, modName, fileName, "lua");
 
 }
 
 /** 请求服务器 */
-function httpRequest(path: string, codes: string, appName="", modName="", languageId?: string){
+function httpRequest(path: string, codes: string,
+    appName: string, modName: string, fileName: string, languageId: string){
 
     let currSubmit = LAST_SUBMIT = LAST_SUBMIT + 1;
 
     let opt = {
         host: "127.0.0.1",
         path,
-        method: "POST",
+        method: codes ? "POST" : "GET",
         headers: {
             "user-agent" : "sublime",
             "app-name"   : appName,
             "mod-name"   : modName,
+            "file-name"  : fileName,
         }
     };
 
