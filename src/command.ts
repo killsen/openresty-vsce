@@ -1,4 +1,5 @@
 
+
 import * as vscode from 'vscode';
 import * as ngx from './lua/ngx';
 import * as http from 'http';
@@ -7,16 +8,21 @@ const DEBUG_CODE = 'require "app.comm.debuger".debug();';
 const WATCH_CODE = 'require "app.comm.debuger".watch(' +
                    '[=========[word]=========], {word});';
 
-let LAST_SUBMIT = 0;
+/* eslint-disable no-undef */
+let LAST_TIMER      : NodeJS.Timer       | undefined;
+let LAST_REQUEST    : http.ClientRequest | undefined;
+let LAST_SUBMIT     = 0;
 
 /** 执行 action */
 export function openrestyAction () {
-    openrestyRun(true);
+    LAST_TIMER && clearTimeout(LAST_TIMER);
+    LAST_TIMER = setTimeout(() => openrestyRun(true), 300);
 }
 
 /** 执行 debug */
 export function openrestyDebug () {
-    openrestyRun(false);
+    LAST_TIMER && clearTimeout(LAST_TIMER);
+    LAST_TIMER = setTimeout(() => openrestyRun(true), 300);
 }
 
 /** 上传代码并执行 */
@@ -65,10 +71,21 @@ async function openrestyRun(isAction: boolean) {
 }
 
 /** 请求服务器 */
-function httpRequest(path: string, codes: string,
+async function httpRequest(path: string, codes: string,
     appName: string, modName: string, fileName: string, languageId: string){
 
-    let currSubmit = LAST_SUBMIT = LAST_SUBMIT + 1;
+    if (LAST_REQUEST && !LAST_REQUEST.destroyed) {
+        const confirm = await vscode.window.showWarningMessage(
+            "上个请求尚未完成，确定要撤销并继续？",
+            { modal: true },
+            "继续"
+        );
+        if (confirm !== "继续") {return;}
+
+        LAST_REQUEST.destroy();
+        LAST_REQUEST = undefined;
+        vscode.window.showInformationMessage("上个请求已撤销");
+    }
 
     let opt = {
         host: "127.0.0.1",
@@ -82,27 +99,82 @@ function httpRequest(path: string, codes: string,
         }
     };
 
-    const req = http.request(opt, async (res) => {
-        if (currSubmit !== LAST_SUBMIT) { req.destroy(); return; }
+    let currSubmit = LAST_SUBMIT = LAST_SUBMIT + 1;
+    let contents: string[] = [];
+    let chunkSize = 0;
+
+    let doc = await openDocument();
+    if (!doc) {return;}
+
+    // 延时输出
+    let timer: NodeJS.Timer | undefined;
+    function showDocument() {
+        timer && clearTimeout(timer);
+        timer = setTimeout(() => {
+            if (!doc || doc.isClosed) {
+                console.log("");
+                return;
+            }
+            const content = contents.join("");
+            insertDocument(doc, content, languageId);
+        }, 50);
+    }
+
+    function showMsg(msg: string) {
+        vscode.window.setStatusBarMessage(`请求: http://127.0.0.1${ path }  ( ${ msg } )`);
+    }
+
+    showMsg("连接中");
+    showDocument();
+
+    const beginTime = (new Date()).getTime();
+
+    const req = LAST_REQUEST = http.request(opt, async (res) => {
+
+        if ( isClosed() ) { return; }
+
+        showMsg(res.statusMessage || "接收中");
 
         res.setEncoding('utf8');
-        let contents: string[] = [];
 
-        res.on('data', async (chunk) => {
-            if (currSubmit !== LAST_SUBMIT) { req.destroy(); return; }
+        languageId = languageId || getlanguageId(res.headers);
+        showDocument();
+
+        res.on('data', async (chunk: string) => {
+            if ( isClosed() ) { return; }
+            chunkSize += chunk.length;
+            showMsg(`已接收 ${ chunkSize }`);
             contents.push(chunk);
+            showDocument();
         });
 
         res.on('end', () => {
-            if (currSubmit !== LAST_SUBMIT) { req.destroy(); return; }
-            languageId = languageId || getlanguageId(res.headers);
-            openDocument(contents.join(""), languageId);
+            if ( isClosed() ) { return; }
+            const endTime = (new Date()).getTime();
+            showMsg(`用时 ${ endTime - beginTime } ms, 共 ${ chunkSize } byte`);
+            // showDocument();
         });
     });
 
     req.on('error', (e) => {
+        if ( isClosed() ) { return; }
         vscode.window.showInformationMessage(e.message);
+        showMsg(`出错啦`);
     });
+
+    function isClosed() {
+        if (currSubmit !== LAST_SUBMIT) {
+            req.destroy();
+            return true;
+        }else if (!doc || doc.isClosed) {
+            req.destroy();
+            vscode.window.showInformationMessage("本次请求已撤销");
+            showMsg("已撤销");
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     req.write(codes);
     req.end();
@@ -131,37 +203,59 @@ function getlanguageId(headers: http.IncomingHttpHeaders) {
 
 }
 
-/** 打开文档：输出返回结果 */
-async function openDocument(content: string, languageId: string) {
+/** 打开文档 */
+async function openDocument(content?: string, language?: string) {
 
-    for (let editor of vscode.window.visibleTextEditors) {
-        if (editor.viewColumn === 2){
-            editor.edit(editorEdit=>{
+    try {
+        let editor = vscode.window.visibleTextEditors.find(editor=>{
+            return editor.viewColumn === 2 &&
+                editor.document.isUntitled;
+        });
 
-                let doc = editor.document;
-                let start = new vscode.Position(0, 0);
-                let line = doc.lineAt(doc.lineCount-1);
-                let end = new vscode.Position(line.range.end.line, line.range.end.character);
+        if (editor) {return editor.document;}
 
-                editorEdit.delete(new vscode.Range(start, end));
-                editorEdit.insert(start, content);
+        let doc = await vscode.workspace.openTextDocument({
+            language,
+            content,
+        });
 
-                vscode.languages.setTextDocumentLanguage(doc, languageId);
+        editor = await vscode.window.showTextDocument(doc, {
+            viewColumn : vscode.ViewColumn.Two,
+            preserveFocus : true,
+            preview : true,
+        });
 
-            });
-            return;
-        }
+        return doc;
+
+    } catch (e) {
+        console.log(e);
     }
 
-    let doc = await vscode.workspace.openTextDocument({
-        language: languageId,
-        content,
-    });
+}
 
-    vscode.window.showTextDocument(doc, {
-        viewColumn : vscode.ViewColumn.Two,
-        preserveFocus : true,
-        preview : true,
-    });
+/** 输出文档 */
+async function insertDocument(doc: vscode.TextDocument ,content: string, languageId: string) {
+
+    try {
+        if (languageId && doc.languageId !== languageId) {
+            vscode.languages.setTextDocumentLanguage(doc, languageId);
+        }
+
+        let editor = await vscode.window.showTextDocument(doc, {
+            viewColumn : vscode.ViewColumn.Two,
+            preserveFocus : true,
+            preview : true,
+        });
+
+        await editor.edit(edit=>{
+            let start = new vscode.Position(0, 0);
+            let line = doc.lineAt(doc.lineCount-1);
+            let end = new vscode.Position(line.range.end.line, line.range.end.character);
+            edit.delete(new vscode.Range(start, end));
+            edit.insert(start, content);
+        });
+    } catch (e) {
+        console.log(e);
+    }
 
 }
