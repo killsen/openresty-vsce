@@ -22,7 +22,7 @@ export function openrestyAction () {
 /** 执行 debug */
 export function openrestyDebug () {
     LAST_TIMER && clearTimeout(LAST_TIMER);
-    LAST_TIMER = setTimeout(() => openrestyRun(true), 300);
+    LAST_TIMER = setTimeout(() => openrestyRun(false), 300);
 }
 
 /** 上传代码并执行 */
