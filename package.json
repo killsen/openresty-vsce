@@ -27,11 +27,23 @@
         "commands": [
             {
                 "command": "openresty.debug",
-                "title": "openresty.debug"
+                "title": "执行 OpenResty Debug 请求"
             },
             {
                 "command": "openresty.action",
-                "title": "openresty.action"
+                "title": "执行 OpenResty Action 请求"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "openresty.debug",
+                "key": "f4",
+                "when": "resourceExtname == '.lua'"
+            },
+            {
+                "command": "openresty.action",
+                "key": "f5",
+                "when": "resourceExtname == '.lua'"
             }
         ],
         "breakpoints": [
@@ -100,11 +112,11 @@
         ]
     },
     "scripts": {
-        "vscode:prepublish": "npm run esbuild-base -- --minify",
+        "vscode:prepublish": "npm run esbuild-base -- --minify && npm run esbuild-attach -- --minify",
         "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
-        "esbuild": "npm run esbuild-base -- --sourcemap",
-        "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
-        "esbuild-debuger": "esbuild ./src/debugger/EmmyAttachDebugAdapter.ts --bundle --outfile=out/attach.js --external:vscode --format=cjs --platform=node",
+        "esbuild-attach": "esbuild ./src/debugger/EmmyAttachDebugAdapter.ts --bundle --outfile=out/attach.js --external:vscode --format=cjs --platform=node",
+        "esbuild": "npm run esbuild-base -- --sourcemap && npm run esbuild-attach -- --sourcemap",
+        "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch & npm run esbuild-attach -- --sourcemap --watch",
         "test-compile": "tsc -p ./",
         "lint": "eslint src --ext ts",
         "package": "pnpm vsce package --no-dependencies",

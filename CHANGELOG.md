@@ -1,5 +1,9 @@
 # 升级日志
 
+## v1.1.1
+
+* 新增 OpenResty: Attach 调试
+
 ## v1.0.0
 
 * 支持 io, math, os, string, table 等内置库代码补全

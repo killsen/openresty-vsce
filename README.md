@@ -9,6 +9,7 @@
 * 支持 upvalue 变量补全及定义跳转
 * 支持部分第三方库类型推导
 * 支持文档大纲
+* 支持 Attach 调试 ([EmmyLuaDebugger](https://github.com/EmmyLua/EmmyLuaDebugger))
 
 ## 依赖 (Dependences)
 
@@ -16,6 +17,7 @@
 * [luacheck](https://github.com/mpeterv/luacheck)
 * [openresty](https://openresty.org/)
 * [openresty-orpm](https://github.com/killsen/openresty-orpm)
+* [EmmyLuaDebugger](https://github.com/EmmyLua/EmmyLuaDebugger)
 
 ## 截图 (Screenshots)
 
