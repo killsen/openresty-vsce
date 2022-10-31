@@ -9,7 +9,7 @@
 		"url": "https://github.com/killsen/openresty-vsce"
 	},
 	"private": true,
-	"version": "1.0.10",
+	"version": "1.0.11",
 	"engines": {
 		"vscode": "^1.67.0"
 	},
