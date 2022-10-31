@@ -6,6 +6,7 @@ import { getHover } from './hover';
 import { loadDocSymbols } from "./docSymbos";
 import { getSignature } from './signature';
 import { openrestyDebug, openrestyAction } from './command';
+import { registerDebuggers } from './debugger';
 
 const selector = [{ scheme: 'file', language: "lua" }];
 
@@ -39,6 +40,9 @@ export function activate(context: vscode.ExtensionContext) {
 	/** 注册命令 */
 	context.subscriptions.push(vscode.commands.registerCommand('openresty.debug', openrestyDebug));
 	context.subscriptions.push(vscode.commands.registerCommand('openresty.action', openrestyAction));
+
+    /** 注册调试器 */
+    registerDebuggers(context);
 
 }
 

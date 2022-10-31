@@ -1,64 +1,134 @@
 {
-	"name": "openresty-vsce",
-	"displayName": "OpenResty Lua 代码补全",
-	"description": "OpenResty Lua VSCode Extension",
-	"icon": "images/icon.png",
-	"publisher": "killsen",
-	"license": "MIT",
-	"repository": {
-		"url": "https://github.com/killsen/openresty-vsce"
-	},
-	"private": true,
-	"version": "1.0.11",
-	"engines": {
-		"vscode": "^1.67.0"
-	},
-	"categories": [
-		"Programming Languages",
-		"Other"
-	],
-	"activationEvents": [
-		"onLanguage:lua"
-	],
-	"main": "./out/main.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "openresty.debug",
-				"title": "openresty.debug"
-			},
-			{
-				"command": "openresty.action",
-				"title": "openresty.action"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run esbuild-base -- --minify",
-		"esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
-		"esbuild": "npm run esbuild-base -- --sourcemap",
-		"esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
-		"test-compile": "tsc -p ./",
-		"lint": "eslint src --ext ts",
-		"package": "pnpm vsce package --no-dependencies",
-		"publish": "pnpm vsce publish --no-dependencies"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.67.0",
-		"@types/glob": "^7.2.0",
-		"@types/mocha": "^9.1.1",
-		"@types/node": "14.x",
-		"@typescript-eslint/eslint-plugin": "^5.21.0",
-		"@typescript-eslint/parser": "^5.21.0",
-		"eslint": "^8.14.0",
-		"glob": "^8.0.1",
-		"mocha": "^9.2.2",
-		"typescript": "^4.6.4",
-		"@vscode/test-electron": "^2.1.3",
-		"vsce": "^2.7.0",
-		"esbuild": "^0.14.39"
-	},
-	"dependencies": {
-		"luaparse": "^0.3.0"
-	}
+    "name": "openresty-vsce",
+    "displayName": "OpenResty Lua 代码补全",
+    "description": "OpenResty Lua VSCode Extension",
+    "icon": "images/icon.png",
+    "publisher": "killsen",
+    "license": "MIT",
+    "repository": {
+        "url": "https://github.com/killsen/openresty-vsce"
+    },
+    "private": true,
+    "version": "1.1.1",
+    "engines": {
+        "vscode": "^1.67.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Debuggers",
+        "Other"
+    ],
+    "activationEvents": [
+        "onLanguage:lua",
+        "onDebug"
+    ],
+    "main": "./out/main.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "openresty.debug",
+                "title": "openresty.debug"
+            },
+            {
+                "command": "openresty.action",
+                "title": "openresty.action"
+            }
+        ],
+        "breakpoints": [
+            {
+                "language": "lua"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "openresty_attach",
+                "label": "OpenResty: Attach",
+                "program": "./out/attach.js",
+                "runtime": "node",
+                "configurationAttributes": {
+                    "attach": {
+                        "required": [
+                            "pid"
+                        ],
+                        "properties": {
+                            "pid": {
+                                "type": "number",
+                                "description": "目标进程ID",
+                                "default": 0
+                            },
+                            "processName": {
+                                "type": "string",
+                                "description": "通过名称过滤进程，如果目标唯一则直接附加",
+                                "default": "nginx.exe"
+                            },
+                            "captureLog": {
+                                "type": "boolean",
+                                "description": "捕获进程输出，显示在windows terminal上,该特性可能引发进程崩溃",
+                                "default": false
+                            }
+                        }
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "openresty_attach",
+                        "request": "attach",
+                        "name": "OpenResty: Attach",
+                        "pid": 0,
+                        "processName": "nginx.exe",
+                        "captureLog": false
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "OpenResty: Attach",
+                        "description": "通过附加 nginx.exe 进程调试",
+                        "body": {
+                            "type": "openresty_attach",
+                            "request": "attach",
+                            "name": "OpenResty: Attach",
+                            "pid": 0,
+                            "processName": "nginx.exe",
+                            "captureLog": false
+                        }
+                    }
+                ],
+                "languages": [
+                    "lua"
+                ]
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run esbuild-base -- --minify",
+        "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
+        "esbuild": "npm run esbuild-base -- --sourcemap",
+        "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+        "esbuild-debuger": "esbuild ./src/debugger/EmmyAttachDebugAdapter.ts --bundle --outfile=out/attach.js --external:vscode --format=cjs --platform=node",
+        "test-compile": "tsc -p ./",
+        "lint": "eslint src --ext ts",
+        "package": "pnpm vsce package --no-dependencies",
+        "publish": "pnpm vsce publish --no-dependencies"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.2.0",
+        "@types/mocha": "^9.1.1",
+        "@types/node": "14.x",
+        "@types/vscode": "^1.67.0",
+        "@typescript-eslint/eslint-plugin": "^5.21.0",
+        "@typescript-eslint/parser": "^5.21.0",
+        "@vscode/test-electron": "^2.1.3",
+        "esbuild": "^0.14.39",
+        "eslint": "^8.14.0",
+        "glob": "^8.0.1",
+        "mocha": "^9.2.2",
+        "typescript": "^4.6.4",
+        "vsce": "^2.7.0"
+    },
+    "dependencies": {
+        "@vscode/debugadapter": "^1.57.0",
+        "@vscode/debugprotocol": "^1.57.0",
+        "iconv-lite": "^0.6.3",
+        "luaparse": "^0.3.0"
+    }
 }
