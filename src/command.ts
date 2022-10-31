@@ -111,10 +111,7 @@ async function httpRequest(path: string, codes: string,
     function showDocument() {
         timer && clearTimeout(timer);
         timer = setTimeout(() => {
-            if (!doc || doc.isClosed) {
-                console.log("");
-                return;
-            }
+            if (!doc || doc.isClosed) { return; }
             const content = contents.join("");
             insertDocument(doc, content, languageId);
         }, 50);
@@ -152,7 +149,26 @@ async function httpRequest(path: string, codes: string,
             if ( isClosed() ) { return; }
             const endTime = (new Date()).getTime();
             showMsg(`用时 ${ endTime - beginTime } ms, 共 ${ chunkSize } byte`);
-            // showDocument();
+            if (!chunkSize) {
+                contents.push("Response Body       : None\n");
+                contents.push("Request  Begin      : ", (beginTime/1000).toString(), "\n");
+                contents.push("Response End        : ", (endTime/1000).toString(), "\n");
+                contents.push("Request  Time       : ", (endTime - beginTime).toString(), " ms\n\n");
+                contents.push("Response Headers    :\n");
+                contents.push("---------------------------------------------------\n");
+                res.rawHeaders.forEach((s, i) => {
+                    contents.push(s);
+                    if (i % 2 === 0) {
+                        if (s.length<20) {
+                            contents.push(" ".repeat(20-s.length));
+                        }
+                        contents.push(": ");
+                    } else {
+                        contents.push("\n");
+                    }
+                });
+                showDocument();
+            }
         });
     });
 
