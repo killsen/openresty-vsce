@@ -1,5 +1,9 @@
 # 升级日志
 
+## v1.1.2
+
+* 新增支持 .orpmrc 配置文件
+
 ## v1.1.1
 
 * 新增 OpenResty: Attach 调试
