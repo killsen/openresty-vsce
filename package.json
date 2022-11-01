@@ -6,7 +6,7 @@
     "publisher": "killsen",
     "license": "MIT",
     "private": true,
-    "version": "1.1.2",
+    "version": "1.2.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/killsen/openresty-vsce"
@@ -21,12 +21,14 @@
     "categories": [
         "Programming Languages",
         "Debuggers",
+        "Linters",
         "Other"
     ],
     "keywords": [
         "OpenResty",
         "Nginx",
         "Lua",
+        "LuaCheck",
         "Auto-completion"
     ],
     "activationEvents": [
@@ -147,7 +149,34 @@
                     "lua"
                 ]
             }
-        ]
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Luacheck configuration",
+            "properties": {
+                "luacheck.globals": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of custom globals."
+                },
+                "luacheck.ignore": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "default": [],
+                        "description": "List of warnings to ignore."
+                },
+                "luacheck.maxBuffer": {
+                        "type": "number",
+                        "default": 262144,
+                        "description": "Tolerable size of the luacheck output for diagnostic"
+                }
+            }
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run esbuild-base -- --minify && npm run esbuild-attach -- --minify",
