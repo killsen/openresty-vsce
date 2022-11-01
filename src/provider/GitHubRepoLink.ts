@@ -48,7 +48,7 @@ export class GitHubRepoLink implements DocumentLinkProvider {
                 range = new Range(document.positionAt(offset1), document.positionAt(offset2));
                 uri = isLuaRocks ?
                     Uri.parse(`https://luarocks.org/search?q=${ repo }`) :
-                    Uri.parse(`https://github.com/${ author }`) ;
+                    Uri.parse(`https://github.com/${ author }/${ repo }`) ;
                 links.push(new DocumentLink(range, uri));
 
             }
