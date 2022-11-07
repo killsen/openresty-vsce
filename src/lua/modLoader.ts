@@ -7,26 +7,35 @@ import { loadBody } from './parser';
 import { parseComments } from './utils';
 import { getValue, setValue } from './scope';
 import { loadApiTypes } from './modApiTypes';
+import { dirname } from "path";
 
 /** 通过名称加载模块 */
-export function loadModule(path: NgxPath, name: string): LuaModule | undefined {
+export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
 
-    let fileName = getModFile(path, name);
+    let fileName = getModFile(ctx, name);
     if (!fileName) { return; }
 
-    let code = getModCode(path, name);
+    let code = getModCode(ctx, name);
     if (!code) { return; }
 
-    path.modName = name;
+    ctx.modName = name;
 
-    return loadModuleByCode(path, code, fileName);
+    if (code.startsWith("-- @@api") || code.startsWith("--@@api")) {
+        let apiRoot = dirname(fileName);
+        if (fileName.replace(/\//g, "\\").endsWith("\\init.lua")) {
+            apiRoot = dirname(apiRoot);
+        }
+        return lua._loadApi(ctx, name, apiRoot, true);
+    }
+
+    return loadModuleByCode(ctx, code, fileName);
 
 }
 
 /** 通过代码加载模块 */
-export function loadModuleByCode(path: NgxPath, code: string, fileName?: string): LuaModule | undefined {
+export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string): LuaModule | undefined {
 
-    fileName = fileName || path.fileName;
+    fileName = fileName || ctx.fileName;
 
     try {
         let chunk = luaparse.parse(code, {
@@ -39,12 +48,12 @@ export function loadModuleByCode(path: NgxPath, code: string, fileName?: string)
             luaVersion: 'LuaJIT'
         });
 
-        const _G: any = lua.genGlobal(path);
+        const _G: any = lua.genGlobal(ctx);
         const _g: any = lua.newScope(_G, fileName);
 
         // 模块名称及文件
-        setValue(_g, "$$name", path.modName, true);
-        setValue(_g, "$$file", path.fileName, true);
+        setValue(_g, "$$name", ctx.modName, true);
+        setValue(_g, "$$file", ctx.fileName, true);
 
         // 解析注释中的类型定义
         let $$comm = parseComments(chunk.comments);
@@ -61,7 +70,7 @@ export function loadModuleByCode(path: NgxPath, code: string, fileName?: string)
                 mod["@@"] = func;
             }
 
-            loadApiTypes(path, mod);
+            loadApiTypes(ctx, mod);
             setValue(_g, "$$req", mod["$req"], true);       // 请求参数类型
             setValue(_g, "$$res", mod["$res"], true);       // 返回值类型 v21.11.25
             setValue(_g, "$$types", mod["$types"], true);   // 自定义类型
