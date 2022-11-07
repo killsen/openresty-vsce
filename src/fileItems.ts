@@ -14,7 +14,7 @@ function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Pos
     // require ( "resty.http" )
     // pcall ( require, "resty.http" )
 
-    let regex1 = /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
+    let regex1 = /\b(require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
     let regex2 = /\w[\w.]*/;
 
     let range1 = doc.getWordRangeAtPosition(pos, regex1);
@@ -59,6 +59,7 @@ function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Pos
                 if (f.isFile()) {
                     let p = _parse(f.name);
                     if (![".lua", ".dll", ".so"].includes(p.ext)) {return;}
+                    if (p.name === "init") {return;}
                     items.push({
                         label: p.name,
                         detail: p.base,
@@ -86,13 +87,13 @@ function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Pos
 export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, tok: vscode.CancellationToken) {
 
     // 取得nginx路径
-    let path = ngx.getPath(doc.fileName);
-    if (!path.ngxPath) {return;}
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx.ngxPath) {return;}
 
-    let files = requireFiles(path.ngxPath, doc, pos);
+    let files = requireFiles(ctx.ngxPath, doc, pos);
     if (files) {return files;}
 
-    if (!path.appPath) {return;}
+    if (!ctx.appPath) {return;}
 
     // "%dd."
     let r0 = /['"]\S+['"]/;
@@ -116,15 +117,11 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     } else {
         // _load "%dd.load_data"
-        let r0 = /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
+        let r0 = /\b(_load)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
         let text = getText(r0);
         if (!text) {return;}
 
-        if (text.startsWith("_load")) {
-            modType = "_load";
-        } else {
-            modType = "require";
-        }
+        modType = "_load";
 
         let r1 = /[\w\-.]*["']/;
         let r2 = /[\w\-.]/;
@@ -140,23 +137,23 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     switch (modType) {
         case "$":
-            loadItems(path.daoPath, modPath);
+            loadItems(ctx.daoPath, modPath);
             break;
 
         case "%":
-            loadItems(path.comPath, modPath);
-            loadItems(path.libPath, modPath);
-            loadItems(path.libPathX, modPath);
+            loadItems(ctx.comPath, modPath);
+            loadItems(ctx.libPath, modPath);
+            loadItems(ctx.libPathX, modPath);
             break;
 
         case "#":
-            loadItems(path.utiPath, modPath);
-            loadItems(path.utiPathX, modPath);
+            loadItems(ctx.utiPath, modPath);
+            loadItems(ctx.utiPathX, modPath);
             break;
 
         case "@":
         {
-            let mod = loadModuleByCode(path, doc.getText());
+            let mod = loadModuleByCode(ctx, doc.getText());
             let types = mod && mod["$types"];
             if (types) {
                 loadKeys(items, types, "", 0);
@@ -165,12 +162,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         }
 
         case "_load":
-            loadItems(path.appPath, modPath);
-            break;
-
-        case "require":
-            loadItems(path.ngxPath, modPath);
-            loadItems(path.ngxPath, "lualib", modPath);
+            loadItems(ctx.appPath, modPath);
             break;
     }
 
@@ -193,7 +185,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         }
 
         files.forEach(name => {
-            if (name === "_bk" || name.startsWith(".")) {return;}
+            if (name === "_bk" || name.startsWith(".") || name === "init.lua") {return;}
 
             let fPath = _join(pPath, name);
             let fStat = fs.statSync(fPath);
