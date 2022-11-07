@@ -72,10 +72,10 @@ function genApi(s: string): LuaApi | undefined {
 
 }
 
-export function loadApiDoc(path: NgxPath, name: string){
+export function loadApiDoc(ctx: NgxPath, name: string){
 
     // 检查路径是否存在
-    let apiFile = getApiFile(path, name);
+    let apiFile = getApiFile(ctx, name);
     if (!apiFile) { return; }
 
     let docs = loadDocs(apiFile, name);

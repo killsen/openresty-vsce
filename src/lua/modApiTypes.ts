@@ -4,10 +4,10 @@ import { NgxPath } from "./ngx";
 import { isObject, getItem, setItem, delItem, toTable } from './utils';
 import * as lua from './index';
 
-export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefined {
+export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefined {
 
     const API_MOD  = mod;
-    const API_PATH = path;
+    const API_PATH = ctx;
     const API_TABLE = toTable(mod);
     const API_TYPES: any = {};  // 自定义类型
     const REQ_TYPES: any = {};  // 请求参数类型
@@ -15,7 +15,7 @@ export function loadApiTypes(path: NgxPath, mod: LuaModule): LuaModule | undefin
 
     if (!API_TABLE) { return; }
 
-    let modName = path.modName || "__";
+    let modName = ctx.modName || "__";
     let modFile = mod.$file || "";
         modFile = modFile.replace(".editing", "");
         modFile = "(file:"+ modFile +")";
@@ -424,9 +424,9 @@ function genApiDoc(name: string, typeDesc: string, level: number = 0) {
 
 }
 
-// function loadParentTypes(path: NgxPath): any {
+// function loadParentTypes(ctx: NgxPath): any {
 
-//     let names = path.modName.split(".")
+//     let names = ctx.modName.split(".")
 
 //     while (true) {
 //         let name = names.pop()
@@ -434,7 +434,7 @@ function genApiDoc(name: string, typeDesc: string, level: number = 0) {
 //         if (name === "d") continue;
 
 //         // 加载同目录的 d.lua 文件
-//         let mod = load(path, names.join(".") + ".d")
+//         let mod = load(ctx, names.join(".") + ".d")
 //         if (mod) {
 //             let types = mod["$types"] || {}
 //             return { ...types }

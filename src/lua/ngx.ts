@@ -139,9 +139,9 @@ export function getModType(text: string) {
 }
 
 /** api 接口声明文件 */
-export function getApiFile(path: NgxPath, name: string) {
+export function getApiFile(ctx: NgxPath, name: string) {
 
-    const { rootPath, ngxPath } = path;
+    const { rootPath, ngxPath } = ctx;
 
     // 检查路径是否存在
     if (!ngxPath || !name) { return; }
@@ -176,9 +176,9 @@ export function getApiFile(path: NgxPath, name: string) {
 }
 
 /** api 接口 lua 伪代码 */
-export function getLuaApiFile(path: NgxPath, name: string) {
+export function getLuaApiFile(ctx: NgxPath, name: string) {
 
-    const { rootPath, ngxPath } = path;
+    const { rootPath, ngxPath } = ctx;
 
     // 检查路径是否存在
     if (!ngxPath || !name) { return; }
@@ -213,13 +213,13 @@ export function getLuaApiFile(path: NgxPath, name: string) {
 }
 
 /** 取得模块文件 */
-export function getModFile(path: NgxPath, name: string) {
+export function getModFile(ctx: NgxPath, name: string) {
 
     // 优先使用 *.lua.api 伪代码进行类型推导
-    let file = getLuaApiFile(path, name);
+    let file = getLuaApiFile(ctx, name);
     if (file) {return file;}
 
-    const { rootPath, ngxPath, appPath } = path;
+    const { rootPath, ngxPath, appPath } = ctx;
 
     // 检查路径是否存在
     if (!ngxPath || !name) { return; }
@@ -244,18 +244,24 @@ export function getModFile(path: NgxPath, name: string) {
         if (appPath) {
             files.push(_join(appPath, "com", apiFile));
             files.push(_join(appPath, "com", modFile));
+            files.push(_join(appPath, "com", initFile));
             files.push(_join(ngxPath, "app", "lib", modFile));
+            files.push(_join(ngxPath, "app", "lib", initFile));
             files.push(_join(rootPath, "lua_modules",  "app", "lib", modFile));
+            files.push(_join(rootPath, "lua_modules",  "app", "lib", initFile));
         }
 
     } else if (modType === "#") {
         files.push(_join(ngxPath,  "app", "utils", modFile));
+        files.push(_join(ngxPath,  "app", "utils", initFile));
         files.push(_join(rootPath, "lua_modules",  "app", "utils", modFile));
+        files.push(_join(rootPath, "lua_modules",  "app", "utils", initFile));
 
     } else {
         if (appPath) {
             appPath && files.push(_join(appPath, apiFile));
             appPath && files.push(_join(appPath, modFile));
+            appPath && files.push(_join(appPath, initFile));
         }
 
         files.push(_join(ngxPath, modFile));
@@ -286,9 +292,9 @@ export function getModFile(path: NgxPath, name: string) {
 }
 
 /** 取得模块代码 */
-export function getModCode(path: NgxPath, name: string) {
+export function getModCode(ctx: NgxPath, name: string) {
 
-    let file = getModFile(path, name);
+    let file = getModFile(ctx, name);
     if (!file) {return;}
 
     watchFile(file);  // 监听文件变化

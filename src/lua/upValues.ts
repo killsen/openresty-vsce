@@ -9,7 +9,7 @@ import { setValue } from './scope';
 import { loadModule, loadModuleByCode } from './modLoader';
 
 interface LuaScopeOption {
-    path: ngx.NgxPath;
+    ctx: ngx.NgxPath;
     codes: string[];
     findNode: Function;
 }
@@ -31,8 +31,8 @@ const ERRORS: { [key: string] : string } = {
 /** 取得上量或成员变量 */
 export function getUpValues(doc: TextDocument, pos: Position) {
 
-    let path = ngx.getPath(doc.fileName);
-    path.fileName = doc.fileName + ".editing";  // 正在编辑中的文件
+    let ctx = ngx.getPath(doc.fileName);
+    ctx.fileName = doc.fileName + ".editing";  // 正在编辑中的文件
 
     let docText = doc.getText();
     let identifier = "_".repeat(30);
@@ -65,7 +65,7 @@ export function getUpValues(doc: TextDocument, pos: Position) {
     for (let i=0; i<3; i++) {
 
         try {
-            let scope = loadScope({ path, codes, findNode });
+            let scope = loadScope({ ctx, codes, findNode });
             return scope;
 
         } catch (err) {
@@ -110,7 +110,7 @@ export function getDefine(doc: TextDocument, pos: Position) {
 function loadScope(option: LuaScopeOption) {
 
     let $$node: any;
-    let { path, codes, findNode } = option;
+    let { ctx, codes, findNode } = option;
 
     let code = codes.join("");
 
@@ -136,8 +136,8 @@ function loadScope(option: LuaScopeOption) {
 
     if (!$$node) { return; }
 
-    const _G = lua.genGlobal(path);
-    const _g = lua.newScope(_G, path.fileName);
+    const _G = lua.genGlobal(ctx);
+    const _g = lua.newScope(_G, ctx.fileName);
     const _d = lua.newScope(_g);
 
     // 解析注释中的类型定义
@@ -149,7 +149,7 @@ function loadScope(option: LuaScopeOption) {
     if (firstComm && firstComm.name === "@@@") {
         let modName = firstComm.value;
         if (modName) {
-            let mod = loadModule(path, modName);
+            let mod = loadModule(ctx, modName);
             if (mod && mod["@@"]) {
                 setValue(_g, "@@", mod["@@"], true);  // 外部构造函数
             }
@@ -157,7 +157,7 @@ function loadScope(option: LuaScopeOption) {
     }
 
     // 生成请求参数及自定义类型
-    let mod = loadModuleByCode(path, code);
+    let mod = loadModuleByCode(ctx, code);
     if (mod) {
         setValue(_g, "$$req", mod["$req"], true);       // 请求参数类型
         setValue(_g, "$$res", mod["$res"], true);       // 返回值类型 v21.11.25

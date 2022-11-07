@@ -8,8 +8,8 @@ import { isObject } from './lua/utils';
 /** 取得文件链接 */
 export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationToken) {
 
-    let path = ngx.getPath(doc.fileName);
-    if (!path) {return;}
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx) {return;}
 
     let links = getModLink(doc, pos, [ /[$](\w+\.)*\w+/ ]) ||
                 getModLink(doc, pos, [ /['"]?[%#](\w+\.)*\w+(\[\])?['"]?/, /[%#](\w+\.)*\w+/ ]) ||
@@ -23,8 +23,8 @@ export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationT
 /** 取得模块链接 */
 function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) {
 
-    let path = ngx.getPath(doc.fileName);
-    if (!path) {return;}
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx) {return;}
 
     let range;
     for (let regex of regexList) {
@@ -34,7 +34,7 @@ function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) {
     if (!range) {return;}     //不匹配则退出
 
     let text = doc.getText(range);
-    let file = ngx.getModFile(path, text);
+    let file = ngx.getModFile(ctx, text);
 
     if (!file) {return [];}   //文件不存在则返回空数组
 
@@ -50,8 +50,8 @@ function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) {
 /** 取得链接文本 */
 export function getLinkText(doc: TextDocument, pos: Position, regx1: RegExp, regx2: RegExp, regx0?: RegExp) {
 
-    let path = ngx.getPath(doc.fileName);
-    if (!path) {return;}
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx) {return;}
 
     if (regx0) {
         let r0 = doc.getWordRangeAtPosition(pos, regx0);
@@ -80,8 +80,8 @@ export function getLinkText(doc: TextDocument, pos: Position, regx1: RegExp, reg
 /** 取得变量链接 */
 function getDefineLink(doc: TextDocument, pos: Position) {
 
-    let path = ngx.getPath(doc.fileName);
-    if (!path) {return;}
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx) {return;}
 
     let t: any;
 
@@ -90,7 +90,7 @@ function getDefineLink(doc: TextDocument, pos: Position) {
     if (rangeSel) {
         let text = doc.getText(rangeSel).replace("@", "");
         let key  = "$" + text + "$";
-        let mod  = loadModuleByCode(path, doc.getText());
+        let mod  = loadModuleByCode(ctx, doc.getText());
         let types = mod && mod["$types"];
         t = types && types[key];
     } else {

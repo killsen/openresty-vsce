@@ -4,16 +4,16 @@ import { LuaScope } from "./scope";
 import * as lua from './index';
 
 /** 生成全局变量环境 */
-export function genGlobal(path: NgxPath) {
+export function genGlobal(ctx: NgxPath) {
 
     const _G: LuaScope = {
         ["$local"]: {},
         ["$scope"]: undefined,
-        ["$file"]: path.fileName,
+        ["$file"]: ctx.fileName,
     };
 
     // 加载全局变量或关键字
-    let apis = lua.loadApiDoc(path, "_G");
+    let apis = lua.loadApiDoc(ctx, "_G");
     if (apis) {
         apis.forEach(api => {
             _G[api.name] = {
@@ -30,7 +30,7 @@ export function genGlobal(path: NgxPath) {
     let libs = ["io", "os", "string", "table", "math",
         "package", "debug", "coroutine", "ngx", "ndk"];
     libs.forEach(name => {
-        _G[name] = lua.load(path, name);
+        _G[name] = lua.load(ctx, name);
     });
 
     _G["ipairs"] = {
@@ -79,14 +79,14 @@ export function genGlobal(path: NgxPath) {
             name = "cjson";
         }
         if (typeof name === "string") {
-            return lua.load(path, name);
+            return lua.load(ctx, name);
         }
     }
 
     /** 加载模块 */
     function _load(name: any) {
         if (typeof name === "string") {
-            return lua.load(path, name);
+            return lua.load(ctx, name);
         }
     }
 

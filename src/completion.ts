@@ -12,8 +12,8 @@ import { getContents } from "./hover";
 export function loadItems(doc: vscode.TextDocument, pos: vscode.Position, tok: vscode.CancellationToken) {
 
     // 取得nginx路径
-    let path = ngx.getPath(doc.fileName);
-    if (!path.ngxPath) { return; }
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx.ngxPath) { return; }
 
     // 导入文件
     let files = importFiles(doc, pos, tok);

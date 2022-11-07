@@ -5,13 +5,13 @@ import { LuaModule, LuaDao, LuaApi } from './types';
 import { setDepend } from "./modCache";
 
 /** 通过API文件加载接口声明 */
-export function requireModule(path: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
+export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
 
 	// 检查路径是否存在
-	let fileName = getApiFile(path, name);
+	let fileName = getApiFile(ctx, name);
 	if (!fileName) { return; }
 
-    let apis = loadApiDoc(path, name);
+    let apis = loadApiDoc(ctx, name);
     if (!apis) { return ; }
 
     let mod: { [key: string]: LuaModule } = {};

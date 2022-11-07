@@ -10,8 +10,8 @@ const MIN_LEN = 17;
 export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode.CancellationToken) {
 
     // 取得nginx路径
-    let path = ngx.getPath(doc.fileName);
-    if (!path.ngxPath) { return; }
+    let ctx = ngx.getPath(doc.fileName);
+    if (!ctx.ngxPath) { return; }
 
     let textLine = doc.lineAt(pos.line);
     let textRang = textLine.range;
@@ -20,36 +20,36 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
 
     switch (textLine.text) {
         case "#":
-            path.appPath && loadFiles ("# ", path.utiPath, `_load "#`);
-            path.appPath && loadFiles ("# ", path.utiPathX, `_load "#`);
+            ctx.appPath && loadFiles ("# ", ctx.utiPath, `_load "#`);
+            ctx.appPath && loadFiles ("# ", ctx.utiPathX, `_load "#`);
             break;
         case "$":
-            path.appPath && loadFiles ("$ ", path.daoPath, `_load "$`);
+            ctx.appPath && loadFiles ("$ ", ctx.daoPath, `_load "$`);
             break;
         case "%":
-            path.appPath && loadFiles ("% ", path.comPath, `_load "%`);
-            path.appPath && loadFiles ("% ", path.libPath, `_load "%`);
-            path.appPath && loadFiles ("% ", path.libPathX, `_load "%`);
+            ctx.appPath && loadFiles ("% ", ctx.comPath, `_load "%`);
+            ctx.appPath && loadFiles ("% ", ctx.libPath, `_load "%`);
+            ctx.appPath && loadFiles ("% ", ctx.libPathX, `_load "%`);
             break;
 
         case ".":
-            if (path.appPath) {
-                loadFiles (". dao   $ "  , path.daoPath, `_load "$`);
-                loadFiles (". com   % "  , path.comPath, `_load "%`);
-                loadFiles (". lib   % "  , path.libPath, `_load "%`);
-                loadFiles (". lib   % "  , path.libPathX, `_load "%`);
-                loadFiles (". utils # "  , path.utiPath, `_load "#`);
-                loadFiles (". utils # "  , path.utiPathX, `_load "#`);
-                loadFiles (". api   . "  , path.appPath + "/api/", `_load "api.`);
+            if (ctx.appPath) {
+                loadFiles (". dao   $ "  , ctx.daoPath, `_load "$`);
+                loadFiles (". com   % "  , ctx.comPath, `_load "%`);
+                loadFiles (". lib   % "  , ctx.libPath, `_load "%`);
+                loadFiles (". lib   % "  , ctx.libPathX, `_load "%`);
+                loadFiles (". utils # "  , ctx.utiPath, `_load "#`);
+                loadFiles (". utils # "  , ctx.utiPathX, `_load "#`);
+                loadFiles (". api   . "  , ctx.appPath + "/api/", `_load "api.`);
             }
 
-                loadFiles (". resty . "  , path.ngxPath + "/resty/", `require "resty.`);
-                loadFiles (". resty . "  , path.ngxPath + "/lua/resty/", `require "resty.`);
-                loadFiles (". resty . "  , path.ngxPath + "/lualib/resty/", `require "resty.`);
+                loadFiles (". resty . "  , ctx.ngxPath + "/resty/", `require "resty.`);
+                loadFiles (". resty . "  , ctx.ngxPath + "/lua/resty/", `require "resty.`);
+                loadFiles (". resty . "  , ctx.ngxPath + "/lualib/resty/", `require "resty.`);
 
-                loadFiles (". resty . "  , path.rootPath + "/lua_modules/resty/", `require "resty.`);
-                loadFiles (". resty . "  , path.rootPath + "/lua_modules/lua/resty/", `require "resty.`);
-                loadFiles (". resty . "  , path.rootPath + "/lua_modules/lualib/resty/", `require "resty.`);
+                loadFiles (". resty . "  , ctx.rootPath + "/lua_modules/resty/", `require "resty.`);
+                loadFiles (". resty . "  , ctx.rootPath + "/lua_modules/lua/resty/", `require "resty.`);
+                loadFiles (". resty . "  , ctx.rootPath + "/lua_modules/lualib/resty/", `require "resty.`);
 
                 addClibItem("lfs");
                 addClibItem("cjson");
