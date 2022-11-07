@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { window } from 'vscode';
 
-export { load, loadApiDoc, genGlobal, newScope };
+export { load, loadApiMod, loadApiDoc, genGlobal, newScope };
 
 const LIBS = ["io", "os", "string", "table", "math",
 "package", "debug", "coroutine", "ngx", "ndk"];
@@ -86,9 +86,7 @@ function _load(ctx: NgxPath, name: string, apiFile?: string, modFile?: string): 
 
     ctx = {...ctx, fileName};  // 克隆并更改 fileName
 
-    if (name === "api") {
-        mod =  _loadApi(ctx, name, "", true);   // api 目录懒加载
-    }else if (apiFile) {
+    if (apiFile) {
         mod = requireModule(ctx, name);
     } else {
         mod = loadModule(ctx, name);
@@ -111,13 +109,13 @@ function _load(ctx: NgxPath, name: string, apiFile?: string, modFile?: string): 
 }
 
 // api 目录懒加载
-export function _loadApi(ctx: NgxPath, pName: string = "api", apiRoot: string, isRoot: boolean): LuaModule {
+function loadApiMod(ctx: NgxPath, pName: string = "api", apiRoot: string, apiMod?: LuaModule): LuaModule {
 
     let obj: LuaModule = {};
 
     ctx = { ... ctx };
 
-    let pPath = join(apiRoot || ctx.appPath, pName.replace(/\./g, "/")).replace(/[%#]/g, "");
+    let pPath = apiRoot || join(ctx.appPath, pName);
 
     // 属性代理：只读
     return new Proxy(obj, {
@@ -127,8 +125,11 @@ export function _loadApi(ctx: NgxPath, pName: string = "api", apiRoot: string, i
             if (prop === "type") {return "api";}
             if (prop === "doc") {return "## " + pName + " 接口";}
 
-            let modFile = !isRoot && getModFile(ctx, pName);
-            let mod: any = modFile && _load(ctx, pName, "", modFile) || {};
+            let mod = apiMod as any;
+            if (!mod) {
+                let modFile = getModFile(ctx, pName);
+                mod = modFile && _load(ctx, pName, "", modFile) || {};
+            }
 
             if (prop !== ".") {return mod[prop];}
 
@@ -137,7 +138,7 @@ export function _loadApi(ctx: NgxPath, pName: string = "api", apiRoot: string, i
             let ti = { ... mod["."] || {} };
 
             names.forEach(name=>{
-                ti[name] = _loadApi(ctx, pName + "." + name, apiRoot, false);
+                ti[name] = ti[name] || loadApiMod(ctx, pName + "." + name, join(apiRoot, name));
             });
 
             return ti;

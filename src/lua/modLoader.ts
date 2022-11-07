@@ -7,7 +7,7 @@ import { loadBody } from './parser';
 import { parseComments } from './utils';
 import { getValue, setValue } from './scope';
 import { loadApiTypes } from './modApiTypes';
-import { dirname } from "path";
+import { dirname, basename } from "path";
 
 /** 通过名称加载模块 */
 export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
@@ -20,15 +20,21 @@ export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
 
     ctx.modName = name;
 
-    if (code.startsWith("-- @@api") || code.startsWith("--@@api")) {
-        let apiRoot = dirname(fileName);
-        if (fileName.replace(/\//g, "\\").endsWith("\\init.lua")) {
-            apiRoot = dirname(apiRoot);
+    const mod = loadModuleByCode(ctx, code, fileName);
+    if (!mod) {return;}
+
+    // -- @@api : openresty-vsce
+    if (name === "api" || code.match(/^\s*--\s*@@\s*api/)) {
+        let apiRoot = "";
+        if (fileName.endsWith("\\init.lua")) {
+            apiRoot = dirname(fileName);
+        } else {
+            apiRoot = fileName.replace(".lua", "");
         }
-        return lua._loadApi(ctx, name, apiRoot, true);
+        return lua.loadApiMod(ctx, name, apiRoot, mod);
     }
 
-    return loadModuleByCode(ctx, code, fileName);
+    return mod;
 
 }
 
