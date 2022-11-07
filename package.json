@@ -111,7 +111,7 @@
                             "processName": {
                                 "type": "string",
                                 "description": "通过名称过滤进程，如果目标唯一则直接附加",
-                                "default": "nginx.exe"
+                                "default": "openresty.exe"
                             },
                             "captureLog": {
                                 "type": "boolean",
@@ -127,20 +127,20 @@
                         "request": "attach",
                         "name": "OpenResty: Attach",
                         "pid": 0,
-                        "processName": "nginx.exe",
+                        "processName": "openresty.exe",
                         "captureLog": false
                     }
                 ],
                 "configurationSnippets": [
                     {
                         "label": "OpenResty: Attach",
-                        "description": "通过附加 nginx.exe 进程调试",
+                        "description": "通过附加 openresty.exe 进程调试",
                         "body": {
                             "type": "openresty_attach",
                             "request": "attach",
                             "name": "OpenResty: Attach",
                             "pid": 0,
-                            "processName": "nginx.exe",
+                            "processName": "openresty.exe",
                             "captureLog": false
                         }
                     }
@@ -154,7 +154,7 @@
             "type": "object",
             "title": "Luacheck configuration",
             "properties": {
-                "luacheck.globals": {
+                "openresty.luacheck.globals": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -162,7 +162,7 @@
                     "default": [],
                     "description": "List of custom globals."
                 },
-                "luacheck.ignore": {
+                "openresty.luacheck.ignore": {
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -170,7 +170,7 @@
                         "default": [],
                         "description": "List of warnings to ignore."
                 },
-                "luacheck.maxBuffer": {
+                "openresty.luacheck.maxBuffer": {
                         "type": "number",
                         "default": 262144,
                         "description": "Tolerable size of the luacheck output for diagnostic"

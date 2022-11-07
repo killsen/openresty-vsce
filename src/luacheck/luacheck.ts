@@ -8,7 +8,7 @@ export function setExtensionPath(extensionPath: string) {
 }
 
 export function getConf<T>(name: string, value: T): T {
-    let conf = vscode.workspace.getConfiguration('luacheck');
+    let conf = vscode.workspace.getConfiguration('openresty.luacheck');
     return conf.get<T>(name) || value;
 }
 
