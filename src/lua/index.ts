@@ -109,13 +109,12 @@ function _load(ctx: NgxPath, name: string, apiFile?: string, modFile?: string): 
 }
 
 // api 目录懒加载
-function loadApiMod(ctx: NgxPath, pName: string = "api", apiRoot: string, apiMod?: LuaModule): LuaModule {
+function loadApiMod(ctx: NgxPath, apiName: string, apiPath: string, apiMod?: LuaModule): LuaModule {
 
     let obj: LuaModule = {};
+    if (!apiPath) {return obj;}
 
     ctx = { ... ctx };
-
-    let pPath = apiRoot || join(ctx.appPath, pName);
 
     // 属性代理：只读
     return new Proxy(obj, {
@@ -123,22 +122,22 @@ function loadApiMod(ctx: NgxPath, pName: string = "api", apiRoot: string, apiMod
         get(target, prop) {
 
             if (prop === "type") {return "api";}
-            if (prop === "doc") {return "## " + pName + " 接口";}
+            if (prop === "doc") {return "## " + apiName + " 接口";}
 
             let mod = apiMod as any;
             if (!mod) {
-                let modFile = getModFile(ctx, pName);
-                mod = modFile && _load(ctx, pName, "", modFile) || {};
+                let modFile = getModFile(ctx, apiName);
+                mod = modFile && _load(ctx, apiName, "", modFile) || {};
             }
 
             if (prop !== ".") {return mod[prop];}
 
-            let names = loadNames(pPath);
+            let names = loadNames(apiPath);
 
             let ti = { ... mod["."] || {} };
 
             names.forEach(name=>{
-                ti[name] = ti[name] || loadApiMod(ctx, pName + "." + name, join(apiRoot, name));
+                ti[name] = ti[name] || loadApiMod(ctx, apiName + "." + name, join(apiPath, name));
             });
 
             return ti;

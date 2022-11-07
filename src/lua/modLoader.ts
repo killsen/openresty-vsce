@@ -25,13 +25,13 @@ export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
 
     // -- @@api : openresty-vsce
     if (name === "api" || code.match(/^\s*--\s*@@\s*api/)) {
-        let apiRoot = "";
+        let apiPath = "";
         if (fileName.endsWith("\\init.lua")) {
-            apiRoot = dirname(fileName);
+            apiPath = dirname(fileName);
         } else {
-            apiRoot = fileName.replace(".lua", "");
+            apiPath = fileName.replace(".lua", "");
         }
-        return lua.loadApiMod(ctx, name, apiRoot, mod);
+        return lua.loadApiMod(ctx, name, apiPath, mod);
     }
 
     return mod;
