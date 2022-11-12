@@ -19,6 +19,7 @@ ffi.metatype(ct, metatable)         -> ctype
 ffi.gc(cdata, finalizer)            -> cdata
 ffi.sizeof(ct [,nelem])             -> size
 ffi.alignof(ct)                     -> align
+ffi.offsetof(ct, field)             -> ofs [,bpos,bsize]
 ffi.istype(ct, obj)                 -> boolean
 ffi.errno([newerr])                 -> err
 ffi.string(ptr [,len])              -> string
