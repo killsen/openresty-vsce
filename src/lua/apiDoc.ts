@@ -31,12 +31,12 @@ function genApi(s: string): LuaApi | undefined {
     let child = "";
     if (name.indexOf(':')>0){
         indexer = ':';
-        parent = name.substr(0, name.indexOf(':'));
-        child = name.substr(name.indexOf(':')+1);
+        parent = name.substring(0, name.indexOf(':'));
+        child = name.substring(name.indexOf(':')+1);
 
     } else if (name.indexOf('[') > 0) {
         indexer = '.';
-        parent = name.substr(0, name.indexOf('['));
+        parent = name.substring(0, name.indexOf('['));
 
     }else if (name.indexOf('.')>0){
         indexer = '.';

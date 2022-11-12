@@ -155,10 +155,10 @@ export function loadNode(node: Node, _g: any): any {
                     // 迭代器产生的 key 可能包含点号(.)或冒号(:)
                     if (k.startsWith(".")) {
                         indexer = ".";
-                        k = k.substr(1);
+                        k = k.substring(1);
                     } else if (k.startsWith(":")) {
                         indexer = ":";
-                        k = k.substr(1);
+                        k = k.substring(1);
                     }
 
                     setChild(_g, t, indexer, k, res[i], n.index.loc);
@@ -301,10 +301,10 @@ export function loadNode(node: Node, _g: any): any {
         case "StringLiteral": { // 字符串
                 let raw = node.raw;
                 if (raw.startsWith("'") || raw.startsWith('"')) {
-                    return raw.substr(1, raw.length-2);
+                    return raw.substring(1, raw.length-1);
                 } else {
                     let index = raw.indexOf("[", 1) + 1;
-                    return raw.substr(index, raw.length-index*2);
+                    return raw.substring(index, raw.length-index);
                 }
             }
 

@@ -83,7 +83,7 @@ function loadMD(lines: string[], file: string){
             doc = [];
         }
         if (s.startsWith("## ")){
-            name = s.substr(3).split("(")[0].trim();
+            name = s.substring(3).split("(")[0].trim();
             loc = {
                 start: { line: i+1, column: 3},
                 end: {line: i+1, column: s.length},

@@ -94,7 +94,7 @@ export function importFiles(doc: vscode.TextDocument, pos: Position, tok: vscode
             let fStat = fs.statSync(fPath);
 
             if (fStat.isFile() && name.endsWith(".lua")) {
-                name = name.substr(0, name.length - 4);
+                name = name.substring(0, name.length - 4);
 
                 if (itemsLoaded[pName + name]) {return;}
                     itemsLoaded[pName + name] = true;

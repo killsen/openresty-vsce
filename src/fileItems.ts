@@ -112,8 +112,8 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
     let modType, modPath;
 
     if (text) {
-        modType = text.substr(0, 1);
-        modPath = text.substr(1).replace(/\./g, "\\");
+        modType = text.substring(0, 1);
+        modPath = text.substring(1).replace(/\./g, "\\");
 
     } else {
         // _load "%dd.load_data"
@@ -205,7 +205,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
             // lua 文件
             } else if (fStat.isFile() && name.endsWith(".lua")) {
 
-                name = name.substr(0, name.length - 4);
+                name = name.substring(0, name.length - 4);
 
                 if (modLoaded[name]) {return;}
                     modLoaded[name] = true;

@@ -7,7 +7,7 @@ function isAbsolutePath(strPath: string): boolean {
     if (isWin)
     {
         if ((strPath.startsWith("\\") && !strPath.startsWith("\\\\")) || (strPath.startsWith("/") && !strPath.startsWith("//")))
-            {strPath = strPath.substr(1);}
+            {strPath = strPath.substring(1);}
     }
     return path.isAbsolute(strPath);
 }
@@ -43,8 +43,8 @@ export abstract class DebuggerProvider implements vscode.DebugConfigurationProvi
             // eslint-disable-next-line no-prototype-builtins
             if (associations.hasOwnProperty(key)) {
                 const element = associations[key];
-                if (element === 'lua' && key.substr(0, 2) === '*.') {
-                    ext.push(key.substr(1));
+                if (element === 'lua' && key.substring(0, 2) === '*.') {
+                    ext.push(key.substring(1));
                 }
             }
         }

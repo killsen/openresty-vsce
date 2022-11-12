@@ -34,7 +34,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                 return;
             }
 
-            let name = k.substr(0, k.length - 2);
+            let name = k.substring(0, k.length - 2);
             let desc = getItem(API_TABLE, [k, "1"]) || "";
 
             modDocs.push("* " + name + " ( " + desc + " ) ");

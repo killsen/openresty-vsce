@@ -166,7 +166,7 @@ function loadNames (pPath: string) {
             if (fStat.isDirectory()) {
                 names.push(name);
             } else if (fStat.isFile() && name.endsWith(".lua")) {
-                name = name.substr(0, name.length - 4);
+                name = name.substring(0, name.length - 4);
                 names.push(name);
             }
         });
