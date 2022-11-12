@@ -93,7 +93,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
     let files = requireFiles(ctx.ngxPath, doc, pos);
     if (files) {return files;}
 
-    if (!ctx.appPath) {return;}
+    // if (!ctx.appPath) {return;}
 
     // "%dd."
     let r0 = /['"]\S+['"]/;
@@ -137,18 +137,18 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     switch (modType) {
         case "$":
-            loadItems(ctx.daoPath, modPath);
+            ctx.appPath && loadItems(ctx.daoPath, modPath);
             break;
 
         case "%":
-            loadItems(ctx.comPath, modPath);
-            loadItems(ctx.libPath, modPath);
-            loadItems(ctx.libPathX, modPath);
+            ctx.appPath && loadItems(ctx.comPath, modPath);
+            ctx.appPath && loadItems(ctx.libPath, modPath);
+            ctx.appPath && loadItems(ctx.libPathX, modPath);
             break;
 
         case "#":
-            loadItems(ctx.utiPath, modPath);
-            loadItems(ctx.utiPathX, modPath);
+            ctx.appPath && loadItems(ctx.utiPath, modPath);
+            ctx.appPath && loadItems(ctx.utiPathX, modPath);
             break;
 
         case "@":
@@ -162,7 +162,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         }
 
         case "_load":
-            loadItems(ctx.appPath, modPath);
+            ctx.appPath && loadItems(ctx.appPath, modPath);
             break;
     }
 
