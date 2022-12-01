@@ -86,15 +86,18 @@ export function copyItems(from: any, to: any) {
 }
 
 // { ".": { key: val } } -->> { key: val }
-export function toTable(obj: any) {
+export function toTable(obj: any, level = 0) {
 
     let t = getItem(obj, ["."]);
     if (!isObject(t)) { return obj; }
 
+    // 避免互相引用或自己引用自己造成死循环
+    if (level++ > 10) {return;}
+
     let r: any = {};
 
     Object.keys(t).forEach(k => {
-        r[k] = toTable(t[k]);
+        r[k] = toTable(t[k], level);
     });
 
     return r;
