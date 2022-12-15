@@ -1,0 +1,35 @@
+
+-- UTF-8 module for Lua 5.x
+-- https://github.com/starwing/luautf8
+
+utf8
+
+utf8.byte(s[,i[,j]])
+utf8.char(...)
+-- string.dump(function)
+utf8.find(s,pattern[,init[,plain]])
+-- string.format(format,...)
+utf8.gmatch(s,pattern)
+utf8.gsub(s,pattern,repl[,n])
+utf8.len(s)
+utf8.lower(s)
+utf8.match(s,pattern[,init])
+-- string.rep(s,n)
+utf8.reverse(s)
+utf8.sub(s,i[,j])
+utf8.upper(s)
+
+utf8.escape(str) -> utf8 string
+utf8.charpos(s[[, charpos], index]) -> charpos, code point
+utf8.next(s[, charpos[, index]]) -> charpos, code point
+utf8.insert(s[, idx], substring) -> new_string
+utf8.remove(s[, start[, stop]]) -> new_string
+utf8.width(s[, ambi_is_double[, default_width]]) -> width
+utf8.widthindex(s, location[, ambi_is_double[, default_width]]) -> idx, offset, width
+utf8.title(s) -> new_string
+utf8.fold(s) -> new_string
+utf8.ncasecmp(a, b) -> [-1,0,1]
+
+utf8.isvalid(s) -> boolean
+utf8.clean(s[, replacement_string]) -> cleaned_string, was_valid
+utf8.invalidoffset(s[, init]) -> offset
