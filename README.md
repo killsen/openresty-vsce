@@ -4,10 +4,10 @@
 
 * 支持 io, math, os, string, table 等内置库代码补全
 * 支持 ngx, ndk 等 openresty 库代码补全
-* 支持 lfs, cjson 等 clib 库代码补全
+* 支持 lfs, cjson, utf8, iconv 等 clib 库代码补全
 * 支持 require 文件路径补全及定义跳转
 * 支持 local 及 upvalue 变量补全及定义跳转
-* 支持部分第三方库类型推导
+* 支持部分第三方库类型推导, 部分面向对象库默认使用 new 方法作为构造函数
 * 支持文档大纲
 * 支持 Attach 调试 ([EmmyLuaDebugger](https://github.com/EmmyLua/EmmyLuaDebugger))
 * 支持静态检查  ([LuaCheck](https://github.com/mpeterv/luacheck))
