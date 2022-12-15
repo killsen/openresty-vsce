@@ -4,7 +4,7 @@ import * as lua from './index';
 import { LuaModule } from './types';
 import { NgxPath, getModCode, getModFile } from './ngx';
 import { loadBody } from './parser';
-import { parseComments } from './utils';
+import { getItem, parseComments } from './utils';
 import { getValue, setValue } from './scope';
 import { loadApiTypes } from './modApiTypes';
 import { dirname, basename } from "path";
@@ -74,6 +74,13 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string):
             let func = getValue(_g, "@@");
             if (typeof func === "function") {
                 mod["@@"] = func;
+            } else {
+                // 默认使用 new 方法作为构造函数
+                func = getItem(mod, [".", "new", "()"]);
+                if (typeof func === "function") {
+                    setValue(_g, "@@", func, true);
+                    mod["@@"] = func;
+                }
             }
 
             loadApiTypes(ctx, mod);

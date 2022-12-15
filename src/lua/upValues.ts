@@ -162,6 +162,10 @@ function loadScope(option: LuaScopeOption) {
         setValue(_g, "$$req", mod["$req"], true);       // 请求参数类型
         setValue(_g, "$$res", mod["$res"], true);       // 返回值类型 v21.11.25
         setValue(_g, "$$types", mod["$types"], true);   // 自定义类型
+
+        if (mod["@@"]) {
+            setValue(_g, "@@", mod["@@"], true);        // 内部构造函数
+        }
     }
 
     for (const s of chunk.body) {
