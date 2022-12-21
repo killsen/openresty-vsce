@@ -2,8 +2,10 @@
 
 ## 功能 (Features)
 
-* 支持 io, math, os, string, table 等内置库代码补全
-* 支持 ngx, ndk 等 openresty 库代码补全
+* 支持 io, math, os, string, table 内置库代码补全
+* 支持 coroutine, debug, package 内置库代码补全
+* 支持 ffi, bit 内置库代码补全
+* 支持 ngx, ndk OpenResty库代码补全
 * 支持 lfs, cjson, utf8, iconv 等 clib 库代码补全
 * 支持 require 文件路径补全及定义跳转
 * 支持 local 及 upvalue 变量补全及定义跳转
