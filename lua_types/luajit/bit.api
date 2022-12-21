@@ -1,0 +1,23 @@
+
+-- Lua BitOp
+-- https://bitop.luajit.org/api.html
+
+bit
+
+bit.tobit(x)            -> number
+bit.tohex(x [,n])       -> string
+
+bit.bnot(x)             -> number
+
+bit.bor(x1 [,x2...])    -> number
+bit.band(x1 [,x2...])   -> number
+bit.bxor(x1 [,x2...])   -> number
+
+bit.lshift(x, n)        -> number
+bit.rshift(x, n)        -> number
+bit.arshift(x, n)       -> number
+
+bit.rol(x, n)           -> number
+bit.ror(x, n)           -> number
+
+bit.bswap(x)            -> number
