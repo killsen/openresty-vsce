@@ -1,0 +1,19 @@
+
+-- jit.* Library
+-- https://luajit.org/ext_jit.html
+
+jit
+
+jit.on()
+jit.off()
+jit.flush()
+
+jit.status()
+
+jit.version
+jit.version_num
+jit.os
+jit.arch
+
+jit.opt
+jit.opt.start()
