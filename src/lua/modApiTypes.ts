@@ -98,6 +98,13 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
             REQ_TYPES[name] = req;
             RES_TYPES[name] = res;
 
+            // 为 apicheck 提供参数及返回值类型
+            let func = getItem(API_MOD, [".", name, "()"]);
+            if (typeof func === "function") {
+                func["$$res"] = res;
+                func["$$req"] = req;
+            }
+
             delItem(API_MOD, [".", k]);
             setItem(API_MOD, [".", name, "()"], [res]);
             setItem(API_MOD, [".", name, "doc"], doc);

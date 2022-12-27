@@ -39,7 +39,7 @@ export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
 }
 
 /** 通过代码加载模块 */
-export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string): LuaModule | undefined {
+export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, $lints?: any[], $funcs?: any[]): LuaModule | undefined {
 
     fileName = fileName || ctx.fileName;
 
@@ -60,6 +60,10 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string):
         // 模块名称及文件
         setValue(_g, "$$name", ctx.modName, true);
         setValue(_g, "$$file", ctx.fileName, true);
+
+        // apicheck 成员字段检查
+        $lints && setValue(_g, "$$lints", $lints, true);
+        $funcs && setValue(_g, "$$funcs", $funcs, true);
 
         // 解析注释中的类型定义
         let $$comm = parseComments(chunk.comments);

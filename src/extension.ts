@@ -9,6 +9,7 @@ import { openrestyDebug, openrestyAction } from './command';
 import { registerDebuggers } from './debugger';
 import { GitHubRepoLink } from './provider/GitHubRepoLink';
 import { registerLuaCheck } from './luacheck';
+import { registerApiCheck } from "./lua/apicheck";
 
 const selector = [{ scheme: 'file', language: "lua" }];
 
@@ -48,6 +49,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     /** 注册LuaCheck */
     registerLuaCheck(context);
+
+    /** 注册ApiCheck */
+    registerApiCheck(context);
 
     new GitHubRepoLink(context);
 

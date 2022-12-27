@@ -130,6 +130,9 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         // 编辑模式下，或者未指定返回类型，则需要运行代码
         let needToRun = getValue(newG, "$$node") || (!$$res && !returnType);
 
+        // apicheck 成员字段检查需运行代码
+        if (getValue(newG, "$$lints")) {needToRun = true;}
+
         if (needToRun) {
             isRunning = true;  // 避免递归回调：造成死循环
             resValue = loadBody(body, newG);

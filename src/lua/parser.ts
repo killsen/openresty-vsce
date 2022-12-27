@@ -4,6 +4,7 @@ import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setScopeCall } from './modFunc';
 import { getItem, isDownScope, isInScope, findKeys } from './utils';
+import { Range, Position } from 'vscode';
 
 /** 执行代码块：并返回最后一个返回值 */
 export function loadBody(body: Statement[], _g: LuaScope, resArgs: any[] = []) {
@@ -418,6 +419,12 @@ export function loadNode(node: Node, _g: any): any {
                 "$loc": node.loc,
             };
 
+            // 为 apicheck 提供待运行的函数
+            let funcs = getValue(_g, "$$funcs");
+            if (funcs) {
+                funcs.push(fun["()"]);
+            }
+
             // 检查变量是否在函数定义作用内
             if ($$node && isInScope(node, $$node)) {
                 setValue(_g, "$$func", fun["()"], false);
@@ -473,7 +480,7 @@ export function loadNode(node: Node, _g: any): any {
                 }
                 let ti = t["."] = t["."] || {};
                 if (ti instanceof Object) {
-                    return ti[k] || ti["*"];
+                    return k in ti ? ti[k] : ti["*"];
                 }
             }
         } break;
@@ -498,9 +505,34 @@ export function loadNode(node: Node, _g: any): any {
             if (t instanceof Object) {
                 let ti = t[node.indexer];
                 if (!(ti instanceof Object)) {
-                    ti = t[node.indexer] = {};
+                    // ti = t[node.indexer] = {};
+                    return;
                 }
-                return ti[k] || ti["*"];
+
+                let r = k in ti ? ti[k] : ti["*"];
+                if (r === undefined && !(k in ti)) {
+
+                    // 为 apicheck 提供成员字段检查
+                    let lints = getValue(_g, "$$lints");
+                    if (lints) {
+                        let n = node.identifier as any;
+                        if(!n["_linted_"]){
+                            n["_linted_"] = true;
+                            let start = n.loc!.start;
+                            let end   = n.loc!.end;
+                            lints.push({
+                                range: new Range(
+                                    new Position(start.line-1, start.column),
+                                    new Position(end.line-1, end.column)
+                                ),
+                                message: `字段未定义 '${ k }'`,
+                                severity: 1,
+                            });
+                        }
+                    }
+                }
+
+                return r;
             }
         } break;
 
