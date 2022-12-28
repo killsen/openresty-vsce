@@ -5,6 +5,11 @@
 ffi
 
 ffi.C
+ffi.C.*
+
+clib
+clib.*
+
 ffi.os
 ffi.arch
 

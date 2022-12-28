@@ -5,7 +5,10 @@
 require("cjson")                                -> cjson
 require("cjson.safe")                           -> cjson
 
-cjson.decode(json_text)                         -> value
+json_value
+json_value.*
+
+cjson.decode(json_text)                         -> json_value
 cjson.encode(value)                             -> json_text
 
 cjson.encode_number_precision(precision)
