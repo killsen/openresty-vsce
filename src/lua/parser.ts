@@ -11,7 +11,8 @@ export function loadBody(body: Statement[], _g: LuaScope, resArgs: any[] = []) {
 
     if (!(_g instanceof Object)) { return; }
 
-    let $$node = getValue(_g, "$$node");
+    // 光标所在位置
+    let $$node: Node | undefined = getValue(_g, "$$node");
 
     body.forEach(node=>{
 
@@ -76,7 +77,7 @@ export function loadNode(node: Node, _g: any): any {
     let $file = getValue(_g, "$file");
 
     // 光标所在位置
-    let $$node = getValue(_g, "$$node");
+    let $$node: Node | undefined = getValue(_g, "$$node");
     if ($$node && $$node.scope) {
         // return; // 光标所在位置已找到，则退出
     }
@@ -176,7 +177,7 @@ export function loadNode(node: Node, _g: any): any {
             node.init.length === 1 && node.init[0].type === "TableConstructorExpression") {
 
             // { } 参数补全及提示
-            if ($$node && $$node.scope) {
+            if ($$node && $$node.scope && $$node.isMember) {
                 let type = getType(_g, node.variables[0].name);
                 if (type instanceof Object) {
                     setScopeCall(type["."], $$node, _g);
@@ -562,6 +563,9 @@ export function loadNode(node: Node, _g: any): any {
                         break;
 
                     case "TableValue":          // 数组表达式 { a, b, c }
+                        if ( f.value.type === "CallExpression" && f.value.base.isCursor ) {
+                            f.value.base.isMember = true;  // 光标所在位置是否成员字段
+                        }
                         setChild(_g, t, ".", i++, v, f.loc);
                         break;
                 }

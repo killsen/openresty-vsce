@@ -57,6 +57,7 @@ export function getUpValues(doc: TextDocument, pos: Position) {
     function findNode(node: luaparse.Node) {
         if (node.type === 'Identifier' &&
             node.name ===  identifier ) {
+            node.isCursor = true;  // 光标所在位置
             return true;
         }
     }
@@ -109,7 +110,7 @@ export function getDefine(doc: TextDocument, pos: Position) {
 
 function loadScope(option: LuaScopeOption) {
 
-    let $$node: any;
+    let $$node: luaparse.Node | undefined;
     let { ctx, codes, findNode } = option;
 
     let code = codes.join("");
