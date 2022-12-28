@@ -126,22 +126,10 @@ export function loadDocs(apiFile: string, name: string) {
 
     let apiPath = _dirname(apiFile);
     let fileMD  = _join(apiPath, `${ name }.md`);
-    let fileEN  = _join(apiPath, `${ name }._en.md`);
 
     /** 设置模块引用关系 */
     setDepend(apiFile, fileMD);
-    setDepend(apiFile, fileEN);
 
-    let docs = loadDoc(fileMD);
-    if (!docs) { return; }
-
-    let enDocs = loadDoc(fileEN) || {};
-    Object.keys(enDocs).forEach(k => {
-        if (docs) {
-            docs[k] = docs && docs[k] || enDocs[k];
-        }
-    });
-
-    return docs;
+    return loadDoc(fileMD);
 
 }

@@ -154,6 +154,7 @@ ngx.shared.my_dns                                   -> DICT
     DICT:set(key, val, exptime?, flags?)            -- ngx.shared.DICT.set
     DICT:safe_set(key, val, exptime?, flags?)       -- ngx.shared.DICT.safe_set
     DICT:add(key, val, exptime?, flags?)            -- ngx.shared.DICT.add
+    DICT:safe_add(key, val, exptime?, flags?)       -- ngx.shared.DICT.safe_add
     DICT:replace(key, val, exptime?, flags?)        -- ngx.shared.DICT.replace
     DICT:delete(key)                                -- ngx.shared.DICT.delete
     DICT:incr(key, val, init?)                      -- ngx.shared.DICT.incr
@@ -162,9 +163,13 @@ ngx.shared.my_dns                                   -> DICT
     DICT:lpop(key)                                  -- ngx.shared.DICT.lpop
     DICT:rpop(key)                                  -- ngx.shared.DICT.rpop
     DICT:llen(key)                                  -- ngx.shared.DICT.llen
+    DICT:ttl(key)                                   -- ngx.shared.DICT.ttl
+    DICT:expire(key, exptime)                       -- ngx.shared.DICT.expire
     DICT:flush_all()                                -- ngx.shared.DICT.flush_all
     DICT:flush_expired(max_count?)                  -- ngx.shared.DICT.flush_expired
     DICT:get_keys(max_count?)                       -- ngx.shared.DICT.get_keys
+    DICT:capacity()                                 -- ngx.shared.DICT.capacity
+    DICT:free_space()                               -- ngx.shared.DICT.free_space
 
 ngx.socket
 ngx.socket.udp() -> udpsock
@@ -181,11 +186,13 @@ ngx.socket.stream()             -> tcpsock
 ngx.socket.connect(host, port)  -> tcpsock
 
     tcpsock
+    tcpsock:bind(address)
     tcpsock:connect(host, port, options_table?)
+    tcpsock:setclientcert(cert, pkey)
     tcpsock:sslhandshake(reused_session?, server_name?, ssl_verify?)
     tcpsock:send(data)
-    tcpsock:receive(size?)
-    tcpsock:receive(pattern?)
+    tcpsock:receive(size_or_pattern?)
+    tcpsock:receiveany(max)
     tcpsock:receiveuntil(pattern, options?)
     tcpsock:close()
     tcpsock:settimeout(time)

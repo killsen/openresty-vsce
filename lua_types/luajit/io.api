@@ -1,5 +1,10 @@
 
 io
+
+io.stdin
+io.stdout
+io.stderr
+
 io.close(file?)                         -- 关闭默认的输出文件
 io.flush()                              -- 输出所有缓冲中的内容到默认输出文件
 

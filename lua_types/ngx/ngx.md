@@ -6397,6 +6397,84 @@ If key does not exist, it is interpreted as an empty list and 0 is returned. Whe
 
 [返回目录](#nginx-api-for-lua)
 
+ngx.shared.DICT.ttl
+-------------------
+
+**syntax:** *ttl, err = ngx.shared.DICT:ttl(key)*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;, ssl_client_hello_by_lua&#42;*
+
+**requires:** `resty.core.shdict` or `resty.core`
+
+Retrieves the remaining TTL (time-to-live in seconds) of a key-value pair in the shm-based dictionary [ngx.shared.DICT](#ngxshareddict). Returns the TTL as a number if the operation is successfully completed or `nil` and an error message otherwise.
+
+If the key does not exist (or has already expired), this method will return `nil` and the error string `"not found"`.
+
+The TTL is originally determined by the `exptime` argument of the [set](#ngxshareddictset), [add](#ngxshareddictadd), [replace](#ngxshareddictreplace) (and the likes) methods. It has a time resolution of `0.001` seconds. A value of `0` means that the item will never expire.
+
+Example:
+
+```lua
+
+ require "resty.core"
+
+ local cats = ngx.shared.cats
+ local succ, err = cats:set("Marry", "a nice cat", 0.5)
+
+ ngx.sleep(0.2)
+
+ local ttl, err = cats:ttl("Marry")
+ ngx.say(ttl) -- 0.3
+```
+
+This feature was first introduced in the `v0.10.11` release.
+
+**Note:** This method requires the `resty.core.shdict` or `resty.core` modules from the [lua-resty-core](https://github.com/openresty/lua-resty-core) library.
+
+See also [ngx.shared.DICT](#ngxshareddict).
+
+[Back to TOC](#nginx-api-for-lua)
+
+ngx.shared.DICT.expire
+----------------------
+
+**syntax:** *success, err = ngx.shared.DICT:expire(key, exptime)*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;, ssl_client_hello_by_lua&#42;*
+
+**requires:** `resty.core.shdict` or `resty.core`
+
+Updates the `exptime` (in second) of a key-value pair in the shm-based dictionary [ngx.shared.DICT](#ngxshareddict). Returns a boolean indicating success if the operation completes or `nil` and an error message otherwise.
+
+If the key does not exist, this method will return `nil` and the error string `"not found"`.
+
+The `exptime` argument has a resolution of `0.001` seconds. If `exptime` is `0`, then the item will never expire.
+
+Example:
+
+```lua
+
+ require "resty.core"
+
+ local cats = ngx.shared.cats
+ local succ, err = cats:set("Marry", "a nice cat", 0.1)
+
+ succ, err = cats:expire("Marry", 0.5)
+
+ ngx.sleep(0.2)
+
+ local val, err = cats:get("Marry")
+ ngx.say(val) -- "a nice cat"
+```
+
+This feature was first introduced in the `v0.10.11` release.
+
+**Note:** This method requires the `resty.core.shdict` or `resty.core` modules from the [lua-resty-core](https://github.com/openresty/lua-resty-core) library.
+
+See also [ngx.shared.DICT](#ngxshareddict).
+
+[Back to TOC](#nginx-api-for-lua)
+
 ngx.shared.DICT.flush_all
 -------------------------
 **语法:** *ngx.shared.DICT:flush_all()*
@@ -6442,6 +6520,81 @@ ngx.shared.DICT.get_keys
 这个功能最早出现在 `v0.7.3` 版本中。
 
 [返回目录](#nginx-api-for-lua)
+
+ngx.shared.DICT.capacity
+------------------------
+
+**syntax:** *capacity_bytes = ngx.shared.DICT:capacity()*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;, ssl_client_hello_by_lua&#42;*
+
+**requires:** `resty.core.shdict` or `resty.core`
+
+Retrieves the capacity in bytes for the shm-based dictionary [ngx.shared.DICT](#ngxshareddict) declared with
+the [lua_shared_dict](#lua_shared_dict) directive.
+
+Example:
+
+```lua
+
+ require "resty.core.shdict"
+
+ local cats = ngx.shared.cats
+ local capacity_bytes = cats:capacity()
+```
+
+This feature was first introduced in the `v0.10.11` release.
+
+**Note:** This method requires the `resty.core.shdict` or `resty.core` modules from the [lua-resty-core](https://github.com/openresty/lua-resty-core) library.
+
+This feature requires at least Nginx core version `0.7.3`.
+
+See also [ngx.shared.DICT](#ngxshareddict).
+
+[Back to TOC](#nginx-api-for-lua)
+
+ngx.shared.DICT.free_space
+--------------------------
+
+**syntax:** *free_page_bytes = ngx.shared.DICT:free_space()*
+
+**context:** *init_by_lua&#42;, set_by_lua&#42;, rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, header_filter_by_lua&#42;, body_filter_by_lua&#42;, log_by_lua&#42;, ngx.timer.&#42;, balancer_by_lua&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_session_store_by_lua&#42;, ssl_client_hello_by_lua&#42;*
+
+**requires:** `resty.core.shdict` or `resty.core`
+
+Retrieves the free page size in bytes for the shm-based dictionary [ngx.shared.DICT](#ngxshareddict).
+
+**Note:** The memory for ngx.shared.DICT is allocated via the Nginx slab allocator which has each slot for
+data size ranges like \~8, 9\~16, 17\~32, ..., 1025\~2048, 2048\~ bytes. And pages are assigned to a slot if there
+is no room in already assigned pages for the slot.
+
+So even if the return value of the `free_space` method is zero, there may be room in already assigned pages, so
+you may successfully set a new key value pair to the shared dict without getting `true` for `forcible` or
+non nil `err` from the `ngx.shared.DICT.set`.
+
+On the other hand, if already assigned pages for a slot are full and a new key value pair is added to the
+slot and there is no free page, you may get `true` for `forcible` or non nil `err` from the
+`ngx.shared.DICT.set` method.
+
+Example:
+
+```lua
+
+ require "resty.core.shdict"
+
+ local cats = ngx.shared.cats
+ local free_page_bytes = cats:free_space()
+```
+
+This feature was first introduced in the `v0.10.11` release.
+
+**Note:** This method requires the `resty.core.shdict` or `resty.core` modules from the [lua-resty-core](https://github.com/openresty/lua-resty-core) library.
+
+This feature requires at least Nginx core version `1.11.7`.
+
+See also [ngx.shared.DICT](#ngxshareddict).
+
+[Back to TOC](#nginx-api-for-lua)
 
 ngx.socket.udp
 --------------
@@ -6653,6 +6806,42 @@ ngx.socket.tcp
 
 [返回目录](#nginx-api-for-lua)
 
+tcpsock:bind
+------------
+**syntax:** *ok, err = tcpsock:bind(address)*
+
+**context:** *rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, ngx.timer.&#42;, ssl_certificate_by_lua&#42;,ssl_session_fetch_by_lua&#42;,ssl_client_hello_by_lua&#42;*
+
+Just like the standard [proxy_bind](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_bind) directive, this api makes the outgoing connection to a upstream server originate from the specified local IP address.
+
+Only IP addresses can be specified as the `address` argument.
+
+Here is an example for connecting to a TCP server from the specified local IP address:
+
+```nginx
+
+ location /test {
+     content_by_lua_block {
+         local sock = ngx.socket.tcp()
+         -- assume "192.168.1.10" is the local ip address
+         local ok, err = sock:bind("192.168.1.10")
+         if not ok then
+             ngx.say("failed to bind")
+             return
+         end
+         local ok, err = sock:connect("192.168.1.67", 80)
+         if not ok then
+             ngx.say("failed to connect server: ", err)
+             return
+         end
+         ngx.say("successfully connected!")
+         sock:close()
+     }
+ }
+```
+
+[Back to TOC](#nginx-api-for-lua)
+
 tcpsock:connect
 ---------------
 **语法:** *ok, err = tcpsock:connect(host, port, options_table?)*
@@ -6734,6 +6923,31 @@ tcpsock:connect
 该特性在 `v0.5.0rc1` 版本首次引入。
 
 [返回目录](#nginx-api-for-lua)
+
+tcpsock:setclientcert
+---------------------
+
+**syntax:** *ok, err = tcpsock:setclientcert(cert, pkey)*
+
+**context:** *rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, ngx.timer.&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_client_hello_by_lua&#42;*
+
+Set client certificate chain and corresponding private key to the TCP socket object.
+The certificate chain and private key provided will be used later by the [tcpsock:sslhandshake](#tcpsocksslhandshake) method.
+
+* `cert` specify a client certificate chain cdata object that will be used while handshaking with
+remote server. These objects can be created using [ngx.ssl.parse\_pem\_cert](https://github.com/openresty/lua-resty-core/blob/master/lib/ngx/ssl.md#parse_pem_cert)
+function provided by lua-resty-core. Note that specifying the `cert` option requires
+corresponding `pkey` be provided too. See below.
+* `pkey` specify a private key corresponds to the `cert` option above.
+These objects can be created using [ngx.ssl.parse\_pem\_priv\_key](https://github.com/openresty/lua-resty-core/blob/master/lib/ngx/ssl.md#parse_pem_priv_key)
+function provided by lua-resty-core.
+
+If both of `cert` and `pkey` are `nil`, this method will clear any existing client certificate and private key
+that was previously set on the cosocket object.
+
+This method was first introduced in the `v0.10.22` release.
+
+[Back to TOC](#nginx-api-for-lua)
 
 tcpsock:sslhandshake
 --------------------
@@ -6831,6 +7045,41 @@ tcpsock:receive
 该特性是在 `v0.5.0rc1` 版本首次引入的。
 
 [返回目录](#nginx-api-for-lua)
+
+tcpsock:receiveany
+------------------
+
+**syntax:** *data, err = tcpsock:receiveany(max)*
+
+**context:** *rewrite_by_lua&#42;, access_by_lua&#42;, content_by_lua&#42;, ngx.timer.&#42;, ssl_certificate_by_lua&#42;, ssl_session_fetch_by_lua&#42;, ssl_client_hello_by_lua&#42;*
+
+Returns any data received by the connected socket, at most `max` bytes.
+
+This method is a synchronous operation just like the [send](#tcpsocksend) method and is 100% nonblocking.
+
+In case of success, it returns the data received; in case of error, it returns `nil` with a string describing the error.
+
+If the received data is more than this size, this method will return with exactly this size of data.
+The remaining data in the underlying receive buffer could be returned in the next reading operation.
+
+Timeout for the reading operation is controlled by the [lua_socket_read_timeout](#lua_socket_read_timeout) config directive and the [settimeouts](#tcpsocksettimeouts) method. And the latter takes priority. For example:
+
+```lua
+
+ sock:settimeouts(1000, 1000, 1000)  -- one second timeout for connect/read/write
+ local data, err = sock:receiveany(10 * 1024) -- read any data, at most 10K
+ if not data then
+     ngx.say("failed to read any data: ", err)
+     return
+ end
+ ngx.say("successfully read: ", data)
+```
+
+This method doesn't automatically close the current connection when the read timeout error occurs. For other connection errors, this method always automatically closes the connection.
+
+This feature was first introduced in the `v0.10.14` release.
+
+[Back to TOC](#nginx-api-for-lua)
 
 tcpsock:receiveuntil
 --------------------

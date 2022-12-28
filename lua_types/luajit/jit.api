@@ -10,6 +10,8 @@ jit.flush()
 
 jit.status()
 
+jit.attach(func)
+
 jit.version
 jit.version_num
 jit.os

@@ -1,8 +1,15 @@
 
 coroutine
+
 coroutine.create(f)
 coroutine.resume(co[,val1,...])
 coroutine.running()
 coroutine.status(co)
 coroutine.wrap(f)
 coroutine.yield(...)
+
+coroutine._create(f)                    -- coroutine.create
+coroutine._resume(co[,val1,...])        -- coroutine.resume
+coroutine._status(co)                   -- coroutine.status
+coroutine._wrap(f)                      -- coroutine.wrap
+coroutine._yield(...)                   -- coroutine.yield
