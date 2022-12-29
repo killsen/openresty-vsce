@@ -4,7 +4,7 @@ import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setScopeCall } from './modFunc';
 import { getItem, isDownScope, isInScope, findKeys } from './utils';
-import { Range, Position } from 'vscode';
+import { Range, Position, Diagnostic } from 'vscode';
 
 /** 执行代码块：并返回最后一个返回值 */
 export function loadBody(body: Statement[], _g: LuaScope, resArgs: any[] = []) {
@@ -90,6 +90,17 @@ export function loadNode(node: Node, _g: any): any {
         // 是否本地变量
         let isLocal = (node.type === "LocalStatement");
 
+        // -- @t : @MyType
+        // local t = {}
+        // 为 apicheck 提供成员字段检查, 并提供成员字段补全及跳转
+        if (node.variables.length === 1 && node.variables[0].type === "Identifier" &&
+            node.init.length === 1 && node.init[0].type === "TableConstructorExpression") {
+            let type = getType(_g, node.variables[0].name);
+            if (type instanceof Object) {
+                node.init[0].members = type["."];
+            }
+        }
+
         // 返回值（可能多个）
         let res: any[] = [];
         if (node.init.length === 1) {
@@ -171,19 +182,6 @@ export function loadNode(node: Node, _g: any): any {
                     break;
             }
         });
-
-        // local t = {}
-        if (node.variables.length === 1 && node.variables[0].type === "Identifier" &&
-            node.init.length === 1 && node.init[0].type === "TableConstructorExpression") {
-
-            // { } 参数补全及提示
-            if ($$node && $$node.scope && $$node.isMember) {
-                let type = getType(_g, node.variables[0].name);
-                if (type instanceof Object) {
-                    setScopeCall(type["."], $$node, _g);
-                }
-            }
-        }
 
         return;
     }
@@ -369,6 +367,14 @@ export function loadNode(node: Node, _g: any): any {
         // 运行函数 func { a=1, b=2, c=3 }
         case "TableCallExpression": {
             let funt = loadNode(node.base, _g);
+
+            // api 请求参数 req字段
+            if (funt.$req instanceof Object) {
+                node.arguments.members = funt.$req["."];
+            } else if (funt.$dao instanceof Object && funt.$dao.row instanceof Object) {
+                node.arguments.members = funt.$dao.row;
+            }
+
             let argt = loadNode(node.arguments, _g);
 
             // { } 参数补全及提示
@@ -379,13 +385,13 @@ export function loadNode(node: Node, _g: any): any {
 
                     // api 请求参数 req字段
                     if (funt.$req instanceof Object) {
-                        let scope = getItem(funt.$req, keys);
-                        setScopeCall(scope, $$node, _g);
+                        // let scope = getItem(funt.$req, keys);
+                        // setScopeCall(scope, $$node, _g);
 
                     // dao 请求参数：row字段
                     } else if (funt.$dao instanceof Object && funt.$dao.row instanceof Object) {
-                        let scope = funt.$dao.row;
-                        setScopeCall(scope, $$node, _g);
+                        // let scope = funt.$dao.row;
+                        // setScopeCall(scope, $$node, _g);
 
                     } else {
                         let func = funt["()"];
@@ -512,25 +518,8 @@ export function loadNode(node: Node, _g: any): any {
 
                 let r = k in ti ? ti[k] : ti["*"];
                 if (r === undefined && !(k in ti)) {
-
                     // 为 apicheck 提供成员字段检查
-                    let lints = getValue(_g, "$$lints");
-                    if (lints) {
-                        let n = node.identifier as any;
-                        if(!n["_linted_"]){
-                            n["_linted_"] = true;
-                            let start = n.loc!.start;
-                            let end   = n.loc!.end;
-                            lints.push({
-                                range: new Range(
-                                    new Position(start.line-1, start.column),
-                                    new Position(end.line-1, end.column)
-                                ),
-                                message: `字段未定义 '${ k }'`,
-                                severity: 1,
-                            });
-                        }
-                    }
+                    addLint(node.identifier, k, _g);
                 }
 
                 return r;
@@ -544,6 +533,15 @@ export function loadNode(node: Node, _g: any): any {
             let i = 1; // 下标从1开始：跟Lua保持一致
 
             node.fields.forEach(f => {
+
+                // 为 apicheck 提供成员字段检查
+                if (node.members && f.type === "TableKeyString" && f.value.type === "TableConstructorExpression") {
+                    let vtype = node.members[f.key.name];
+                    if (vtype && vtype["."]) {
+                        f.value.members = vtype["."];
+                    }
+                }
+
                 let v = loadNode(f.value, _g);
                 if (v instanceof Array) { v = v[0]; } // 返回的可能是数组
 
@@ -559,12 +557,19 @@ export function loadNode(node: Node, _g: any): any {
                     }
 
                     case "TableKeyString":      // 对象表达式 { k = v }
+
+                        // 为 apicheck 提供成员字段检查
+                        if (node.members && !(f.key.name in node.members)) {
+                            addLint(f.key, f.key.name, _g);
+                        }
+
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);
                         break;
 
                     case "TableValue":          // 数组表达式 { a, b, c }
                         if ( f.value.type === "CallExpression" && f.value.base.isCursor ) {
                             f.value.base.isMember = true;  // 光标所在位置是否成员字段
+                            node.members && setScopeCall(node.members, f.value.base, _g);
                         }
                         setChild(_g, t, ".", i++, v, f.loc);
                         break;
@@ -577,5 +582,30 @@ export function loadNode(node: Node, _g: any): any {
         default: // 默认返回
             return { ".": {}, $file, $loc: node.loc };
     }
+
+}
+
+// 为 apicheck 提供成员字段检查
+function addLint(n: Node, k: string, _g: LuaScope) {
+
+    if (k.startsWith("_")) {return;}
+
+    let lints = getValue(_g, "$$lints") as Diagnostic[];
+    if(!lints) {return;}
+
+    if (n.isLinted) {return;}
+        n.isLinted = true;
+
+    let start = n.loc!.start;
+    let end   = n.loc!.end;
+
+    lints.push({
+        range: new Range(
+            new Position(start.line-1, start.column),
+            new Position(end.line-1, end.column)
+        ),
+        message: `字段未定义 '${ k }'`,
+        severity: 1,
+    });
 
 }

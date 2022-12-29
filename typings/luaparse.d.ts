@@ -28,6 +28,8 @@ export interface Base<TType extends string> {
     scope?: any;  // added by Killsen
     isCursor?: boolean;  // 光标所在位置
     isMember?: boolean;  // 是否成员字段
+    isLinted?: boolean;
+    members?: any;
 }
 
 export interface LabelStatement extends Base<"LabelStatement"> {
