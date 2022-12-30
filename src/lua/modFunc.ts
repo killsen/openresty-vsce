@@ -3,7 +3,6 @@ import { Node, FunctionDeclaration } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
-import { getItem } from './utils';
 import { LuaModule } from './types';
 
 /** 调用函数 */
@@ -70,6 +69,9 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         callOnce = (args.length === 0);
 
         let newG = newScope(_g);
+
+        // 填充返回值类型
+        setValue(newG, "$type_return", $$res, true);
 
         if (types) {
             for (let name in types) {

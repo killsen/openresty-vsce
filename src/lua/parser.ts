@@ -189,16 +189,25 @@ export function loadNode(node: Node, _g: any): any {
     switch (node.type) {
 
         // 返回语句:  return ...
-        case "ReturnStatement":
-            if (node.arguments.length > 1) {
-                return node.arguments.map(n => {
-                    return loadNode(n, _g);
-                });
-            } else if (node.arguments.length === 1) {
-                return loadNode(node.arguments[0], _g);
-            } else {
-                return;
+        case "ReturnStatement": {
+
+            // 为返回值类型提供参数补全及字段检查
+            const argt = node.arguments[0];
+            if (argt && argt.type === "TableConstructorExpression") {
+                const returnType = getValue(_g, "$type_return");
+                if (returnType && returnType["."]) {
+                    argt.members = returnType["."];
+                }
             }
+
+            if (node.arguments.length > 1) {
+                return node.arguments.map(n => loadNode(n, _g));
+            } else if (node.arguments.length === 1) {
+                return loadNode(argt, _g);
+            }
+
+            return;
+        }
 
         // 条件判断语句:  if (condition) then ... elseif (condition) then ... else ... end
         case 'IfStatement':
