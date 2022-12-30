@@ -511,10 +511,15 @@ export function loadNode(node: Node, _g: any): any {
             node.fields.forEach(f => {
 
                 // 为 apicheck 提供成员字段检查
-                if (node.members && f.type === "TableKeyString" && f.value.type === "TableConstructorExpression") {
-                    let vtype = node.members[f.key.name];
-                    if (vtype && vtype["."]) {
-                        f.value.members = vtype["."];
+                if (node.members && f.value.type === "TableConstructorExpression") {
+                    if (f.type === "TableKeyString") {
+                        let vtype = node.members[f.key.name];
+                        if (vtype && vtype["."]) {
+                            f.value.members = vtype["."];
+                        }
+                    } else {
+                        // TODO: 继续传递成员字段【待改】
+                        f.value.members = node.members;
                     }
                 }
 
