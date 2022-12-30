@@ -1,5 +1,11 @@
 # 升级日志
 
+## v1.6.0
+
+* 新增支持自定义类型声明 [演示代码](https://raw.githubusercontent.com/killsen/openresty-appx/main/nginx/testing/typed.lua)
+
+![screenshots](https://raw.githubusercontent.com/killsen/openresty-vsce/master/images/typed.png)
+
 ## v1.2.0
 
 * 新增支持 luacheck

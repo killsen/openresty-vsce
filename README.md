@@ -13,6 +13,7 @@
 * 支持文档大纲
 * 支持 Attach 调试 ([EmmyLuaDebugger](https://github.com/EmmyLua/EmmyLuaDebugger))
 * 支持静态检查  ([LuaCheck](https://github.com/mpeterv/luacheck))
+* 支持自定义类型声明 [演示代码](https://raw.githubusercontent.com/killsen/openresty-appx/main/nginx/testing/typed.lua)
 
 ## 依赖 (Dependences)
 
@@ -25,4 +26,6 @@
 ## 截图 (Screenshots)
 
 ![screenshots](https://raw.githubusercontent.com/killsen/openresty-vsce/master/images/screenshots.png)
+
+![screenshots](https://raw.githubusercontent.com/killsen/openresty-vsce/master/images/typed.png)
 
