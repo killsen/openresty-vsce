@@ -109,21 +109,6 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
                 value = self;                           // 构造器 @@ <Constructor>
             }
 
-            // { } 参数补全及提示
-            if (i===0 && value instanceof Object) {
-                let $$func: any = myFunc;
-                let $$gggg = $$func["$$gggg"];
-                if ($$gggg) {
-                    delete $$func["$$gggg"];
-                    let $$keys = getValue($$gggg, "$$keys");
-                    let $$node = getValue($$gggg, "$$node");
-                    if ($$node && $$keys instanceof Array) {
-                        let scope = getItem(value, $$keys);
-                        setScopeCall(scope, $$node, $$gggg);
-                    }
-                }
-            }
-
             setValue(newG, name, value, true, p.loc);
         });
 
@@ -154,6 +139,20 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     if (types && types["@@"]) {
         setValue(_g, "@@", myFunc, true);
     }
+
+    // 参数类型定义
+    myFunc.$argTypes = new Proxy({}, {
+        get(target, prop) {
+            let i = Number(prop);
+            let p = args[i];
+            if (p.type === "Identifier") {
+                let typeName = types && types[p.name];
+                if (typeName) {
+                    return loadType(typeName, _g);
+                }
+            }
+        }
+    });
 
     return myFunc;
 

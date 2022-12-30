@@ -3,7 +3,7 @@ import { Node, Statement } from 'luaparse';
 import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setScopeCall } from './modFunc';
-import { getItem, isDownScope, isInScope, findKeys } from './utils';
+import { isDownScope, isInScope } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -339,12 +339,17 @@ export function loadNode(node: Node, _g: any): any {
         // 运行函数: func(a, b, c)
         case "CallExpression": {
             let funt = loadNode(node.base, _g);
+            if (!funt) {return;}
+
             let argt = node.arguments.map((arg, i) => {
 
                 // 参数提示
                 if (typeof funt !== "function" && (funt instanceof Object) && $$node && isInScope(arg, $$node)) {
                     setValue(_g, "$$call", { args: funt.args, doc: funt.doc, index: i }, false);
                 }
+
+                // { key = ... } 对象表达式成员字段补全或检查
+                addMember(funt, arg, i);
 
                 let t = loadNode(arg, _g);
                 if (t instanceof Array) {
@@ -367,43 +372,14 @@ export function loadNode(node: Node, _g: any): any {
         // 运行函数 func { a=1, b=2, c=3 }
         case "TableCallExpression": {
             let funt = loadNode(node.base, _g);
+            if (!funt) {return;}
 
-            // api 请求参数 req字段
-            if (funt.$req instanceof Object) {
-                node.arguments.members = funt.$req["."];
-            } else if (funt.$dao instanceof Object && funt.$dao.row instanceof Object) {
-                node.arguments.members = funt.$dao.row;
-            }
+            // { key = ... } 对象表达式成员字段补全或检查
+            addMember(funt, node.arguments);
 
-            let argt = loadNode(node.arguments, _g);
+            let args = loadNode(node.arguments, _g);
 
-            // { } 参数补全及提示
-            if ($$node && $$node.scope && funt instanceof Object) {
-                let keys = findKeys(argt, "$$node", $$node);
-                if (keys) {
-                    // console.log(keys);
-
-                    // api 请求参数 req字段
-                    if (funt.$req instanceof Object) {
-                        // let scope = getItem(funt.$req, keys);
-                        // setScopeCall(scope, $$node, _g);
-
-                    // dao 请求参数：row字段
-                    } else if (funt.$dao instanceof Object && funt.$dao.row instanceof Object) {
-                        // let scope = funt.$dao.row;
-                        // setScopeCall(scope, $$node, _g);
-
-                    } else {
-                        let func = funt["()"];
-                        if (typeof func === "function") {
-                            setValue(_g, "$$keys", keys, true);
-                            func["$$gggg"] = _g;
-                        }
-                    }
-                }
-            }
-
-            return callFunc(funt, argt);
+            return callFunc(funt, args);
         }
 
         // 函数定义
@@ -567,10 +543,12 @@ export function loadNode(node: Node, _g: any): any {
                         break;
 
                     case "TableValue":          // 数组表达式 { a, b, c }
-                        if ( f.value.type === "CallExpression" && f.value.base.isCursor ) {
-                            f.value.base.isMember = true;  // 光标所在位置是否成员字段
-                            node.members && setScopeCall(node.members, f.value.base, _g);
+
+                        // 找到光标所在位置
+                        if ( f.value.type === "CallExpression" && f.value.base.isCursor && node.members ) {
+                            setScopeCall(node.members, f.value.base, _g);
                         }
+
                         setChild(_g, t, ".", i++, v, f.loc);
                         break;
                 }
@@ -607,5 +585,33 @@ function addLint(n: Node, k: string, _g: LuaScope) {
         message: `字段未定义 '${ k }'`,
         severity: 1,
     });
+
+}
+
+// { key = ... } 对象表达式成员字段补全或检查
+function addMember(funt: any, arg: Node, i = 0) {
+
+    if (!funt) {return;}
+
+    if (arg.type !== "TableConstructorExpression") {return;}
+
+    if (i===0 && funt.$req instanceof Object) {
+        // api 请求参数字段
+        arg.members = funt.$req["."];
+
+    } else if (i===0 && funt.$dao instanceof Object && funt.$dao.row instanceof Object) {
+        // dao 对象参数字段
+        arg.members = funt.$dao.row;
+
+    } else {
+        // 自定义类型参数字段
+        let func = funt["()"];
+        if (func && func.$argTypes) {
+            let argt = func.$argTypes[i];
+            if (argt && argt["."]) {
+                arg.members = argt["."];
+            }
+        }
+    }
 
 }
