@@ -25,6 +25,7 @@ const ERRORS: { [key: string] : string } = {
     [`')' expected near 'do'`       ] : `() ) do   end ------ `,
 
     [`'}' expected near '='`        ] : `(), _ `,  // { _____(), _ = ... }  // 光标在 {} 表达式等号(=)前面
+    [`'}' expected near`            ] : `(), `  ,  // { _____(), ...     }  // 光标在 {} 表达式逗号(,)前面
     [`unexpected symbol '=' near`   ] : `(); _ `,  // { _____(), _ = ... }  // 光标在赋值语句等号(=)前面
 };
 
