@@ -3,7 +3,7 @@ import { Node, Statement } from 'luaparse';
 import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setScopeCall } from './modFunc';
-import { isDownScope, isInScope } from './utils';
+import { getItem, isDownScope, isInScope, isObject } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -69,7 +69,7 @@ export function loadBody(body: Statement[], _g: LuaScope, resArgs: any[] = []) {
 }
 
 /** 加载代码节点 */
-export function loadNode(node: Node, _g: any): any {
+export function loadNode(node: Node, _g: LuaScope): any {
 
     if (!(_g instanceof Object)) { return; }
 
@@ -90,15 +90,10 @@ export function loadNode(node: Node, _g: any): any {
         // 是否本地变量
         let isLocal = (node.type === "LocalStatement");
 
-        // -- @t : @MyType
-        // local t = {}
-        // 为 apicheck 提供成员字段检查, 并提供成员字段补全及跳转
+        // local t = { k=v, { k=v } }  -- @t : @MyType  //自定义类型
         if (node.variables.length === 1 && node.variables[0].type === "Identifier" &&
             node.init.length === 1 && node.init[0].type === "TableConstructorExpression") {
-            let type = getType(_g, node.variables[0].name);
-            if (type instanceof Object) {
-                node.init[0].members = type["."];
-            }
+            node.init[0].vtype = getType(_g, node.variables[0].name);  // 左值类型
         }
 
         // 返回值（可能多个）
@@ -191,13 +186,9 @@ export function loadNode(node: Node, _g: any): any {
         // 返回语句:  return ...
         case "ReturnStatement": {
 
-            // 为返回值类型提供参数补全及字段检查
             const argt = node.arguments[0];
             if (argt && argt.type === "TableConstructorExpression") {
-                const returnType = getValue(_g, "$type_return");
-                if (returnType && returnType["."]) {
-                    argt.members = returnType["."];
-                }
+                argt.vtype = getType(_g, "return");  // 返回值类型
             }
 
             if (node.arguments.length > 1) {
@@ -357,8 +348,7 @@ export function loadNode(node: Node, _g: any): any {
                     setValue(_g, "$$call", { args: funt.args, doc: funt.doc, index: i }, false);
                 }
 
-                // { key = ... } 对象表达式成员字段补全或检查
-                addMember(funt, arg, i);
+                set_vtype(funt, arg, i);  // 形参类型
 
                 let t = loadNode(arg, _g);
                 if (t instanceof Array) {
@@ -383,8 +373,7 @@ export function loadNode(node: Node, _g: any): any {
             let funt = loadNode(node.base, _g);
             if (!funt) {return;}
 
-            // { key = ... } 对象表达式成员字段补全或检查
-            addMember(funt, node.arguments);
+            set_vtype(funt, node.arguments);  // 形参类型
 
             let args = loadNode(node.arguments, _g);
 
@@ -519,16 +508,13 @@ export function loadNode(node: Node, _g: any): any {
 
             node.fields.forEach(f => {
 
-                // 为 apicheck 提供成员字段检查
-                if (node.members && f.value.type === "TableConstructorExpression") {
+                if (f.value.type === "TableConstructorExpression") {
                     if (f.type === "TableKeyString") {
-                        let vtype = node.members[f.key.name];
-                        if (vtype && vtype["."]) {
-                            f.value.members = vtype["."];
-                        }
-                    } else {
-                        // TODO: 继续传递成员字段【待改】
-                        f.value.members = node.members;
+                        f.value.vtype = getItem(node.vtype, [".", f.key.name]);  // 传递成员类型
+
+                    } else if (f.type === "TableValue") {
+                        f.value.vtype = getItem(node.vtype, ["[]"]);  // 传递数组成员类型
+
                     }
                 }
 
@@ -547,24 +533,31 @@ export function loadNode(node: Node, _g: any): any {
                     }
 
                     case "TableKeyString":      // 对象表达式 { k = v }
-
-                        // 为 apicheck 提供成员字段检查
-                        if (node.members && !(f.key.name in node.members)) {
-                            addLint(f.key, f.key.name, _g);
+                    {
+                        let scope = getItem(node.vtype, ["."]);  // 成员类型字段
+                        if (isObject(scope)) {
+                            if (!(f.key.name in scope)) {
+                                addLint(f.key, f.key.name, _g);  // 字段未定义
+                            }
                         }
 
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);
                         break;
+                    }
 
                     case "TableValue":          // 数组表达式 { a, b, c }
-
+                    {
                         // 找到光标所在位置
-                        if ( f.value.type === "CallExpression" && f.value.base.isCursor && node.members ) {
-                            setScopeCall(node.members, f.value.base, _g);
+                        if ( f.value.type === "CallExpression" && f.value.base.isCursor ) {
+                            let scope = getItem(node.vtype, ["."]);  // 成员类型字段
+                            if (isObject(scope)) {
+                                setScopeCall(scope, f.value.base, _g);  // 代码补全或跳转
+                            }
                         }
 
                         setChild(_g, t, ".", i++, v, f.loc);
                         break;
+                    }
                 }
             });
 
@@ -602,29 +595,50 @@ function addLint(n: Node, k: string, _g: LuaScope) {
 
 }
 
-// { key = ... } 对象表达式成员字段补全或检查
-function addMember(funt: any, arg: Node, i = 0) {
+const $dao_ext = {
+    _order_by : { doc: "## _order_by \n\n `< string >` \n\n ### 排序 \n\n" },
+    _group_by : { doc: "## _group_by \n\n `< string >` \n\n ### 汇总 \n\n" },
+    _limit    : { doc: "## _limit    \n\n `< number | string >` \n\n ### 记录数 \n\n" },
+};
+
+// 设置形参类型
+function set_vtype(funt: any, arg: Node, i = 0) {
 
     if (!funt) {return;}
 
     if (arg.type !== "TableConstructorExpression") {return;}
 
-    if (i===0 && funt.$req instanceof Object) {
+    if (i===0 && isObject(funt.$req)) {
         // api 请求参数字段
-        arg.members = funt.$req["."];
+        arg.vtype = funt.$req;
 
-    } else if (i===0 && funt.$dao instanceof Object && funt.$dao.row instanceof Object) {
+    } else if (i===0 && isObject(funt.$dao) && isObject(funt.$dao.row)) {
         // dao 对象参数字段
-        arg.members = funt.$dao.row;
+        const row = funt.$dao.row;
+        const doc = funt.doc || "" as string;
+
+        if (/dao[:.](get|list)/g.test(doc)) {
+            arg.vtype = {
+                ["." ] : { ...row, ...$dao_ext },
+                ["[]"] : { ".": {} },
+            };
+        }else if (/dao[:.](add|set)/g.test(doc)) {
+            arg.vtype = {
+                ["." ] : row,
+                ["[]"] : { ".": row },
+            };
+        } else {
+            arg.vtype = {
+                ["." ] : row,
+                ["[]"] : { ".": {} },
+            };
+        }
 
     } else {
         // 自定义类型参数字段
         let func = funt["()"];
         if (func && func.$argTypes) {
-            let argt = func.$argTypes[i];
-            if (argt && argt["."]) {
-                arg.members = argt["."];
-            }
+            arg.vtype = func.$argTypes[i];
         }
     }
 
