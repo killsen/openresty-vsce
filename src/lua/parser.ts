@@ -90,11 +90,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 是否本地变量
         let isLocal = (node.type === "LocalStatement");
 
-        // local t = { k=v, { k=v } }  -- @t : @MyType  //自定义类型
-        if (node.variables.length === 1 && node.variables[0].type === "Identifier" &&
-            node.init.length === 1 && node.init[0].type === "TableConstructorExpression") {
-            node.init[0].vtype = getType(_g, node.variables[0].name);  // 左值类型
-        }
+        // -- @t : @MyType  //自定义类型
+        // local t = { k=v, { k=v } }
+        const vtypes = node.variables.map(n => get_vtype(n, _g));
+        node.init.forEach((n, i) => {
+            if (n.type === "TableConstructorExpression") {
+                n.vtype = vtypes[i];  //关联类型
+            }
+        });
 
         // 返回值（可能多个）
         let res: any[] = [];
@@ -592,6 +595,32 @@ function addLint(n: Node, k: string, _g: LuaScope) {
         message: `字段未定义 '${ k }'`,
         severity: 1,
     });
+
+}
+
+// 获取参数类型
+function get_vtype(n: Node, _g: LuaScope): any {
+
+    if (n.type === "Identifier") {
+        return getType(_g, n.name);
+
+    } else if (n.type === "MemberExpression") {
+        const vtype = get_vtype(n.base, _g);
+        if (vtype) {
+            const t = vtype["."] || {};
+            const k = n.identifier.name;
+            if (!(k in t)) {
+                addLint(n.identifier, k, _g);
+            }
+            return t[k] || {};
+        }
+
+    } else if (n.type === "IndexExpression") {
+        const vtype = get_vtype(n.base, _g);
+        if (vtype) {
+            return vtype["[]"] || {};
+        }
+    }
 
 }
 
