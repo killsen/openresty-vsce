@@ -3,13 +3,17 @@ import { Node, Statement } from 'luaparse';
 import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setScopeCall } from './modFunc';
-import { getItem, isDownScope, isInScope, isObject } from './utils';
+import { getItem, isArray, isDownScope, isInScope, isObject } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 
 /** 执行代码块：并返回最后一个返回值 */
-export function loadBody(body: Statement[], _g: LuaScope, resArgs: any[] = []) {
+export function loadBody(body: Statement[], _g: LuaScope) {
 
     if (!(_g instanceof Object)) { return; }
+
+    if(!getValue(_g, "$$return")) {
+        setValue(_g, "$$return", [], true);  // 初始化返回值
+    }
 
     // 光标所在位置
     let $$node: Node | undefined = getValue(_g, "$$node");
@@ -25,46 +29,10 @@ export function loadBody(body: Statement[], _g: LuaScope, resArgs: any[] = []) {
             _g = newScope(_g);  // 光标下方代码：使用新的作用域
         }
 
-        switch (node.type) {
-            case "ReturnStatement":
-                resArgs.push(loadNode(node, _g));
-                break;
-
-            case 'IfStatement':
-                node.clauses.forEach(n => {
-                    switch (n.type) {
-                        case "IfClause":
-                        case 'ElseifClause':
-                            loadNode(n.condition, _g);
-                            loadBody(n.body, newScope(_g), resArgs);
-                            break;
-                        case 'ElseClause':
-                            loadBody(n.body, newScope(_g), resArgs);
-                    }
-                });
-                break;
-
-            case 'RepeatStatement':
-            case 'WhileStatement':
-                loadNode(node.condition, _g);
-                loadBody(node.body, newScope(_g), resArgs);
-                break;
-
-            case 'DoStatement':
-                loadBody(node.body, newScope(_g), resArgs);
-                break;
-
-            default:
-                loadNode(node, _g);
-                break;
-
-        }
-
+        loadNode(node, _g);
     });
 
-    if (resArgs.length>0) {
-        return resArgs[resArgs.length - 1]; // 最后的返回值
-    }
+    return getReturn(_g);  // 获取返回值
 
 }
 
@@ -188,19 +156,20 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 返回语句:  return ...
         case "ReturnStatement": {
-
             const argt = node.arguments[0];
             if (argt && argt.type === "TableConstructorExpression") {
                 argt.vtype = getType(_g, "return");  // 返回值类型
             }
 
+            let $res;
             if (node.arguments.length > 1) {
-                return node.arguments.map(n => loadNode(n, _g));
+                $res = node.arguments.map(n => loadNode(n, _g));
             } else if (node.arguments.length === 1) {
-                return loadNode(argt, _g);
+                $res = loadNode(argt, _g);
             }
 
-            return;
+            setReturn($res, _g);  // 设置返回值
+            return $res;
         }
 
         // 条件判断语句:  if (condition) then ... elseif (condition) then ... else ... end
@@ -572,6 +541,45 @@ export function loadNode(node: Node, _g: LuaScope): any {
     }
 
 }
+
+
+// 设置返回值
+function setReturn(val: any, _g: LuaScope) {
+    if (val === null || val === undefined) {return;}
+    const arr = getValue(_g, "$$return") as any[];
+    if (!isArray(arr)) {return;}
+    arr.push(val);
+}
+
+// 获取返回值
+function getReturn(_g: LuaScope) {
+
+    let arr = getValue(_g, "$$return") as any[];
+    if (!isArray(arr)) {return;}
+
+    if (arr.length === 1) {
+        return arr[0];
+
+    } else if (arr.length > 1) {
+        // 对多个 return 语句的返回值进行排序: 优先选用复杂类型
+        arr.sort((a: any, b: any) => {
+            if (isArray(a)) {a = a[0];}
+            if (isArray(b)) {b = b[0];}
+
+            if (isObject(a) && !isObject(b)) {
+                return 1;
+            } else if (!isObject(a) && isObject(b)) {
+                return -1;
+            } else {
+                return 0;
+            }
+        });
+
+        return arr[arr.length - 1]; // 最后的返回值
+    }
+
+}
+
 
 // 为 apicheck 提供成员字段检查
 function addLint(n: Node, k: string, _g: LuaScope) {

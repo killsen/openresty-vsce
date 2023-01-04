@@ -69,6 +69,9 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, 
         let $$comm = parseComments(chunk.comments);
         setValue(_g, "$$comm", $$comm, true);
 
+        // 初始化返回值数组
+        setValue(_g, "$$return", [], true);
+
         let mod = loadBody(chunk.body, _g);
 
         if (mod instanceof Object) {

@@ -70,7 +70,10 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
         let newG = newScope(_g);
 
-        // 填充返回值类型
+        // 初始化返回值数组
+        setValue(newG, "$$return", [], true);
+
+        // 初始化返回值类型
         setValue(newG, "$type_return", $$res, true);
 
         if (types) {
