@@ -52,6 +52,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
     // console.log("onCreateNode", node.type, node);
 
+    // 仅声明本地变量未赋值: 默认值为null, 代表lua的<nil>值
+    if (node.type === "LocalStatement" && node.init.length === 0) {
+        node.variables.forEach(n => {
+            setValue(_g, n.name, null, true, n.loc);
+        });
+        return;
+    }
+
     // 赋值表达式
     if (node.type === "LocalStatement" || node.type === "AssignmentStatement") {
 
@@ -287,7 +295,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let right = loadNode(node.right, _g);
             switch (node.operator) {
                 case "and":  return right;
-                case "or":   return left;
+                case "or":   return (left===undefined || left===null || left===false) ? right : left;
             }
             break;
         }

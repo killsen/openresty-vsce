@@ -71,7 +71,7 @@ export function getValue(_g: LuaScope, key: string) {
 
     let _G = getScope(_g, key);
 
-    return _GT[keyT] || _G[key];
+    return keyT in _GT ? _GT[keyT] : _G[key];
 
 }
 
