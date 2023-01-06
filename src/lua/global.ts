@@ -2,6 +2,8 @@
 import { NgxPath } from "./ngx";
 import { LuaScope } from "./scope";
 import * as lua from './index';
+import { getItem, isObject, setItem } from "./utils";
+import { LuaTable } from "../ast/LuaNode";
 
 /** 生成全局变量环境 */
 export function genGlobal(ctx: NgxPath) {
@@ -69,6 +71,24 @@ export function genGlobal(ctx: NgxPath) {
         "()": setmetatable,
         args: '(t, mt)',
         doc: "## setmetatable(t, mt)\n设置元表"
+    };
+
+    _G["getmetatable"] = {
+        "()": getmetatable,
+        args: '(t)',
+        doc: "## getmetatable(t)\n获取元表"
+    };
+
+    _G["rawget"] = {
+        "()": rawget,
+        args: '(t, key)',
+        doc: "## rawget(t, key)\n获取表对应key的值(不触发元表__index)"
+    };
+
+    _G["rawset"] = {
+        "()": rawset,
+        args: '(t, key, val)',
+        doc: "## rawset(t, key, val)\n设置表对应key的值(不触发元表__newindex)"
     };
 
     return _G;
@@ -220,27 +240,49 @@ function pcall(fun: any, ...args: any) {
 /** 设置元表 */
 function setmetatable(t: any, mt: any) {
 
-    if (!(t instanceof Object)) { return t; }
-    if (!(mt instanceof Object)) { return t; }
-
-    let _index: any = getChild(mt, ".__index");
-    if (_index instanceof Object) {
-        // console.log("__index", _index);
-        _index["mt"] = true;
-        _index[":"] = _index[":"] || {};
-        t[":"] = _index[":"];
+    if (isObject(t) && isObject(mt)) {
+        t["$$mt"] = mt;
     }
 
-    let _call: any = getChild(mt, ".__call");
-    if (_call instanceof Object) {
-        // console.log("__call", _call);
-        // _call["()"] = _call["()"] || [];
-        if (_call["()"]) {
-            t["()"] = _call["()"];
-            t.args = _call.selfArgs || _call.args || "()";
-        }
-    }
+    // if (!(t instanceof Object)) { return t; }
+    // if (!(mt instanceof Object)) { return t; }
+
+    // let _index: any = getChild(mt, ".__index");
+    // if (_index instanceof Object) {
+    //     // console.log("__index", _index);
+    //     // _index["mt"] = true;
+    //     // _index[":"] = _index[":"] || {};
+    //     // t[":"] = _index[":"];
+    //     t["$$mt__index"] = _index;
+    // }
+
+    // let _call: any = getChild(mt, ".__call");
+    // if (_call instanceof Object) {
+    //     // console.log("__call", _call);
+    //     // _call["()"] = _call["()"] || [];
+    //     t["$$mt__call"] = _call;
+
+    //     if (_call["()"]) {
+    //         t["()"] = _call["()"];
+    //         t.args = _call.selfArgs || _call.args || "()";
+    //     }
+    // }
 
     return t;
 
+}
+
+/** 获取元表 */
+function getmetatable(t: any) {
+    return getItem(t, ["$$mt"]);
+}
+
+/** 获取表对应key的值(不触发元表__index) */
+function rawget(t: LuaTable, k: string) {
+    return getItem(t, [".", k]);
+}
+
+/** 设置表对应key的值(不触发元表__newindex) */
+function rawset(t: LuaTable, k: string, v: any) {
+    setItem(t, [".", k], v);
 }

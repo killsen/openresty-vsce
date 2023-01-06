@@ -4,35 +4,56 @@ import { newScope, getValue, setValue, LuaScope } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule } from './types';
+import { getItem, isObject } from './utils';
+
+
+/** 取得函数定义 */
+export function getFunt(t: any, ...args: any) {
+
+    if (typeof t === "function") {
+        return t;
+    }
+
+    let f = getItem(t, ["()"]);
+    if (f !== undefined) {
+        return t;
+    }
+
+    f = getItem(t, ["$$mt", ".", "__call", "()"]);
+    if (f !== undefined) {
+        return getItem(t, ["$$mt", ".", "__call"]);
+    }
+
+    return t;
+
+}
+
 
 /** 调用函数 */
 export function callFunc(t: any, ...args: any) {
 
-    // console.log("callFunc");
-    let fun;
-
-    if (typeof t === "function") {
-        fun = t;
-
-    } else if (t instanceof Object) {
-        t = t["()"];
+    try {
         if (typeof t === "function") {
-            fun = t;
+            return t(...args);
         }
 
-    }else{
-        return;
-    }
-
-    if (typeof fun === "function") {
-        try{
-            t = fun.apply(t, args);
-        }catch(e){
-            // console.log(e);
+        let f = getItem(t, ["()"]);
+        if (typeof f === "function") {
+            return f(...args);
+        } else if (f !== undefined) {
+            return f;
         }
-    }
 
-    return t;
+        f = getItem(t, ["$$mt", ".", "__call", "()"]);
+        if (typeof f === "function") {
+            return f(t, ...args);  // 第一个参数 t 自己
+        } else if (f !== undefined) {
+            return f;
+        }
+
+    }catch(e){
+        // console.log(e);
+    }
 
 }
 
@@ -346,5 +367,27 @@ export function setScopeCall(scope: any, $$node: Node, _g: LuaScope){
     };
 
     setValue(_g, "$$call", $$call, false);
+
+}
+
+/** 设置 () 参数提示 */
+export function setArgsCall(funt: any, index: number, _g: LuaScope){
+
+    if (!isObject(funt)) {return;}
+
+    if ("()" in funt) {
+        setValue(_g, "$$call", { args: funt.args, doc: funt.doc, index }, false);
+        return;
+    }
+
+    let _call = getItem(funt, ["$$mt", ".", "__call"]);
+    if (!isObject(_call)) {return;}
+
+    let args: string = _call.args || "";
+    let argx = args.replace(/[()\s]/g, "").split(",");
+    argx.shift();  // 去掉第一个参数
+    args = argx.join(", ");
+
+    setValue(_g, "$$call", { args: `( ${ args } )`, doc: _call.doc, index }, false);
 
 }

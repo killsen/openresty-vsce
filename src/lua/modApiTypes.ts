@@ -108,8 +108,8 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
             delItem(API_MOD, [".", k]);
             setItem(API_MOD, [".", name, "()"], [res]);
             setItem(API_MOD, [".", name, "doc"], doc);
-            setItem(API_MOD, [".", name, "$res"], res);
-            setItem(API_MOD, [".", name, "$req"], req);
+            setItem(API_MOD, [".", name, "$$res"], res);
+            setItem(API_MOD, [".", name, "$$req"], req);
         }
     });
 

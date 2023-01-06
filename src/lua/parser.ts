@@ -2,7 +2,7 @@
 import { Node, Statement } from 'luaparse';
 import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
-import { callFunc, makeFunc, parseFuncDoc, setScopeCall } from './modFunc';
+import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isObject } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 
@@ -47,7 +47,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
     // 光标所在位置
     let $$node: Node | undefined = getValue(_g, "$$node");
     if ($$node && $$node.scope) {
-        // return; // 光标所在位置已找到，则退出
+        return; // 光标所在位置已找到，则退出
     }
 
     // console.log("onCreateNode", node.type, node);
@@ -96,11 +96,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
         node.variables.forEach((n, i) => {
             switch (n.type) {
                 case "Identifier":
-                    if (n === $$node) {
-                        $$node.scope = _g; // 找到光标所在的位置
+                    // 找到光标所在的位置
+                    if ($$node === n) {
+                        $$node.scope = _g;
                         return;  // 退出
                     }
-                    setValue(_g, n.name, res[i], isLocal, n.loc); // local变量或者upvalue
+
+                    // local变量或者upvalue
+                    setValue(_g, n.name, res[i], isLocal, n.loc);
                     break;
 
                 case "MemberExpression": {
@@ -108,12 +111,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     let t = loadNode(n.base, _g);
 
                     // 找到光标所在的位置
-                    if (n.identifier === $$node) {
-                        if (t instanceof Object) {
-                            $$node.scope = t["."] || {};
-                        } else {
-                            $$node.scope = {};
-                        }
+                    if ($$node === n.identifier) {
+                        t = isArray(t) ? t[0] : t;
+                        let ti = getItem(t, [n.indexer]);
+                        let mt = getItem(t, ["$$mt", ".", "__index", n.indexer]);
+                        $$node.scope = {
+                            ... isObject(mt) ? mt : {},
+                            ... isObject(ti) ? ti : {},
+                        };
                         return;  // 退出
                     }
 
@@ -264,14 +269,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 通过变量名取值
         case "Identifier": {
-            if (node === $$node) {
-                $$node.scope = _g; // 找到光标所在的位置
-                return function() {
-                    return { $$node }; // 返回当前节点
-                };
-            } else {
-                return getValue(_g, node.name);
+
+            // 找到光标所在的位置
+            if ($$node === node) {
+                $$node.scope = _g;
+                return;  // 退出
             }
+
+            return getValue(_g, node.name);
         }
 
         case "NilLiteral": return node.value;       // null
@@ -324,8 +329,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let argt = node.arguments.map((arg, i) => {
 
                 // 参数提示
-                if (typeof funt !== "function" && (funt instanceof Object) && $$node && isInScope(arg, $$node)) {
-                    setValue(_g, "$$call", { args: funt.args, doc: funt.doc, index: i }, false);
+                if ($$node && isInScope(arg, $$node)) {
+                    setArgsCall(funt, i, _g);
                 }
 
                 set_vtype(funt, arg, i);  // 形参类型
@@ -451,33 +456,37 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let k = node.identifier.name;
             let t = loadNode(node.base, _g);
 
-            if (t instanceof Array) { t = t[0]; } // 返回的可能是数组
+            if (isArray(t)) { t = t[0]; } // 返回的可能是数组
+
+            let ti = getItem(t, [node.indexer]);
+            let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
 
             // 找到光标所在的位置
-            if (node.identifier === $$node) {
-                if (t instanceof Object) {
-                    $$node.scope = t[node.indexer] || {};
-                } else {
-                    $$node.scope = {};
-                }
-                return function() {};  // 返回空函数
+            if ($$node === node.identifier) {
+                $$node.scope = {
+                    ... isObject(mt) ? mt : {},
+                    ... isObject(ti) ? ti : {},
+                };
+                return;  // 退出
             }
 
-            if (t instanceof Object) {
-                let ti = t[node.indexer];
-                if (!(ti instanceof Object)) {
-                    // ti = t[node.indexer] = {};
-                    return;
-                }
+            if (!isObject(t)) {return;}
 
-                let r = k in ti ? ti[k] : ti["*"];
-                if (r === undefined && !(k in ti)) {
-                    // 为 apicheck 提供成员字段检查
-                    addLint(node.identifier, k, _g);
-                }
-
-                return r;
+            if (isObject(ti)) {
+                if (k in ti) {return ti[k];}
+                if ("*" in ti) {return ti["*"];}
             }
+
+            if (isObject(mt)) {
+                if (k in mt) {return mt[k];}
+                if ("*" in mt) {return mt["*"];}
+            }
+
+            if (isObject(ti)) {
+                // 为 apicheck 提供成员字段检查
+                addLint(node.identifier, k, _g);
+            }
+
         } break;
 
         // 对象或数组表达式 { a, b, c, k = v, [index] = value }
@@ -545,7 +554,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
         }
 
         default: // 默认返回
-            return { ".": {}, $file, $loc: node.loc };
+            return;
     }
 
 }
@@ -653,9 +662,9 @@ function set_vtype(funt: any, arg: Node, i = 0) {
 
     if (arg.type !== "TableConstructorExpression") {return;}
 
-    if (i===0 && isObject(funt.$req)) {
+    if (i===0 && isObject(funt.$$req)) {
         // api 请求参数字段
-        arg.vtype = funt.$req;
+        arg.vtype = funt.$$req;
 
     } else if (i===0 && isObject(funt.$dao) && isObject(funt.$dao.row)) {
         // dao 对象参数字段
@@ -681,9 +690,20 @@ function set_vtype(funt: any, arg: Node, i = 0) {
 
     } else {
         // 自定义类型参数字段
-        let func = funt["()"];
-        if (func && func.$argTypes) {
-            arg.vtype = func.$argTypes[i];
+        let func = getItem(funt, ["()"]);
+        if (func) {
+            if (func.$argTypes) {
+                arg.vtype = func.$argTypes[i];
+            }
+            return;
+        }
+
+        // 元表 __call 方法
+        func = getItem(funt, ["$$mt", ".", "__call", "()"]);
+        if (func) {
+            if (func.$argTypes) {
+                arg.vtype = func.$argTypes[i+1];  //参数向后位移一位哦！！
+            }
         }
     }
 
