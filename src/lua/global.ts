@@ -53,6 +53,12 @@ export function genGlobal(ctx: NgxPath) {
         doc: "## pcall(fun, ...)\n执行函数"
     };
 
+    _G["xpcall"] = {
+        "()": xpcall,
+        args: '(fun, onerr)',
+        doc: "## xpcall(fun, onerr)\n执行函数fun, 出错执行onerr回调函数"
+    };
+
     _G["_load"] = {
         "()": _load,
         args: '(mod)',
@@ -235,6 +241,11 @@ function pcall(fun: any, ...args: any) {
         return [true, res];
     }
 
+}
+
+/** 执行函数 */
+function xpcall(fun: any) {
+    return pcall(fun);
 }
 
 /** 设置元表 */
