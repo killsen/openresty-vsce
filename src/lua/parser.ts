@@ -308,15 +308,73 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 二元运算符表达式: "+" | "-" | "*" | "%" | "^" | "/" | "//" | "&" | "|" | "~" |
         //                  "<<" | ">>" | ".." | "~=" | "=="  | "<" | "<=" | ">" | ">="
-        case "BinaryExpression":
-            loadNode(node.left, _g);
-            loadNode(node.right, _g);
-            break;
+        case "BinaryExpression": {
+            let l = loadNode(node.left, _g);
+            let r = loadNode(node.right, _g);
+            let op = node.operator;
+
+            switch (op) {
+                case "..":
+                    l = typeof l === "string" ? l : typeof l === "number" ? l : "";
+                    r = typeof r === "string" ? r : typeof r === "number" ? r : "";
+                    return `${ l }${ r }`;
+
+                case "+": case "-": case "*": case "/": case "^": case "%":
+                    l = typeof l === "number" ? l : 0;
+                    r = typeof r === "number" ? r : 0;
+                    return  op === "+" ? l + r :
+                            op === "-" ? l - r :
+                            op === "*" ? l * r :
+                            op === "/" ? l / r :
+                            op === "^" ? l ^ r :
+                            op === "%" ? l % r : 0 ;
+
+                case "==":
+                    return l === r;
+
+                case "~=":
+                    return l !== r;
+
+                case "<": case "<=": case ">": case ">=":
+                    l = typeof l === "string" ? l : typeof l === "number" ? l : 0;
+                    r = typeof r === "string" ? r : typeof r === "number" ? r : 0;
+                    return  op === "<"  ? l <  r :
+                            op === "<=" ? l <= r :
+                            op === ">"  ? l >  r :
+                            op === ">=" ? l >= r :  false;
+
+                default:
+                    return l || r;
+            }
+        }
 
         // 一元运算符表达式: "not" | "-" | "~" | "#"
-        case "UnaryExpression":
-            loadNode (node.argument, _g);
-            break;
+        case "UnaryExpression": {
+            let t = loadNode (node.argument, _g);
+
+            switch (node.operator) {
+                case "not":
+                    return t === false || t === null || t === undefined;
+
+                case "-":
+                    t = typeof t === "number" ? t : 0;
+                    return -t;
+
+                case "#":{
+                    let ti = getItem(t, ["."]);
+                    let count = 0;
+                    if (isObject(ti)) {
+                        for (let k in ti) {
+                            count += Number(k) ? 1 : 0;
+                        }
+                    }
+                    return count;
+                }
+
+                default:
+                    return;
+            }
+        }
 
         // 运行语句
         case "CallStatement":
