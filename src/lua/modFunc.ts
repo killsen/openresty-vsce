@@ -98,10 +98,12 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         if (!self) {
             let func = getValue(_g, "@@");
             if (typeof func === "function" && func !== myFunc) {
-                self = callFunc(func);
-                if (self) {
-                    setValue(newG, "self", self, true, node.loc);
+                self = func["@@self"];
+                if (self === undefined) {
+                    // 缓存 self 以提升性能
+                    self = func["@@self"] = callFunc(func) || {};
                 }
+                setValue(newG, "self", self, true, node.loc);
             }
         }
 
