@@ -7,6 +7,7 @@
     * 支持 setmetatable, getmetatable, rawget, rawset
 * 优化参数 self 解析
 * 优化可变参数 ... 解析
+* 支持解析部分一元表达式和二元表达式
 
 ## v1.6.0
 
