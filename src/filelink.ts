@@ -12,7 +12,7 @@ export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationT
     if (!ctx) {return;}
 
     let links = getModLink(doc, pos, [ /[$](\w+\.)*\w+/ ]) ||
-                getModLink(doc, pos, [ /['"]?[%#](\w+\.)*\w+(\[\])?['"]?/, /[%#](\w+\.)*\w+/ ]) ||
+                getModLink(doc, pos, [ /['"][%#](\w+\.)*\w+(\[\])?['"]/, /[%#](\w+\.)*\w+/ ]) ||
                 getModLink(doc, pos, [ /\b(_load|require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/, /[\w.-]+/ ]);
     if (links) {return links;}
 
