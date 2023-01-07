@@ -1,5 +1,13 @@
 # 升级日志
 
+## v1.7.0
+
+* 优化元表解析
+    * 支持 __index, __call 解析
+    * 支持 setmetatable, getmetatable, rawget, rawset
+* 优化参数 self 解析
+* 优化可变参数 ... 解析
+
 ## v1.6.0
 
 * 新增支持自定义类型声明 [演示代码](https://raw.githubusercontent.com/killsen/openresty-appx/main/nginx/testing/typed.lua)
