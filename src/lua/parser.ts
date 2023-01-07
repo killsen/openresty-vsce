@@ -446,25 +446,41 @@ export function loadNode(node: Node, _g: LuaScope): any {
             return fun;
         }
 
-        // 索引表达式：中括号([])
+        // 索引表达式：table[key]
         case "IndexExpression": {
-            let t = loadNode(node.base, _g);
             let k = loadNode(node.index, _g);
+            let t = loadNode(node.base, _g);
 
-            if (t instanceof Array) { t = t[0]; } // 返回的可能是数组
+            if (isArray(t)) { t = t[0]; } // 返回的可能是数组
+            if (!isObject(t)) {return;}
 
-            if (t instanceof Object) {
-                if (t["[]"]) {
-                    return t["[]"];  // 数组
-                }
-                let ti = t["."] = t["."] || {};
-                if (ti instanceof Object) {
-                    return k in ti ? ti[k] : ti["*"];
+            if ("[]" in t) {
+                return t["[]"];  // 数组元素
+            }
+
+            let ti = getItem(t, ["."]);
+            if (isObject(ti)) {
+                if (k in ti) {return ti[k];}
+                if ("*" in ti) {return ti["*"];}
+            }
+
+            let mt = getItem(t, ["$$mt", ".", "__index", "."]);
+            if (isObject(mt)) {
+                if (k in mt) {return mt[k];}
+                if ("*" in mt) {return mt["*"];}
+            } else {
+                // __index 元方法
+                let __index = getItem(t, ["$$mt", ".", "__index", "()"]);
+                if (typeof __index === "function") {
+                    let r = __index(t, k);
+                    if (r instanceof Array) { r = r[0]; }
+                    return r;
                 }
             }
+
         } break;
 
-        // 成员变量表达式 object.key
+        // 成员变量表达式 table.key | table:key
         case "MemberExpression": {
             let k = node.identifier.name;
             let t = loadNode(node.base, _g);
@@ -493,6 +509,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
             if (isObject(mt)) {
                 if (k in mt) {return mt[k];}
                 if ("*" in mt) {return mt["*"];}
+            } else {
+                // __index 元方法
+                let __index = getItem(t, ["$$mt", ".", "__index", "()"]);
+                if (typeof __index === "function") {
+                    let r = __index(t, k);
+                    if (r instanceof Array) { r = r[0]; }
+                    return r;
+                }
             }
 
             if (isObject(ti)) {
