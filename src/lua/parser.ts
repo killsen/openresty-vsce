@@ -279,6 +279,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             return getValue(_g, node.name);
         }
 
+        case "VarargLiteral": return getValue(_g, node.raw);  // ...
         case "NilLiteral": return node.value;       // null
         case "BooleanLiteral": return node.value;   // ture | false
         case "NumericLiteral": return node.value;   // 数字
@@ -326,7 +327,15 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let funt = loadNode(node.base, _g);
             if (!funt) {return;}
 
-            let argt = node.arguments.map((arg, i) => {
+            let $$self;  // self:func(...)
+            if (node.base.type === "MemberExpression" && node.base.indexer === ":") {
+                $$self = loadNode(node.base.base, _g);
+            }
+            funt["$$self"] = $$self;
+
+            let args: any[] = [];
+
+            node.arguments.forEach((arg, i) => {
 
                 // 参数提示
                 if ($$node && isInScope(arg, $$node)) {
@@ -337,13 +346,17 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                 let t = loadNode(arg, _g);
                 if (t instanceof Array) {
-                    return t[0];
+                    if (arg.type === "VarargLiteral") {
+                        args.push(...t);  // 可变参数全部传递 ...
+                    } else {
+                        args.push(t[0]);  // 返回数组传递第一项
+                    }
                 } else {
-                    return t;
+                    args.push(t);
                 }
             });
 
-            return callFunc(funt, ...argt);
+            return callFunc(funt, ...args);
         }
 
         // 运行函数: func "abc"
@@ -507,14 +520,15 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     }
                 }
 
-                let v = loadNode(f.value, _g);
-                if (v instanceof Array) { v = v[0]; } // 返回的可能是数组
-
                 switch (f.type) {
                     case "TableKey":           // 索引表达式 { [k] = v }
                     {
                         let k = loadNode(f.key, _g);
-                        if (k instanceof Array) { k = k[0]; } // 返回的可能是数组
+                        if (k instanceof Array) { k = k[0]; } // 返回数组取第一项
+
+                        let v = loadNode(f.value, _g);
+                        if (v instanceof Array) { v = v[0]; } // 返回数组取第一项
+
                         if (typeof k === "string" || typeof k === "number") {
                             setChild(_g, t, ".", k, v, f.key.loc);
                         }
@@ -530,6 +544,9 @@ export function loadNode(node: Node, _g: LuaScope): any {
                             }
                         }
 
+                        let v = loadNode(f.value, _g);
+                        if (v instanceof Array) { v = v[0]; } // 返回数组取第一项
+
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);
                         break;
                     }
@@ -544,7 +561,22 @@ export function loadNode(node: Node, _g: LuaScope): any {
                             }
                         }
 
-                        setChild(_g, t, ".", i++, v, f.loc);
+                        let v = loadNode(f.value, _g);
+
+                        if (v instanceof Array) {  // 返回是数组
+                            if (f.value.type === "VarargLiteral") {
+                                // { ... }
+                                v.forEach(item => {
+                                    setChild(_g, t, ".", i++, item, f.loc);
+                                });
+                            } else {
+                                v = v[0];  // 返回数组取第一项
+                                setChild(_g, t, ".", i++, v, f.loc);
+                            }
+                        } else {
+                            setChild(_g, t, ".", i++, v, f.loc);
+                        }
+
                         break;
                     }
                 }

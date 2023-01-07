@@ -6,29 +6,6 @@ import { genResArgs } from './parser/genResArgs';
 import { LuaModule } from './types';
 import { getItem, isObject } from './utils';
 
-
-/** 取得函数定义 */
-export function getFunt(t: any, ...args: any) {
-
-    if (typeof t === "function") {
-        return t;
-    }
-
-    let f = getItem(t, ["()"]);
-    if (f !== undefined) {
-        return t;
-    }
-
-    f = getItem(t, ["$$mt", ".", "__call", "()"]);
-    if (f !== undefined) {
-        return getItem(t, ["$$mt", ".", "__call"]);
-    }
-
-    return t;
-
-}
-
-
 /** 调用函数 */
 export function callFunc(t: any, ...args: any) {
 
@@ -39,6 +16,7 @@ export function callFunc(t: any, ...args: any) {
 
         let f = getItem(t, ["()"]);
         if (typeof f === "function") {
+            f["$$self"] = t["$$self"];
             return f(...args);
         } else if (f !== undefined) {
             return f;
@@ -46,6 +24,7 @@ export function callFunc(t: any, ...args: any) {
 
         f = getItem(t, ["$$mt", ".", "__call", "()"]);
         if (typeof f === "function") {
+            f["$$self"] = t["$$self"];
             return f(t, ...args);  // 第一个参数 t 自己
         } else if (f !== undefined) {
             return f;
@@ -64,10 +43,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     let callOnce = false;
     let resValue: any;
 
-    let args = node.parameters;
-    let body = node.body;
     let types = loadTypes(node, _g);  // 通过注释加载类型
-
     let returnType = types && types["return"];  // 返回值类型
 
     const myFunc = function (...params: any) {
@@ -75,21 +51,33 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         let myfunc : any = myFunc;
         let $$req  : any = myfunc["$$req"];  // 请求参数类型
         let $$res  : any = myfunc["$$res"];  // 返回值类型 v21.11.25
+        let $$self : any = myfunc["$$self"]; // self:func()
 
         if (isRunning) {
             // console.log("函数递归回调");
             resValue = returnType && loadType(returnType, _g) || resValue;
             return resValue;
 
-        } else if (callOnce) {
+        } else if (callOnce && !$$self) {
             // console.log("只执行一次");
             return resValue;
         }
 
         // 没有参数：只执行一次
+        let args = node.parameters;
         callOnce = (args.length === 0);
 
         let newG = newScope(_g);
+
+        if (isObject($$self)) {
+            setValue(newG, "self", $$self, true);
+
+            // 去掉第一个参数 self 或者 _
+            if (args.length > 0 && args[0].type === "Identifier" && (args[0].name === "self" || args[0].name === "_")) {
+                args = [ ... args ];
+                args.shift();
+            }
+        }
 
         // 初始化返回值数组
         setValue(newG, "$$return", [], true);
@@ -118,20 +106,20 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         }
 
         args.forEach((p, i) => {
-            let name;
-            switch (p.type) {
-                case "Identifier": name = p.name; break;
-                case "VarargLiteral": name = p.raw; break;
-            }
+
+            let name  = p.type === "VarargLiteral" ? p.raw : p.name;
             let value = params[i];
 
-            if ( i === 0 && $$req) {
+            if ( name === "..." ) {
+                value = params.slice(i);
+
+            } else if ( i === 0 && $$req) {
                 value = $$req;                          // 生成请求参数类型
 
             } else if (types && types[name]) {
                 value = loadType(types[name], newG);    // 通过类型名称取得类型
 
-            } else if ( name === "self" && self ) {
+            } else if ( name === "self" && self && value === undefined) {
                 value = self;                           // 构造器 @@ <Constructor>
             }
 
@@ -146,7 +134,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
         if (needToRun) {
             isRunning = true;  // 避免递归回调：造成死循环
-            resValue = loadBody(body, newG);
+            resValue = loadBody(node.body, newG);
             isRunning = false;
         }
 
@@ -170,7 +158,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     myFunc.$argTypes = new Proxy({}, {
         get(target, prop) {
             let i = Number(prop);
-            let p = args[i];
+            let p = node.parameters[i];
             if (p.type === "Identifier") {
                 let typeName = types && types[p.name];
                 if (typeName) {
