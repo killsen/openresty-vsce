@@ -1,16 +1,33 @@
 
+-- Lua - 字符串
+-- https://www.w3schools.cn/lua/lua_strings.asp
+
 string
-string.byte (s [,i [, j]])
-string.char (...)
-string.dump (func)
-string.find (s, pattern [,i [,j]])
-string.format (format, ...)
-string.gmatch (s, pattern)
-string.gsub (s, pattern, replace [,n])
-string.len (s)
-string.lower (s)
-string.match (s, pattern [,i])
-string.rep (s, n)
-string.reverse (s)
-string.sub (s, i [,j])
-string.upper (s)
+string.byte (s, i?, j?)                 -> number
+string.char (...)                       -> str
+string.dump (func)                      -> str
+string.find (s, pattern, i?, j?)        -> number, number
+string.format (s, ...)                  -> str
+string.gmatch (s, pattern)              -> iter
+string.gsub (s, pattern, replace, n?)   -> str
+string.len (s)                          -> number
+string.lower (s)                        -> str
+string.match (s, pattern, i?)           -> str
+string.rep (s, n)                       -> str
+string.reverse (s)                      -> str
+string.sub (s, i?, j?)                  -> str
+string.upper (s)                        -> str
+
+str
+str:byte (i?, j?)                       -> number
+str:find (pattern, i?, j?)              -> number, number
+str:format (...)                        -> str
+str:gmatch (pattern)                    -> iter
+str:gsub (pattern, replace, n?)         -> str
+str:len ()                              -> number
+str:lower ()                            -> str
+str:match (pattern, i?)                 -> str
+str:rep (n)                             -> str
+str:reverse ()                          -> str
+str:sub (i?, j?)                        -> str
+str:upper ()                            -> str

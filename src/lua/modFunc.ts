@@ -183,7 +183,16 @@ function loadType(typeName: string, _g: LuaScope) {
     let isArray = typeName.indexOf("[]") !== -1;
     if (isArray) {typeName = typeName.replace("[]", "");}
 
-    if (typeName.startsWith("$")) {
+    if (typeName === "string") {
+        // 字符串类型
+        let t = getValue(_g, "@string");
+        if (isArray) {
+            return { doc: "## "+ typeName +"[]\n字符串数组\n", "[]": t };
+        } else {
+            return t;
+        }
+
+    } else if (typeName.startsWith("$")) {
         // 加载 dao 类型
         let _load = getValue(_g, "_load");
         if (_load) {

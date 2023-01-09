@@ -565,6 +565,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let ti = getItem(t, [node.indexer]);
             let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
 
+            // 字符串类型
+            if (typeof t === "string" && node.indexer === ":") {
+                let mod = getValue(_g, "@string");
+                ti = getItem(mod, [node.indexer]);
+            }
+
             // 找到光标所在的位置
             if ($$node === node.identifier) {
                 $$node.scope = {
@@ -573,8 +579,6 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 };
                 return;  // 退出
             }
-
-            if (!isObject(t)) {return;}
 
             if (isObject(ti)) {
                 if (k in ti) {return ti[k];}

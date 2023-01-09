@@ -35,6 +35,12 @@ export function genGlobal(ctx: NgxPath) {
         _G[name] = lua.load(ctx, name);
     });
 
+    // 注入字符串类型
+    let res = getItem(_G, ["string", ".", "upper", "()"]);
+    if (res instanceof Array) {
+        _G["@string"] = res[0];
+    }
+
     _G["ipairs"] = {
         "()": ipairs,
         args: '(t)',
