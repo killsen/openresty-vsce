@@ -1,6 +1,16 @@
 
 import { Node, Comment } from 'luaparse';
 
+/** nil 或者 false */
+export function isNull(t: any) {
+    return t === undefined || t === null || t === false;
+}
+
+/** 非 nil 且非 false */
+export function notNull(t: any) {
+    return t !== undefined && t !== null && t !== false;
+}
+
 /** 是否数组 */
 export function isArray(t: any) {
     return typeof t !== "function"

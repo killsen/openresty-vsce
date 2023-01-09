@@ -3,7 +3,7 @@ import { Node, Statement } from 'luaparse';
 import { LuaModule } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
-import { getItem, isArray, isDownScope, isInScope, isObject } from './utils';
+import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -186,19 +186,36 @@ export function loadNode(node: Node, _g: LuaScope): any {
         }
 
         // 条件判断语句:  if (condition) then ... elseif (condition) then ... else ... end
-        case 'IfStatement':
-            node.clauses.forEach(n => {
+        case 'IfStatement': {
+            let ok_res : any;
+
+            for (let n of node.clauses) {
                 switch (n.type) {
                     case "IfClause":
-                    case 'ElseifClause':
-                        loadNode(n.condition, _g);
-                        loadBody(n.body, newScope(_g));
+                    case 'ElseifClause': {
+                        // 返回条件是否成立
+                        let ok = loadNode(n.condition, _g);
+
+                        let newG = newScope(_g);
+                        setValue(newG, "$$return", [], true);
+                        let res = loadBody(n.body, newG);
+                        setReturn(res, _g);
+
+                        if (notNull(ok) && isNull(ok_res)) {
+                            ok_res = res;  // 条件成立时的返回值
+                        }
                         break;
+                    }
                     case 'ElseClause':
                         loadBody(n.body, newScope(_g));
                 }
-            });
-            break;
+            }
+
+            if (notNull(ok_res)) {
+                setReturn(ok_res, _g);  // 条件成立时的返回值
+            }
+
+        } break;
 
         // 循环语句
         case 'RepeatStatement':  // repeat ... until (condition)
@@ -686,28 +703,40 @@ function setReturn(val: any, _g: LuaScope) {
 function getReturn(_g: LuaScope) {
 
     let arr = getValue(_g, "$$return") as any[];
-    if (!isArray(arr)) {return;}
+    if (!isArray(arr) || arr.length === 0 ) {return;}
 
     if (arr.length === 1) {
         return arr[0];
+    }
 
-    } else if (arr.length > 1) {
-        // 对多个 return 语句的返回值进行排序: 优先选用复杂类型
-        arr.sort((a: any, b: any) => {
-            if (isArray(a)) {a = a[0];}
-            if (isArray(b)) {b = b[0];}
+    // 对多个 return 语句的返回值进行排序: 优先选用复杂类型
+    arr.sort((a: any, b: any) => {
+        a = isArray(a) ? a[0]: a;
+        b = isArray(a) ? b[0]: b;
 
-            if (isObject(a) && !isObject(b)) {
+        if (isObject(a) && !isObject(b)) {
+            return 1;
+        } else if (!isObject(a) && isObject(b)) {
+            return -1;
+
+        } else if (isObject(a) && isObject(b)) {
+            // 都是对象: 优先选用有元表的类型
+            let mta = getItem(a, ["$$mt"]);
+            let mtb = getItem(b, ["$$mt"]);
+            if (isObject(mta)) {
                 return 1;
-            } else if (!isObject(a) && isObject(b)) {
+            } else if (isObject(mtb)) {
                 return -1;
             } else {
                 return 0;
             }
-        });
 
-        return arr[arr.length - 1]; // 最后的返回值
-    }
+        } else {
+            return 0;
+        }
+    });
+
+    return arr[arr.length - 1]; // 最后的返回值
 
 }
 
