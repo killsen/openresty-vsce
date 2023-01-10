@@ -4,6 +4,7 @@ import { LuaScope } from "./scope";
 import * as lua from './index';
 import { getItem, isArray, isObject, setItem } from "./utils";
 import { LuaTable } from "../ast/LuaNode";
+import { TableLib } from "./TableLib";
 
 /** 生成全局变量环境 */
 export function genGlobal(ctx: NgxPath) {
@@ -29,7 +30,7 @@ export function genGlobal(ctx: NgxPath) {
     }
 
     // 加载全局库
-    let libs = ["io", "os", "string", "table", "math",
+    let libs = ["io", "os", "string", "math",
         "package", "debug", "coroutine", "ngx", "ndk"];
     libs.forEach(name => {
         _G[name] = lua.load(ctx, name);
@@ -41,11 +42,8 @@ export function genGlobal(ctx: NgxPath) {
         _G["@string"] = setTypeIndex("string", res[0]);
     }
 
-    _G["unpack"] = {
-        "()": unpack,
-        args: '(t, i?, j?)',
-        doc: "## unpack(t)\n返回数组的所有元素"
-    };
+    _G["table" ] = TableLib;
+    _G["unpack"] = TableLib["."].unpack;
 
     _G["ipairs"] = {
         "()": ipairs,
@@ -112,20 +110,28 @@ export function genGlobal(ctx: NgxPath) {
     return _G;
 
     /** 加载模块 */
-    function require(name: any) {
+    function require(name: string) {
+        if (typeof name !== "string") {return;}
+
         if (name === "cjson.safe") {
             name = "cjson";
+        } else if (name === "table") {
+            return TableLib;
+        } else if (name.startsWith("table.")) {
+            name = name.replace("table.", "");
+            let lib = TableLib["."] as any;
+            if (lib[name]) {return lib[name];}
         }
-        if (typeof name === "string") {
+
+        {if (typeof name === "string") {
             return lua.load(ctx, name);
-        }
+        }}
     }
 
     /** 加载模块 */
-    function _load(name: any) {
-        if (typeof name === "string") {
-            return lua.load(ctx, name);
-        }
+    function _load(name: string) {
+        if (typeof name !== "string") {return;}
+        return lua.load(ctx, name);
     }
 
 }
@@ -166,31 +172,6 @@ function splitName(name: string): string[] {
     }
 
     return names;
-
-}
-
-
-/** 返回数组的所有元素 */
-function unpack(t: any, i?: number, j?: number) {
-
-    let arr : any[] = [];
-
-    let ti = getItem(t, ["."]);
-    if (!(isObject(ti))) {return arr;}
-
-    i = typeof i === "number" ? i : 1;
-    j = typeof j === "number" ? j : 1000;
-
-    for (let k = i; k <= j; k++) {
-        let v = ti[k];
-        if (v === null || v === undefined) {
-            break;
-        } else {
-            arr.push(v);
-        }
-    }
-
-    return arr;
 
 }
 

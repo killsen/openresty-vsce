@@ -5,6 +5,7 @@ import { newScope, getType, getValue, setValue, setChild, LuaScope } from './sco
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
+import { _getn } from "./TableLib";
 
 /** 执行代码块：并返回最后一个返回值 */
 export function loadBody(body: Statement[], _g: LuaScope) {
@@ -380,14 +381,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     return -t;
 
                 case "#":{
-                    let ti = getItem(t, ["."]);
-                    let count = 0;
-                    if (isObject(ti)) {
-                        for (let k in ti) {
-                            count += Number(k) ? 1 : 0;
-                        }
-                    }
-                    return count;
+                    return _getn(t);  // 取得最大的连续数字索引
                 }
 
                 default:
