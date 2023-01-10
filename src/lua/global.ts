@@ -41,6 +41,12 @@ export function genGlobal(ctx: NgxPath) {
         _G["@string"] = setTypeIndex("string", res[0]);
     }
 
+    _G["unpack"] = {
+        "()": unpack,
+        args: '(t, i?, j?)',
+        doc: "## unpack(t)\n返回数组的所有元素"
+    };
+
     _G["ipairs"] = {
         "()": ipairs,
         args: '(t)',
@@ -160,6 +166,31 @@ function splitName(name: string): string[] {
     }
 
     return names;
+
+}
+
+
+/** 返回数组的所有元素 */
+function unpack(t: any, i?: number, j?: number) {
+
+    let arr : any[] = [];
+
+    let ti = getItem(t, ["."]);
+    if (!(isObject(ti))) {return arr;}
+
+    i = typeof i === "number" ? i : 1;
+    j = typeof j === "number" ? j : 1000;
+
+    for (let k = i; k <= j; k++) {
+        let v = ti[k];
+        if (v === null || v === undefined) {
+            break;
+        } else {
+            arr.push(v);
+        }
+    }
+
+    return arr;
 
 }
 

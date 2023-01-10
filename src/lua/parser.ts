@@ -612,7 +612,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let t: LuaModule = { ".": {}, $file, $loc: node.loc };
             let i = 1; // 下标从1开始：跟Lua保持一致
 
-            node.fields.forEach(f => {
+            node.fields.forEach((f, index) => {
 
                 if (f.value.type === "TableConstructorExpression") {
                     if (f.type === "TableKeyString") {
@@ -668,8 +668,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         let v = loadNode(f.value, _g);
 
                         if (v instanceof Array) {  // 返回是数组
-                            if (f.value.type === "VarargLiteral") {
-                                // { ... }
+                            if (index === node.fields.length - 1) {
                                 v.forEach(item => {
                                     setChild(_g, t, ".", i++, item, f.loc);
                                 });
