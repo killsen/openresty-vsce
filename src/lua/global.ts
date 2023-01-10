@@ -2,7 +2,7 @@
 import { NgxPath } from "./ngx";
 import { LuaScope } from "./scope";
 import * as lua from './index';
-import { getItem, isObject, setItem } from "./utils";
+import { getItem, isArray, isObject, setItem } from "./utils";
 import { LuaTable } from "../ast/LuaNode";
 
 /** 生成全局变量环境 */
@@ -37,8 +37,8 @@ export function genGlobal(ctx: NgxPath) {
 
     // 注入字符串类型
     let res = getItem(_G, ["string", ".", "upper", "()"]);
-    if (res instanceof Array) {
-        _G["@string"] = res[0];
+    if (isArray(res)) {
+        _G["@string"] = setTypeIndex("string", res[0]);
     }
 
     _G["ipairs"] = {
@@ -254,36 +254,27 @@ function xpcall(fun: any) {
     return pcall(fun);
 }
 
+/** 创建自读类型元表 */
+function setTypeIndex(type: string, t: any) {
+    return {
+        type,
+        readonly: true,
+        ".": {},
+        ":": {},
+        "$$mt": {
+            ".": {
+                "__index": t,
+            }
+        }
+    };
+}
+
 /** 设置元表 */
 function setmetatable(t: any, mt: any) {
 
     if (isObject(t) && isObject(mt)) {
         t["$$mt"] = mt;
     }
-
-    // if (!(t instanceof Object)) { return t; }
-    // if (!(mt instanceof Object)) { return t; }
-
-    // let _index: any = getChild(mt, ".__index");
-    // if (_index instanceof Object) {
-    //     // console.log("__index", _index);
-    //     // _index["mt"] = true;
-    //     // _index[":"] = _index[":"] || {};
-    //     // t[":"] = _index[":"];
-    //     t["$$mt__index"] = _index;
-    // }
-
-    // let _call: any = getChild(mt, ".__call");
-    // if (_call instanceof Object) {
-    //     // console.log("__call", _call);
-    //     // _call["()"] = _call["()"] || [];
-    //     t["$$mt__call"] = _call;
-
-    //     if (_call["()"]) {
-    //         t["()"] = _call["()"];
-    //         t.args = _call.selfArgs || _call.args || "()";
-    //     }
-    // }
 
     return t;
 

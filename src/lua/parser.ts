@@ -110,9 +110,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     let k = n.identifier.name;
                     let t = loadNode(n.base, _g);
 
+                    t = isArray(t) ? t[0] : t;
+
                     // 找到光标所在的位置
                     if ($$node === n.identifier) {
-                        t = isArray(t) ? t[0] : t;
                         let ti = getItem(t, [n.indexer]);
                         let mt = getItem(t, ["$$mt", ".", "__index", n.indexer]);
                         $$node.scope = {
@@ -139,6 +140,9 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 case "IndexExpression": {
                     let k = loadNode(n.index, _g);
                     let t = loadNode(n.base, _g);
+
+                    k = isArray(k) ? k[0] : k;
+                    t = isArray(t) ? t[0] : t;
 
                     if (typeof k !== "string") {return;}
 
@@ -562,14 +566,13 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             if (isArray(t)) { t = t[0]; } // 返回的可能是数组
 
+            // 字符串类型
+            if (typeof t === "string") {
+                t = getValue(_g, "@string");
+            }
+
             let ti = getItem(t, [node.indexer]);
             let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
-
-            // 字符串类型
-            if (typeof t === "string" && node.indexer === ":") {
-                let mod = getValue(_g, "@string");
-                ti = getItem(mod, [node.indexer]);
-            }
 
             // 找到光标所在的位置
             if ($$node === node.identifier) {

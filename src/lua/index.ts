@@ -49,6 +49,8 @@ function load(ctx: NgxPath, name: string): LuaModule | undefined {
             if (isLib) {
                 if (prop === "type") {return "lib";}
                 if (prop === "doc") {return "## " + name + " 库";}
+                if (prop === "$file") {return fileName;}
+                if (prop === "readonly") {return true;}
                 if (prop !== ".") {return;}
             }
 

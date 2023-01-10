@@ -98,6 +98,10 @@ export function setChild(_g: LuaScope, t: any, indexer: string, key: string | nu
 
     if (!(t instanceof Object)) { return; }
 
+    if (t["readonly"]) {
+        return;  // 只读
+    }
+
     let $file = getValue(_g, "$file");
 
     let ti = t[indexer];
