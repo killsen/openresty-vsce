@@ -77,20 +77,18 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 返回值（可能多个）
         let res: any[] = [];
-        if (node.init.length === 1) {
-            let r = loadNode(node.init[0], _g);
-            if (r instanceof Array) {
-                res = r;
+        node.init.forEach((n, i) => {
+            let r = loadNode(n, _g);
+            if (isArray(r)) {
+                if (i === node.init.length - 1) {
+                    res.push(...r);
+                } else {
+                    res.push(r[0]);
+                }
             } else {
-                res = [r];
+                res.push(r);
             }
-        } else if (node.init.length > 1) {
-            res = node.init.map(n => {
-                return loadNode(n, _g);
-            });
-        } else {
-            res = [];
-        }
+        });
 
         // 待赋值的变量名（可能多个）
         node.variables.forEach((n, i) => {
