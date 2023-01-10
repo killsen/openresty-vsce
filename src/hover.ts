@@ -34,6 +34,12 @@ export function getContents(name: string, t: any) {
     if (t instanceof Object) {
         if (t.type === "lib" || t.type === "api") {return [t.doc];}
 
+        if (t.type === "string") {
+            let doc = "## " + name + "\n";
+            doc+= "`< " + t.type + " >`\n";
+            return [doc];
+        }
+
         let doc = t.doc;
 
         if (typeof doc === "string" && doc) {
@@ -58,9 +64,9 @@ export function getContents(name: string, t: any) {
     } else {
 
         let type: string = typeof(t);
-        if (t === null) {
+        if (t === null || t === undefined) {
             type = "nil";
-            t = "nil";
+            t = "";
         }
 
         let doc = "## " + name + "\n";
