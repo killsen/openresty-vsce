@@ -3,7 +3,7 @@ import { NgxPath } from "./ngx";
 import { LuaScope } from "./scope";
 import * as lua from './index';
 import { getItem, isArray, isObject, setItem } from "./utils";
-import { LuaTable } from "../ast/LuaNode";
+import { LuaTable } from "./types";
 import { TableLib } from "./TableLib";
 
 /** 生成全局变量环境 */
@@ -13,6 +13,20 @@ export function genGlobal(ctx: NgxPath) {
         ["$local"]: {},
         ["$scope"]: undefined,
         ["$file"]: ctx.fileName,
+    };
+
+    const _g: LuaTable = {};
+
+    _G["_G"] = {
+        ".": _g, // 全局库
+        ":": {},
+        "$$mt": {
+            ".": {
+                "__index": {  // 通过 __index 元方法返回其它全局变量
+                    "()": (self: any, key: string) => _G[key]
+                }
+            }
+        }
     };
 
     // 加载全局变量或关键字
@@ -33,7 +47,7 @@ export function genGlobal(ctx: NgxPath) {
     let libs = ["io", "os", "string", "math",
         "package", "debug", "coroutine", "ngx", "ndk"];
     libs.forEach(name => {
-        _G[name] = lua.load(ctx, name);
+        _G[name] = _g[name] = lua.load(ctx, name);
     });
 
     // 注入字符串类型
@@ -42,8 +56,14 @@ export function genGlobal(ctx: NgxPath) {
         _G["@string"] = setTypeIndex("string", res[0]);
     }
 
-    _G["table" ] = TableLib;
-    _G["unpack"] = TableLib["."].unpack;
+    _G["table" ] = _g["table"] = TableLib;
+    _G["unpack"] = TableLib["."]?.unpack;
+
+    _G["print"] = {
+        "()": _print,
+        args: '(...)',
+        doc: "## print(...)\n打印输出"
+    };
 
     _G["ipairs"] = {
         "()": ipairs,
@@ -173,6 +193,11 @@ function splitName(name: string): string[] {
 
     return names;
 
+}
+
+// 打印输出
+function _print(...args: any[]) {
+    console.log(...args);
 }
 
 /** ipairs 迭代 */

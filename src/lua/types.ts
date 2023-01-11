@@ -21,13 +21,14 @@ export interface LuaTable {
 export interface LuaModule {
     "."?: LuaTable;
     ":"?: LuaTable;
-    "()"?: LuaValue[];
+    "()"?: LuaValue[] | Function;
     "[]"?: LuaModule;
     args?: string;
     doc?: string;
     type?: string;
     text?: string;
 
+    readonly?: boolean;
     selfCall?: boolean;
     selfArgs?: string;
     resArgs?: string;

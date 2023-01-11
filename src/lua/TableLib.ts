@@ -1,6 +1,7 @@
+import { LuaModule } from "./types";
 import { isObject } from "./utils";
 
-export const TableLib = {
+export const TableLib : LuaModule = {
     type        : "lib",
     doc         : "## table 库",
     $file       : "buildin",
