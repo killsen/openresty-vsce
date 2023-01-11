@@ -102,6 +102,9 @@ export function setChild(_g: LuaScope, t: any, indexer: string, key: string | nu
         return;  // 只读
     }
 
+    if (typeof key === "number") { key = String(key); }
+    if (typeof key !== "string") {return;}
+
     let $file = getValue(_g, "$file");
 
     let ti = t[indexer];
@@ -120,7 +123,7 @@ export function setChild(_g: LuaScope, t: any, indexer: string, key: string | nu
 
     ti[key] = val;
 
-    if (!(""+ key).startsWith("$")) {
+    if (!key.startsWith("$")) {
         ti["$" + key + "$"] = {
             ["$file"]: $file,
             ["$loc"]: loc, // 保留成员变量的位置

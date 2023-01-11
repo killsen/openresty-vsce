@@ -143,6 +143,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     k = isArray(k) ? k[0] : k;
                     t = isArray(t) ? t[0] : t;
 
+                    if (typeof k === "number") {k = String(k);}
                     if (typeof k !== "string") {return;}
 
                     let indexer = ".";
@@ -499,6 +500,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     {
                         let k = ni.identifier.name;
                         let t = loadNode(ni.base, _g);
+
+                        if (isArray(t)) { t = t[0]; } // 返回的可能是数组
 
                         // 生成请求参数类型
                         let $$req = getValue(_g, "$$req");

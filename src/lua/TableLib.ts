@@ -69,8 +69,8 @@ export const TableLib = {
         },
         unpack : {
             "()": _unpack,
-            args: '(t)',
-            doc: "## unpack(t)\n返回 table 所有元素",
+            args: '(t, i?, j?)',
+            doc: "## unpack(t, i?, j?)\n返回 table 所有元素",
         },
         foreach : {
             "()": [],
@@ -96,10 +96,13 @@ function _new () {
 // 清空表
 function _clear (t: any) {
     if (!isObject(t)) {return;}
+    if (t.readonly) {return;}
+    for (let k in t) {
+        if (k !== "#") {
+            delete t[k];
+        }
+    }
     t["."] = {};
-    delete t["$$mt"];
-    delete t["()"];
-    delete t[":"];
 }
 
 // 克隆表
@@ -120,8 +123,15 @@ export function _getn (t: any) {
 
     let keys = Object.keys(ti);
 
-    let n = 0;
-    for (let i=1; i<=keys.length; i++) {
+    let n = typeof t["#"] === "number" ? t["#"] : 0;
+    if (n > 0) {
+        let v = ti[n];
+        if (v === null || v === undefined) {
+            n = 0;
+        }
+    }
+
+    for (let i=n+1; i<=keys.length; i++) {
         let v = ti[i];
         if (v !== null && v !== undefined) {
             n = i;
@@ -129,6 +139,7 @@ export function _getn (t: any) {
             break;
         }
     }
+
     return n;
 
 }
@@ -267,11 +278,8 @@ function _unpack(t: any, i?: number, j?: number) {
     let ti = t["."];
     if (!isObject(ti)) {return arr;}
 
-    let n = ti["n"];
-
     i = typeof i === "number" ? i : 1;
-    j = typeof j === "number" ? j :
-        typeof n === "number" ? n : _getn(t);
+    j = typeof j === "number" ? j : _getn(t);
 
     for (let k = i; k <= j; k++) {
         let v = ti[k];
@@ -285,16 +293,17 @@ function _unpack(t: any, i?: number, j?: number) {
 // 传入多个元素创建表
 function _pack(...args: any[]) {
 
-    let t = { ".": {} };
-    let ti = t["."] as any;
+    let n  = args.length;
+    let ti = { n } as any;
 
     args.forEach((v, i) => {
         ti[i+1] = v;
     });
 
-    ti["n"] = args.length;
-
-    return t;
+    return {
+        "." : ti,
+        "#" : n,
+    };
 
 }
 
@@ -307,11 +316,8 @@ function _concat(t: any, sep: string, i?:number, j?:number) {
     let ti = t["."];
     if (!isObject(ti)) {return arr;}
 
-    let n = ti["n"];
-
     i = typeof i === "number" ? i : 1;
-    j = typeof j === "number" ? j :
-        typeof n === "number" ? n : _getn(t);
+    j = typeof j === "number" ? j : _getn(t);
 
     for (let k = i; k <= j; k++) {
         let v = ti[k];
