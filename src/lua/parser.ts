@@ -596,7 +596,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             }
 
-            if (isObject(ti)) {
+            if (isObject(ti) || isObject(mt)) {
                 // 为 apicheck 提供成员字段检查
                 addLint(node.identifier, k, _g);
             }
