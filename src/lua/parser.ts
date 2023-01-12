@@ -1,11 +1,11 @@
 
 import { Node, Statement } from 'luaparse';
-import { LuaModule } from './types';
+import { LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
-import { _getn } from "./TableLib";
+import { _getn } from './TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
 export function loadBody(body: Statement[], _g: LuaScope) {
@@ -30,7 +30,11 @@ export function loadBody(body: Statement[], _g: LuaScope) {
             _g = newScope(_g);  // 光标下方代码：使用新的作用域
         }
 
-        loadNode(node, _g);
+        try {
+            loadNode(node, _g);
+        } catch (e) {
+            // console.log(e);
+        }
     });
 
     return getReturn(_g);  // 获取返回值
@@ -336,13 +340,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             switch (op) {
                 case "..":
-                    l = typeof l === "string" ? l : typeof l === "number" ? l : "";
-                    r = typeof r === "string" ? r : typeof r === "number" ? r : "";
+                    if (typeof l !== "string" && typeof l !== "number") {return LuaString;}
+                    if (typeof r !== "string" && typeof r !== "number") {return LuaString;}
                     return `${ l }${ r }`;
 
                 case "+": case "-": case "*": case "/": case "^": case "%":
-                    l = typeof l === "number" ? l : 0;
-                    r = typeof r === "number" ? r : 0;
+                    if (typeof l !== "number" || typeof r !== "number") {return LuaNumber;}
                     return  op === "+" ? l + r :
                             op === "-" ? l - r :
                             op === "*" ? l * r :
@@ -372,14 +375,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 一元运算符表达式: "not" | "-" | "~" | "#"
         case "UnaryExpression": {
             let t = loadNode (node.argument, _g);
+            t = isArray(t) ? t[0] : t;
 
             switch (node.operator) {
                 case "not":
                     return t === false || t === null || t === undefined;
 
                 case "-":
-                    t = typeof t === "number" ? t : 0;
-                    return -t;
+                    return typeof t !== "number" ? -t : LuaNumber;
 
                 case "#":{
                     return _getn(t);  // 取得最大的连续数字索引
@@ -562,7 +565,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             if (isArray(t)) { t = t[0]; } // 返回的可能是数组
 
             // 字符串类型
-            if (typeof t === "string") {
+            if (typeof t === "string" || t?.type === "string") {
                 t = getValue(_g, "@string");
             }
 

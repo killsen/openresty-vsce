@@ -3,7 +3,7 @@ import { Node, FunctionDeclaration } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
-import { LuaModule } from './types';
+import { LuaModule, getLuaType } from './types';
 import { getItem, isObject } from './utils';
 
 /** 调用函数 */
@@ -161,7 +161,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         get(target, prop) {
             let i = Number(prop);
             let p = node.parameters[i];
-            if (p.type === "Identifier") {
+            if (p?.type === "Identifier") {
                 let typeName = types && types[p.name];
                 if (typeName) {
                     return loadType(typeName, _g);
@@ -177,22 +177,24 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 /** 通过类型名称取得类型 */
 function loadType(typeName: string, _g: LuaScope) {
 
+    if (typeof typeName !== "string") {return;}
+
     // 自定义类型命名: 兼容处理
     typeName = typeName.replace("@", "");
 
-    let isArray = typeName.indexOf("[]") !== -1;
-    if (isArray) {typeName = typeName.replace("[]", "");}
+    // 是否数组
+    let isArr = typeName.indexOf("[]") !== -1;
+    if (isArr) {
+        typeName = typeName.replace("[]", "");
+    }
 
-    if (typeName === "string") {
-        // 字符串类型
-        let t = getValue(_g, "@string");
-        if (isArray) {
-            return { doc: "## "+ typeName +"[]\n字符串数组\n", "[]": t };
-        } else {
-            return t;
-        }
+    typeName = typeName.trim();
+    if (!typeName) {return;}
 
-    } else if (typeName.startsWith("$")) {
+    let t = getLuaType(typeName, isArr);
+    if (t) {return t;}
+
+    if (typeName.startsWith("$")) {
         // 加载 dao 类型
         let _load = getValue(_g, "_load");
         if (_load) {
@@ -202,7 +204,7 @@ function loadType(typeName: string, _g: LuaScope) {
                 let daoRow = daoType["row"];
                 let doc = "## "+ typeName +"\ndao 类型单行数据\n" + daoType.doc;
                 let t = { doc, ".": { ...daoRow } };  // 复制字段定义
-                if (isArray) {
+                if (isArr) {
                     doc = "## "+ typeName +"[]\ndao 类型多行数据\n" + daoType.doc;
                     return { doc, "[]": t };  // 数组
                 } else {
@@ -220,7 +222,7 @@ function loadType(typeName: string, _g: LuaScope) {
                 let userType = mod["."];
                 let doc = "## "+ typeName +"\n自定义类型对象\n" + mod.doc;
                 let t = { doc, ".": { ...userType } };  // 复制字段定义
-                if (isArray) {
+                if (isArr) {
                     doc = "## "+ typeName +"[]\n自定义类型数组\n" + mod.doc;
                     return { doc, "[]": t };  // 数组
                 } else {

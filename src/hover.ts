@@ -34,10 +34,9 @@ export function getContents(name: string, t: any) {
     if (t instanceof Object) {
         if (t.type === "lib" || t.type === "api") {return [t.doc];}
 
-        if (t.type === "string") {
-            let doc = "## " + name + "\n";
-            doc+= "`< " + t.type + " >`\n";
-            return [doc];
+        // 提示变量类型
+        if (typeof t.type === "string") {
+            return [`${ name } : \`${ t.type }\``];
         }
 
         let doc = t.doc;

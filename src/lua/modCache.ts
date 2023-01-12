@@ -45,8 +45,19 @@ export function setModCache(fileName: string, mod: LuaModule) {
 /** 设置模块引用关系 */
 export function setDepend(fileName: string, dependFile: string){
     if (fileName === dependFile) {return;}
-    MOD_DEPENDS[dependFile] = MOD_DEPENDS[dependFile] || [];
-    MOD_DEPENDS[dependFile].push(fileName);
+
+    const map = MOD_DEPENDS;
+    if (map[fileName]) {
+        if (map[fileName].includes(dependFile)) {
+            return;  // 避免互相引用
+        }
+    }
+
+    map[dependFile] = map[dependFile] || [];
+    if (!map[dependFile].includes(fileName)) {
+        map[dependFile].push(fileName);
+    }
+
 }
 
 let count = 1;  // 清理次数

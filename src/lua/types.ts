@@ -94,3 +94,41 @@ export interface LuaApiDoc {
     doc: string;
     loc: LuaLoc;
 }
+
+
+export const LuaNumber = {
+    type: "number",
+    $file: "buildin",
+    readonly : true
+};
+
+export const LuaNumberArray = {
+    type: "number[]",
+    $file: "buildin",
+    readonly : true,
+    "[]": LuaNumber,
+};
+
+export const LuaString = {
+    type: "string",
+    $file: "buildin",
+    readonly : true
+};
+
+export const LuaStringArray = {
+    type: "string[]",
+    $file: "buildin",
+    readonly : true,
+    "[]": LuaString,
+};
+
+export function getLuaType(typeName: string, isArr = false) {
+
+    if (typeName === "string") {  // 字符串类型
+        return isArr ? LuaStringArray : LuaString;
+
+    } else if (typeName === "number") {  // 数字类型
+        return isArr ? LuaNumberArray : LuaNumber;
+    }
+
+}

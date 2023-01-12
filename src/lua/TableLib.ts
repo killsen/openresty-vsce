@@ -1,4 +1,5 @@
-import { LuaModule } from "./types";
+
+import { LuaModule, LuaString } from './types';
 import { isObject } from "./utils";
 
 export const TableLib : LuaModule = {
@@ -222,6 +223,7 @@ function _move (t: any, i: number, j:number, k:number, t2?: any) {
 function _remove (t: any, pos?: number) {
 
     if (!isObject(t)) {return;}
+    if (t.readonly) {return;}
     let ti = t["."];
     if (!isObject(ti)) {return;}
 
@@ -246,7 +248,10 @@ function _remove (t: any, pos?: number) {
 // 插入元素
 function _insert (t: any, pos?: number, value?: any) {
 
+    if (value === null || value === undefined) {return;}
+
     if (!isObject(t)) {return;}
+    if (t.readonly) {return;}
     if (arguments.length < 2) {return;}
 
     let ti = t["."] = isObject(t["."]) ? t["."] : {};
@@ -313,9 +318,9 @@ function _concat(t: any, sep: string, i?:number, j?:number) {
 
     let arr : any[] = [];
 
-    if (!isObject(t)) {return arr;}
+    if (!isObject(t)) {return LuaString;}
     let ti = t["."];
-    if (!isObject(ti)) {return arr;}
+    if (!isObject(ti)) {return LuaString;}
 
     i = typeof i === "number" ? i : 1;
     j = typeof j === "number" ? j : _getn(t);
@@ -324,6 +329,8 @@ function _concat(t: any, sep: string, i?:number, j?:number) {
         let v = ti[k];
         if (typeof v === "string" || typeof v === "number") {
             arr.push(v);
+        } else {
+            return LuaString;
         }
     }
 
