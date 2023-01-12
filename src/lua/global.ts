@@ -52,8 +52,11 @@ export function genGlobal(ctx: NgxPath) {
 
     // 注入字符串类型
     let res = getItem(_G, ["string", ".", "upper", "()"]);
-    if (isArray(res)) {
-        _G["@string"] = setTypeIndex("string", res[0]);
+    if (isArray(res) && isObject(res[0])) {
+        res[0]["type"] = "string";
+        res[0]["readonly"] = true;
+        res[0]["."] = {};
+        _G["@string"] = res[0];
     }
 
     _G["table" ] = _g["table"] = TableLib;
@@ -289,21 +292,6 @@ function pcall(fun: any, ...args: any) {
 /** 执行函数 */
 function xpcall(fun: any) {
     return pcall(fun);
-}
-
-/** 创建自读类型元表 */
-function setTypeIndex(type: string, t: any) {
-    return {
-        type,
-        readonly: true,
-        ".": {},
-        ":": {},
-        "$$mt": {
-            ".": {
-                "__index": t,
-            }
-        }
-    };
 }
 
 /** 设置元表 */
