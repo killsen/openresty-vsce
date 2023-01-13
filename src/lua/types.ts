@@ -96,30 +96,76 @@ export interface LuaApiDoc {
 }
 
 
+// 任意类型
+export const LuaAny = {
+    type: "any",
+    readonly : true,
+    "[]": {} as any,
+};
+LuaAny["[]"] = LuaAny;
+
+export const LuaNil  = null;
+export const LuaNull = null;
+
+// 数字类型
 export const LuaNumber = {
     type: "number",
-    $file: "buildin",
     readonly : true
 };
 
+// 数字数组
 export const LuaNumberArray = {
     type: "number[]",
-    $file: "buildin",
     readonly : true,
     "[]": LuaNumber,
 };
 
+// 字符串类型
 export const LuaString = {
     type: "string",
-    $file: "buildin",
     readonly : true
 };
 
+// 字符串数组
 export const LuaStringArray = {
     type: "string[]",
-    $file: "buildin",
     readonly : true,
     "[]": LuaString,
+};
+
+// 布尔值类型
+export const LuaBoolean = {
+    type: "boolean",
+    readonly : true
+};
+
+// 布尔值数组
+export const LuaBooleanArray = {
+    type: "boolean[]",
+    readonly : true,
+    "[]": LuaBoolean,
+};
+
+export const LuaStringMap = {
+    type: "map<string>",
+    readonly : true,
+    ".": {
+        "*": LuaString
+    },
+    "[]": LuaString,
+};
+
+// 线程类型
+export const LuaThread = {
+    type: "thread",
+    readonly : true,
+};
+
+// 线程数组
+export const LuaThreadArray = {
+    type: "thread[]",
+    readonly : true,
+    "[]": LuaThread,
 };
 
 export function getLuaType(typeName: string, isArr = false) {
@@ -129,6 +175,25 @@ export function getLuaType(typeName: string, isArr = false) {
 
     } else if (typeName === "number") {  // 数字类型
         return isArr ? LuaNumberArray : LuaNumber;
+
+    } else if (typeName === "boolean") {  // 布尔值
+        return isArr ? LuaBooleanArray : LuaBoolean;
+
+    } else if (typeName === "thread") {  // 线程类型
+        return isArr ? LuaThreadArray : LuaThread;
+
+    } else if (typeName === "any") {  // 任意类型
+        return LuaAny;
+
+    } else if (typeName === "void") {  // nil值
+        return LuaNil;
+
+    } else if (typeName === "nil") {  // nil值
+        return LuaNil;
+
+    } else if (typeName === "map<string>") {
+        return LuaStringMap;
+
     }
 
 }

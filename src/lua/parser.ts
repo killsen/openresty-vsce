@@ -205,6 +205,26 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         let ok = loadNode(n.condition, _g);
 
                         let newG = newScope(_g);
+
+                        // TODO: 【未完成】条件判断 type 类型推导
+                        if (n.condition.type === "BinaryExpression") {
+                            let { left, right, operator } = n.condition;
+                            if (operator === "==" &&
+                                left.type === "CallExpression" &&
+                                left.base.type === "Identifier" &&
+                                left.base.name === "type" &&
+                                left.arguments.length === 1 &&
+                                left.arguments[0].type === "Identifier" &&
+                                right.type === "StringLiteral") {
+
+                                let type = loadNode(right, _g);
+                                if (type === "string") {
+                                    let name = left.arguments[0].name;
+                                    setValue(newG, name, LuaString, true, left.arguments[0].loc);
+                                }
+                            }
+                        }
+
                         setValue(newG, "$$return", [], true);
                         let res = loadBody(n.body, newG);
                         setReturn(res, _g);

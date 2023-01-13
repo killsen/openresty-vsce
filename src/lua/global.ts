@@ -3,8 +3,9 @@ import { NgxPath } from "./ngx";
 import { LuaScope } from "./scope";
 import * as lua from './index';
 import { getItem, isArray, isObject, setItem } from "./utils";
-import { LuaTable } from "./types";
+import { LuaBoolean, LuaString, LuaTable } from "./types";
 import { TableLib } from "./TableLib";
+import { callFunc } from "./modFunc";
 
 /** 生成全局变量环境 */
 export function genGlobal(ctx: NgxPath) {
@@ -62,10 +63,20 @@ export function genGlobal(ctx: NgxPath) {
     _G["table" ] = _g["table"] = TableLib;
     _G["unpack"] = TableLib["."]?.unpack;
 
+    // 模拟 ngx.thread.spawn, ngx.thread.wait 接口
+    setItem(_G, ["ngx", ".", "thread", ".", "spawn", "()"], ngx_thread_spawn);
+    setItem(_G, ["ngx", ".", "thread", ".", "wait" , "()"], ngx_thread_wait );
+
     _G["print"] = {
         "()": _print,
         args: '(...)',
         doc: "## print(...)\n打印输出"
+    };
+
+    _G["type"] = {
+        "()": _type,
+        args: '(v)',
+        doc: "## type(v)\n返回变量类型"
     };
 
     _G["ipairs"] = {
@@ -146,9 +157,9 @@ export function genGlobal(ctx: NgxPath) {
             if (lib[name]) {return lib[name];}
         }
 
-        {if (typeof name === "string") {
+        if (typeof name === "string") {
             return lua.load(ctx, name);
-        }}
+        }
     }
 
     /** 加载模块 */
@@ -201,6 +212,50 @@ function splitName(name: string): string[] {
 // 打印输出
 function _print(...args: any[]) {
     console.log(...args);
+}
+
+// 返回变量类型
+function _type(v: any) {
+
+    if (!isObject(v)) {
+        let t = typeof v;
+        return v === null       ? "nil"
+            :  v === undefined  ? LuaString
+            :  t === "string"   ? "string"
+            :  t === "number"   ? "number"
+            :  t === "boolean"  ? "boolean"
+            :  t === "function" ? "function"
+            :  LuaString;
+    } else {
+        let t = v.type;
+        return t === "string"   ? "string"
+            :  t === "number"   ? "number"
+            :  t === "boolean"  ? "boolean"
+            :  t === "thread"   ? "thread"
+            :  v["$$mt"]        ? "table"
+            :  v["()"]          ? "function"
+            :  v["."]           ? "table"
+            :  v[":"]           ? "table"
+            :  LuaString;
+    }
+
+}
+
+// 模拟 ngx.thread.spawn 接口
+function ngx_thread_spawn(funt: any, ...args: any[]) {
+    let res = callFunc(funt, ...args);
+    return {
+        type : "thread",
+        readonly: true,
+        result: isArray(res) ? res : [res]
+    };
+}
+
+// 模拟 ngx.thread.wait 接口
+function ngx_thread_wait(thread: any) {
+    if (isObject(thread) && isArray(thread.result)) {
+        return [ LuaBoolean, ...thread.result ];
+    }
 }
 
 /** ipairs 迭代 */

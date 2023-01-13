@@ -29,17 +29,16 @@ export function getHover(doc: TextDocument, pos: Position) {
 /** 取得提示内容 */
 export function getContents(name: string, t: any) {
 
-    let contents: string[] = [];
-
     if (t instanceof Object) {
         if (t.type === "lib" || t.type === "api") {return [t.doc];}
 
         // 提示变量类型
-        if (typeof t.type === "string") {
+        if (typeof t.type === "string" && !t.doc) {
             return [`${ name } : \`${ t.type }\``];
         }
 
         let doc = t.doc;
+        let contents: string[] = [];
 
         if (typeof doc === "string" && doc) {
             doc = doc.replace("{{name}}", name); // 替换函数名
@@ -60,22 +59,31 @@ export function getContents(name: string, t: any) {
         doc = objectToDoc(name + " : ", t[":"]);
         doc && contents.push(doc);
 
+        return contents;
+
     } else {
 
-        let type: string = typeof(t);
-        if (t === null || t === undefined) {
-            type = "nil";
-            t = "";
+        if (t === null) {
+            t = "nil";
+        } else if (t === undefined) {
+            t = "any";
+
+        } else if (typeof t === "string") {
+            if (t.length > 20) {
+                t = t.substring(0, 20) + "...";
+            }
+            if (!t.includes('"')) {
+                t = `"${ t }"`;
+            } else if (!t.includes("'")) {
+                t = `'${ t }'`;
+            } else {
+                t = `[[${ t }]]`;
+            }
         }
 
-        let doc = "## " + name + "\n";
-            doc+= "`< " + type + " >`\n";
-            doc+= "### " + t;
+        return [`${ name } = \`${ t }\``];
 
-        contents.push(doc);
     }
-
-    return contents;
 
 }
 

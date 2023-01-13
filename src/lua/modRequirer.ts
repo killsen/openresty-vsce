@@ -1,8 +1,9 @@
 
 import { NgxPath, getApiFile } from './ngx';
 import { loadApiDoc } from './apiDoc';
-import { LuaModule, LuaDao, LuaApi } from './types';
+import { LuaModule, LuaDao, LuaApi, getLuaType } from './types';
 import { setDepend } from "./modCache";
+import { isObject } from './utils';
 
 /** 通过API文件加载接口声明 */
 export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
@@ -80,22 +81,18 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     });
 
     function genValue(name: string) {
+        if (!name) {return;}
+        name = name.replace(/\s/g, "");
+        let isArr = name.endsWith("[]");
+        if (isArr) {
+            name = name.substring(0, name.length-2);
+        }
 
         let m = mod[name];
-        if (m) { return m; }
-
-        let s = name.split("[");
-        name = s[0].trim();
-
-        if (s[1]) {
-            m = mod[name];
-            if (!m) { return; }
-
-            m = { "[]": m, doc: m.doc };
-            name = name + "[]";
-            mod[name] = m;
-
-            return m;
+        if (m) {
+            return isArr ? { "[]": m, doc: m.doc } : m;
+        } else {
+            return getLuaType(name, isArr) as any;
         }
 
     }
@@ -119,17 +116,19 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
             }
 
         } else {
+            if (api.res && !isNaN(Number(api.res))) {
+                let parent = mod[api.parent] as any;
+                if (parent && parent["."]) {
+                    parent["."][api.child] = Number(api.res);
+                    return;
+                }
+            }
             let t = genValue(api.res);
-            if (t) {
-                p["."] = t["."];
-                p[":"] = t[":"];
-                p["()"] = t["()"];
-                p["[]"] = t["[]"];
-                p.args = t.args;
-                p.doc = t.doc || p.doc;
-                p.type = t.type;
-                p.$loc = t.$loc;
-                p.$file = t.$file;
+            if (isObject(t)) {
+                let p2 = p as any;
+                for (let k in t) {
+                    p2[k] = t[k];
+                }
             }
 
         }

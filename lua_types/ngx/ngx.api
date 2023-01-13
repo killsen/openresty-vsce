@@ -1,90 +1,93 @@
 
 ngx
 
+------------------------------------------------------------
+ok                          -> boolean
+err                         -> string
+------------------------------------------------------------
+
 ngx.null
-ngx.arg
+ngx.ctx                     -> any
 
-ngx.ctx
-ngx.ctx.*
+ngx.arg                     -> map<string>
 
-ngx.var
-ngx.var.*
-ngx.var.app_name
-ngx.var.act_type
-ngx.var.remote_addr             -- 客户端 IP 地址
-ngx.var.remote_port
-ngx.var.remote_user
-ngx.var.remote_passwd
-ngx.var.binary_remote_addr
-ngx.var.host
-ngx.var.hostname
-ngx.var.scheme
-ngx.var.https
-ngx.var.http_host
-ngx.var.http_user_agent
-ngx.var.http_content_type
-ngx.var.http_cookie
-ngx.var.server_name
-ngx.var.content_type
-ngx.var.content_length
-ngx.var.is_args
-ngx.var.query_string
-ngx.var.nginx_version
-ngx.var.uri
-ngx.var.request_uri
-ngx.var.request_method
-ngx.var.request_filename
-ngx.var.cookie_openid
+ngx.var                     -- ngx.var.VARIABLE
+ngx.var.*                   -> string
+ngx.var.app_name            -> string
+ngx.var.act_type            -> string
+ngx.var.remote_addr         -> string
+ngx.var.remote_port         -> string
+ngx.var.remote_user         -> string
+ngx.var.remote_passwd       -> string
+ngx.var.binary_remote_addr  -> string
+ngx.var.host                -> string
+ngx.var.hostname            -> string
+ngx.var.scheme              -> string
+ngx.var.https               -> string
+ngx.var.http_host           -> string
+ngx.var.http_user_agent     -> string
+ngx.var.http_content_type   -> string
+ngx.var.http_cookie         -> string
+ngx.var.server_name         -> string
+ngx.var.content_type        -> string
+ngx.var.content_length      -> string
+ngx.var.is_args             -> string
+ngx.var.query_string        -> string
+ngx.var.nginx_version       -> string
+ngx.var.uri                 -> string
+ngx.var.request_uri         -> string
+ngx.var.request_method      -> string
+ngx.var.request_filename    -> string
+ngx.var.cookie_openid       -> string
 
 ngx.location
-ngx.location.capture(url)
-ngx.location.capture_multi({url}, {url})
+ngx.location.capture(url)                   -> cap
+ngx.location.capture_multi({url}, {url})    -> cap, cap, cap, ...
 
-ngx.status
+cap.status          -> number
+cap.header          -> map<string>
+cap.body            -> string
+cap.truncated       -> boolean
 
-ngx.header  -- 设置待发送的响应头信息
-ngx.header['content-type']
-ngx.header['content-type'] = 'text/html; charset=utf-8'  -- text/html
-ngx.header['content-type'] = 'text/plain; charset=utf-8' -- text/plain
+ngx.status          -> number
+ngx.header          -> map<string>
 
-ngx.resp
-ngx.resp.get_headers(max_headers=100?, raw=false?)  -- 所有响应头信息
+ngx.resp            -- ngx.resp.get_headers
+ngx.resp.get_headers(max_headers=100?, raw=false?)  -> map<string>
 
 ngx.req
-ngx.req.is_internal()                               -- 是否内部请求
-ngx.req.start_time()                                -- 当前请求创建时间
-ngx.req.http_version()                              -- 当前请求的HTTP版本号
-ngx.req.raw_header(no_request_line=false?)          -- 原始HTTP协议头
-ngx.req.get_method()                                -- 请求方法名称
-ngx.req.set_method(method_id)                       -- 设置请求方法(常量)
-ngx.req.set_method(ngx.HTTP_GET)                    -- 设置请求方法(GET)
-ngx.req.set_method(ngx.HTTP_GET)                    -- 设置请求方法(POST)
-ngx.req.set_uri(uri, jump=false?)                   -- 重写当前请求URI
-ngx.req.set_uri_args(args)                          -- 重写当前请求参数
-ngx.req.get_uri_args(max_args=100?)                 -- URI查询参数
-ngx.req.get_post_args(max_args=100?)                -- POST查询参数
-ngx.req.get_headers(max_headers=100?, raw=false?)   -- 所有请求头信息
-ngx.req.set_header(name, value)                     -- 重写当前请求头信息
-ngx.req.clear_header(name)                          -- 清除指定头信息
-ngx.req.read_body()                                 -- 读取客户端请求体
-ngx.req.discard_body()                              -- 明确丢弃请求体
-ngx.req.get_body_data()                             -- 取回内存中的请求体数据
-ngx.req.get_body_file()                             -- 获取存储请求体数据的临时文件名
-ngx.req.set_body_data(data)                         -- 设置当前请求的请求体
-ngx.req.set_body_file(file_name, auto_clean=false?) -- 指定的数据文件设置当前请求的请求体
-ngx.req.init_body(buffer_size?)                     -- 创建一个新的空请求体并初始化缓冲区
-ngx.req.append_body(data_chunk)                     -- 向已存在的请求体中追加写入数据块
-ngx.req.finish_body()                               -- 结束新请求体构造过程
+ngx.req.is_internal()                               -> boolean
+ngx.req.start_time()                                -> number
+ngx.req.http_version()                              -> number
+ngx.req.raw_header(no_request_line=false?)          -> string
+ngx.req.get_method()                                -> string
+ngx.req.set_method(method_id)
+ngx.req.set_uri(uri, jump=false?)
+ngx.req.set_uri_args(args)
+ngx.req.get_uri_args(max_args=100?)                 -> map<string>
+ngx.req.get_post_args(max_args=100?)                -> map<string>
+ngx.req.get_headers(max_headers=100?, raw=false?)   -> map<string>
+ngx.req.set_header(name, value)
+ngx.req.clear_header(name)
+ngx.req.read_body()
+ngx.req.discard_body()
+ngx.req.get_body_data()                             -> string
+ngx.req.get_body_file()                             -> string
+ngx.req.set_body_data(data)
+ngx.req.set_body_file(file_name, auto_clean=false?)
+ngx.req.init_body(buffer_size?)
+ngx.req.append_body(data_chunk)
+ngx.req.finish_body()
 
 ngx.req.socket() -> tcpsock
 
-ngx.exec(uri, args?)               -- 执行一个内部跳转
-ngx.redirect(uri, status=302?)     -- 重定向
-ngx.send_headers()                 -- 指明把应答头发送出去
-ngx.headers_sent                   -- 应答头部是否已经被发送=
+ngx.exec(uri, args?)
+ngx.redirect(uri, status=302?)
+ngx.send_headers()                 -> ok, err
+ngx.headers_sent                   -> boolean
 
-ngx.print(...)                     -- 输出响应体(不带回车)
-ngx.say(...)                       -- 输出响应体(带上回车)
+ngx.print(...)
+ngx.say(...)
 
 ngx.log(ngx.STDERR, ...)
 ngx.log(ngx.EMERG , ...)
@@ -97,47 +100,49 @@ ngx.log(ngx.INFO  , ...)
 ngx.log(ngx.DEBUG , ...)
 ngx.log(log_level , ...)
 
-ngx.flush(wait=false?)             -- 向客户端刷新响应输出
+ngx.flush(wait=false?)                  -> ok, err
 
-ngx.exit(status)
 ngx.exit(ngx.OK)
 ngx.exit(ngx.ERROR)
 ngx.exit(ngx.DECLINED)
 ngx.exit(ngx.HTTP_OK)
 ngx.exit(ngx.HTTP_NOT_FOUND)
+ngx.exit(status)
 
-ngx.eof()
+ngx.eof()                               -> ok, err
 ngx.sleep(seconds)
-ngx.escape_uri(str)
-ngx.unescape_uri(str)
-ngx.encode_args(table)
-ngx.decode_args(str)
-ngx.encode_base64(str)
-ngx.decode_base64(str)
-ngx.crc32_short(str)
-ngx.crc32_long(str)
-ngx.hmac_sha1(secret_key, str)
-ngx.md5(str)
-ngx.md5_bin(str)
-ngx.sha1_bin(str)
-ngx.quote_sql_str(raw_value)
-ngx.today()
-ngx.time()
-ngx.now()
+ngx.escape_uri(str)                     -> string
+ngx.unescape_uri(str)                   -> string
+ngx.encode_args(table)                  -> string
+ngx.decode_args(str)                    -> any
+ngx.encode_base64(str)                  -> string
+ngx.decode_base64(str)                  -> string
+ngx.crc32_short(str)                    -> number
+ngx.crc32_long(str)                     -> number
+ngx.hmac_sha1(secret_key, str)          -> string
+ngx.md5(str)                            -> string
+ngx.md5_bin(str)                        -> string
+ngx.sha1_bin(str)                       -> string
+ngx.quote_sql_str(raw_value)            -> string
+ngx.today()                             -> string
+ngx.time()                              -> number
+ngx.now()                               -> number
 ngx.update_time()
-ngx.localtime()
-ngx.utctime()
-ngx.cookie_time(sec)
-ngx.http_time(sec)
-ngx.parse_http_time(sec)
-ngx.is_subrequest()
+ngx.localtime()                         -> string
+ngx.utctime()                           -> string
+ngx.cookie_time(sec)                    -> string
+ngx.http_time(sec)                      -> string
+ngx.parse_http_time(sec)                -> string
+ngx.is_subrequest()                     -> boolean
 
 ngx.re -- 正则表达式库
-ngx.re.match(subject, regex, options?, ctx?, res_table?)
-ngx.re.find(subject, regex, options?, ctx?, nth?)
-ngx.re.gmatch(subject, regex, options?)
-ngx.re.sub(subject, regex, replace, options?)
-ngx.re.gsub(subject, regex, replace, options?)
+ngx.re.match(subject, regex, options?, ctx?, res_table?)    -> map<string>, err
+ngx.re.find(subject, regex, options?, ctx?, nth?)           -> number, number, err
+ngx.re.gmatch(subject, regex, options?)                     -> iterator, err
+ngx.re.sub(subject, regex, replace, options?)               -> string, number, err
+ngx.re.gsub(subject, regex, replace, options?)              -> string, number, err
+
+iterator()  -> map<string>, err
 
 ngx.shared                                          -- ngx.shared.DICT
 ngx.shared.*                                        -> DICT
@@ -201,97 +206,97 @@ ngx.socket.connect(host, port)  -> tcpsock
     tcpsock:setkeepalive(timeout?, size?)
     tcpsock:getreusedtimes()
 
-ngx.get_phase()
+ngx.get_phase()                             -> string
 
 ngx.thread
-ngx.thread.spawn(fun, ...)
-ngx.thread.wait(thread1, ...)
-ngx.thread.kill(thread)
+ngx.thread.spawn(fun, ...)                  -> thread
+ngx.thread.wait(thread1, ...)               -> ok, res1, res2, ...
+ngx.thread.kill(thread)                     -> ok, err
 
-ngx.on_abort(callback) -> ok, err -- 当客户端关闭连接时自动调用
+ngx.on_abort(callback)                      -> ok, err
 
 ngx.timer
-ngx.timer.at(delay, callback, ....)
-ngx.timer.every(delay, callback, ....)
-ngx.timer.running_count()
-ngx.timer.pending_count()
+ngx.timer.at(delay, callback, ....)         -> number, err
+ngx.timer.every(delay, callback, ....)      -> number, err
+ngx.timer.running_count()                   -> number
+ngx.timer.pending_count()                   -> number
 
 ngx.config
-ngx.config.subsystem          -- 子系统运行环境: http|stream
-ngx.config.debug              -- 是否为调试版本
-ngx.config.prefix()           -- Nginx服务的路径
-ngx.config.nginx_version      -- Nginx内核版本
-ngx.config.nginx_configure()  -- 编译Nginx时的命令参数
-ngx.config.ngx_lua_version    -- ngx_lua模块版本
+ngx.config.subsystem            -> string
+ngx.config.debug                -> boolean
+ngx.config.prefix()             -> string
+ngx.config.nginx_version        -> number
+ngx.config.nginx_configure()    -> string
+ngx.config.ngx_lua_version      -> number
 
 ngx.worker
-ngx.worker.exiting()          -- 进程退出中
-ngx.worker.pid()              -- 进程号
-ngx.worker.id()               -- 进程序号
-ngx.worker.count()            -- 进程数
+ngx.worker.exiting()            -> boolean
+ngx.worker.pid()                -> number
+ngx.worker.id()                 -> number
+ngx.worker.count()              -> number
 
-ngx.AGAIN                       -> number -- -2
-ngx.ALERT                       -> number -- 2
-ngx.CRIT                        -> number -- 3
-ngx.DEBUG                       -> number -- 8
-ngx.DECLINED                    -> number -- -5
-ngx.DONE                        -> number -- -4
-ngx.EMERG                       -> number -- 1
-ngx.ERR                         -> number -- 4
-ngx.ERROR                       -> number -- -1
-ngx.INFO                        -> number -- 7
-ngx.NOTICE                      -> number -- 6
-ngx.OK                          -> number -- 0
-ngx.STDERR                      -> number -- 0
-ngx.WARN                        -> number -- 5
+ngx.AGAIN                       -> -2
+ngx.ALERT                       -> 2
+ngx.CRIT                        -> 3
+ngx.DEBUG                       -> 8
+ngx.DECLINED                    -> -5
+ngx.DONE                        -> -4
+ngx.EMERG                       -> 1
+ngx.ERR                         -> 4
+ngx.ERROR                       -> -1
+ngx.INFO                        -> 7
+ngx.NOTICE                      -> 6
+ngx.OK                          -> 0
+ngx.STDERR                      -> 0
+ngx.WARN                        -> 5
 
-ngx.HTTP_ACCEPTED               -> number -- 202
-ngx.HTTP_BAD_GATEWAY            -> number -- 502
-ngx.HTTP_BAD_REQUEST            -> number -- 400
-ngx.HTTP_CLOSE                  -> number -- 444
-ngx.HTTP_CONFLICT               -> number -- 409
-ngx.HTTP_CONTINUE               -> number -- 100
-ngx.HTTP_COPY                   -> number -- 128
-ngx.HTTP_CREATED                -> number -- 201
-ngx.HTTP_DELETE                 -> number -- 32
-ngx.HTTP_FORBIDDEN              -> number -- 403
-ngx.HTTP_GATEWAY_TIMEOUT        -> number -- 504
-ngx.HTTP_GET                    -> number -- 2
-ngx.HTTP_GONE                   -> number -- 410
-ngx.HTTP_HEAD                   -> number -- 4
-ngx.HTTP_ILLEGAL                -> number -- 451
-ngx.HTTP_INSUFFICIENT_STORAGE   -> number -- 507
-ngx.HTTP_INTERNAL_SERVER_ERROR  -> number -- 500
-ngx.HTTP_LOCK                   -> number -- 4096
-ngx.HTTP_METHOD_NOT_IMPLEMENTED -> number -- 501
-ngx.HTTP_MKCOL                  -> number -- 64
-ngx.HTTP_MOVE                   -> number -- 256
-ngx.HTTP_MOVED_PERMANENTLY      -> number -- 301
-ngx.HTTP_MOVED_TEMPORARILY      -> number -- 302
-ngx.HTTP_NOT_ACCEPTABLE         -> number -- 406
-ngx.HTTP_NOT_ALLOWED            -> number -- 405
-ngx.HTTP_NOT_FOUND              -> number -- 404
-ngx.HTTP_NOT_MODIFIED           -> number -- 304
-ngx.HTTP_NO_CONTENT             -> number -- 204
-ngx.HTTP_OK                     -> number -- 200
-ngx.HTTP_OPTIONS                -> number -- 512
-ngx.HTTP_PARTIAL_CONTENT        -> number -- 206
-ngx.HTTP_PATCH                  -> number -- 16384
-ngx.HTTP_PAYMENT_REQUIRED       -> number -- 402
-ngx.HTTP_PERMANENT_REDIRECT     -> number -- 308
-ngx.HTTP_POST                   -> number -- 8
-ngx.HTTP_PROPFIND               -> number -- 1024
-ngx.HTTP_PROPPATCH              -> number -- 2048
-ngx.HTTP_PUT                    -> number -- 16
-ngx.HTTP_REQUEST_TIMEOUT        -> number -- 408
-ngx.HTTP_SEE_OTHER              -> number -- 303
-ngx.HTTP_SERVICE_UNAVAILABLE    -> number -- 503
-ngx.HTTP_SPECIAL_RESPONSE       -> number -- 300
-ngx.HTTP_SWITCHING_PROTOCOLS    -> number -- 101
-ngx.HTTP_TEMPORARY_REDIRECT     -> number -- 307
-ngx.HTTP_TOO_MANY_REQUESTS      -> number -- 429
-ngx.HTTP_TRACE                  -> number -- 32768
-ngx.HTTP_UNAUTHORIZED           -> number -- 401
-ngx.HTTP_UNLOCK                 -> number -- 8192
-ngx.HTTP_UPGRADE_REQUIRED       -> number -- 426
-ngx.HTTP_VERSION_NOT_SUPPORTED  -> number -- 505
+ngx.HTTP_ACCEPTED               -> 202
+ngx.HTTP_BAD_GATEWAY            -> 502
+ngx.HTTP_BAD_REQUEST            -> 400
+ngx.HTTP_CLOSE                  -> 444
+ngx.HTTP_CONFLICT               -> 409
+ngx.HTTP_CONTINUE               -> 100
+ngx.HTTP_COPY                   -> 128
+ngx.HTTP_CREATED                -> 201
+ngx.HTTP_DELETE                 -> 32
+ngx.HTTP_FORBIDDEN              -> 403
+ngx.HTTP_GATEWAY_TIMEOUT        -> 504
+ngx.HTTP_GET                    -> 2
+ngx.HTTP_GONE                   -> 410
+ngx.HTTP_HEAD                   -> 4
+ngx.HTTP_ILLEGAL                -> 451
+ngx.HTTP_INSUFFICIENT_STORAGE   -> 507
+ngx.HTTP_INTERNAL_SERVER_ERROR  -> 500
+ngx.HTTP_LOCK                   -> 4096
+ngx.HTTP_METHOD_NOT_IMPLEMENTED -> 501
+ngx.HTTP_MKCOL                  -> 64
+ngx.HTTP_MOVE                   -> 256
+ngx.HTTP_MOVED_PERMANENTLY      -> 301
+ngx.HTTP_MOVED_TEMPORARILY      -> 302
+ngx.HTTP_NOT_ACCEPTABLE         -> 406
+ngx.HTTP_NOT_ALLOWED            -> 405
+ngx.HTTP_NOT_FOUND              -> 404
+ngx.HTTP_NOT_MODIFIED           -> 304
+ngx.HTTP_NO_CONTENT             -> 204
+ngx.HTTP_OK                     -> 200
+ngx.HTTP_OPTIONS                -> 512
+ngx.HTTP_PARTIAL_CONTENT        -> 206
+ngx.HTTP_PATCH                  -> 16384
+ngx.HTTP_PAYMENT_REQUIRED       -> 402
+ngx.HTTP_PERMANENT_REDIRECT     -> 308
+ngx.HTTP_POST                   -> 8
+ngx.HTTP_PROPFIND               -> 1024
+ngx.HTTP_PROPPATCH              -> 2048
+ngx.HTTP_PUT                    -> 16
+ngx.HTTP_REQUEST_TIMEOUT        -> 408
+ngx.HTTP_SEE_OTHER              -> 303
+ngx.HTTP_SERVICE_UNAVAILABLE    -> 503
+ngx.HTTP_SPECIAL_RESPONSE       -> 300
+ngx.HTTP_SWITCHING_PROTOCOLS    -> 101
+ngx.HTTP_TEMPORARY_REDIRECT     -> 307
+ngx.HTTP_TOO_MANY_REQUESTS      -> 429
+ngx.HTTP_TRACE                  -> 32768
+ngx.HTTP_UNAUTHORIZED           -> 401
+ngx.HTTP_UNLOCK                 -> 8192
+ngx.HTTP_UPGRADE_REQUIRED       -> 426
+ngx.HTTP_VERSION_NOT_SUPPORTED  -> 505
