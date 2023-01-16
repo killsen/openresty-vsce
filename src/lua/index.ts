@@ -15,7 +15,9 @@ import { window } from 'vscode';
 export { load, loadApiMod, loadApiDoc, genGlobal, newScope };
 
 const LIBS = ["io", "os", "string", "table", "math",
-"package", "debug", "coroutine", "ngx", "ndk"];
+"package", "debug", "coroutine", "ngx", "ndk", "_G"];
+
+const MOD_PROXY = new Map<string, LuaModule>();
 
 /** 加载模块(懒加载) */
 function load(ctx: NgxPath, name: string): LuaModule | undefined {
@@ -34,15 +36,16 @@ function load(ctx: NgxPath, name: string): LuaModule | undefined {
     let fileName = apiFile || modFile;
     if (!fileName) {return;}
 
+    let obj = MOD_PROXY.get(fileName);
+    if (obj) { return obj; }
+
     ctx = { ... ctx };  // 克隆
 
     const isLib = LIBS.includes(name);
     if (isLib) {ctx.fileName = fileName;}
 
-    let obj: LuaModule = {};
-
     // 属性代理：只读
-    return new Proxy(obj, {
+    obj = new Proxy({} as LuaModule, {
         // 读
         get(target, prop) {
 
@@ -63,6 +66,9 @@ function load(ctx: NgxPath, name: string): LuaModule | undefined {
             return true;  // 返回 true 避免修改属性时抛出错误
         }
     });
+
+    MOD_PROXY.set(fileName, obj);
+    return obj;
 
 }
 
