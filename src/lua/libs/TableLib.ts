@@ -1,91 +1,23 @@
 
-import { LuaModule, LuaString } from './types';
-import { isObject } from "./utils";
+import { LuaString } from '../types';
+import { isObject } from "../utils";
 
-export const TableLib : LuaModule = {
-    type        : "lib",
-    doc         : "## table 库",
-    $file       : "buildin",
-    readonly    : true,
-
-    "." : {
-        new : {
-            "()": _new,
-            args: '(narray, nhash)',
-            doc: "## new(narray, nhash)\n用来预分配 table 空间",
-        },
-        clear : {
-            "()": _clear,
-            args: '(t)',
-            doc: "## clear(t)\n用来高效的释放 table 空间",
-        },
-        clone : {
-            "()": _clone,
-            args: '(t)',
-            doc: "## clone(t)\n克隆 table 对象",
-        },
-        concat : {
-            "()": _concat,
-            args: '(t, sep, start?, end?)',
-            doc: "## concat(t, sep, start?, end?)\n连接 table 元素, 以指定的分隔符(sep)隔开",
-        },
-        insert : {
-            "()": _insert,
-            args: '(t, [pos,] value)',
-            doc: "## insert(t, [pos,] value)\n插入 table 元素",
-        },
-        getn : {
-            "()": _getn,
-            args: '(t)',
-            doc: "## getn(t)\n返回 table 连续的数字索引最大值, 等价于 #table",
-        },
-        maxn : {
-            "()": _maxn,
-            args: '(t)',
-            doc: "## maxn(t)\n取得 table 数字索引最大值",
-        },
-        nkeys : {
-            "()": _nkeys,
-            args: '(t)',
-            doc: "## nkeys(t)\n返回 table 所有元素个数",
-        },
-        move : {
-            "()": _move,
-            args: '(t, i, j, k, t2?)',
-            doc: "## move(t, i, j, k, t2?)\n移动 table 元素",
-        },
-        remove : {
-            "()": _remove,
-            args: '(t, pos?)',
-            doc: "## remove(t, pos?)\n删除 table 元素",
-        },
-        sort : {
-            "()": [],
-            args: '(t, func?)',
-            doc: "## sort(t, func?)\n排序 table 元素",
-        },
-        pack : {
-            "()": _pack,
-            args: '(...)',
-            doc: "## pack(...)\n传入多个元素创建 table",
-        },
-        unpack : {
-            "()": _unpack,
-            args: '(t, i?, j?)',
-            doc: "## unpack(t, i?, j?)\n返回 table 所有元素",
-        },
-        foreach : {
-            "()": [],
-            args: '(t, function(k, v) ... end)',
-            doc: "## foreach(t, function(k, v) ... end)\n遍历 table 所有元素",
-        },
-        foreachi : {
-            "()": [],
-            args: '(t, function(i, v) ... end)',
-            doc: "## foreachi(t, function(i, v) ... end)\n遍历 table 数组元素",
-        },
-
-    }
+export const TableLib = {
+    new  : _new,
+    clear : _clear,
+    clone : _clone,
+    concat : _concat,
+    insert :  _insert,
+    getn : _getn,
+    maxn : _maxn,
+    nkeys : _nkeys,
+    move : _move,
+    remove : _remove,
+    sort : [],
+    pack : _pack,
+    unpack :_unpack,
+    foreach : [],
+    foreachi : [],
 };
 
 // 创建表
@@ -276,7 +208,7 @@ function _insert (t: any, pos?: number, value?: any) {
 }
 
 // 返回元素
-function _unpack(t: any, i?: number, j?: number) {
+export function _unpack(t: any, i?: number, j?: number) {
 
     let arr : any[] = [];
 
@@ -339,3 +271,4 @@ function _concat(t: any, sep: string, i?:number, j?:number) {
     return arr.join(sep);
 
 }
+

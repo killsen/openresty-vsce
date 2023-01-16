@@ -3,7 +3,9 @@ import { NgxPath, getApiFile } from './ngx';
 import { loadApiDoc } from './apiDoc';
 import { LuaModule, LuaDao, LuaApi, getLuaType } from './types';
 import { setDepend } from "./modCache";
-import { isObject } from './utils';
+import { isObject, setItem } from './utils';
+import { TableLib } from './libs/TableLib';
+import { NgxThreadLib } from './libs/NgxLib';
 
 /** 通过API文件加载接口声明 */
 export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
@@ -31,7 +33,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         let a: string[] = [];
 
         if (api.name === "require") {
-            requireName = api.res;
+            requireName = requireName || api.res;
             a = [api.res];
         } else if (api.parent) {
             a = api.parent.split(".");
@@ -103,6 +105,8 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         let p = genNode(api);
         if (!p) { return; }
 
+        p.readonly = true;
+
         if (api.args) {
             let arr = api.res.split(",");
             p["()"] = arr.map(genValue);
@@ -135,10 +139,18 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
     });
 
-    if (!requireName) { return; }
-
-    let t = mod[requireName];
+    let t = name === "_G" ? { "." : mod } : mod[requireName];
     if (!t) { return; }
+
+    if (name === "table") {
+        for (let k in TableLib) {
+            setItem(t, [".", k, "()"], (TableLib as any)[k]);
+        }
+    } else if (name === "ngx") {
+        for (let k in NgxThreadLib) {
+            setItem(t, [".", "thread", k, "()"], (NgxThreadLib as any)[k]);
+        }
+    }
 
     if (t instanceof Object && dao) {
         if (dao["$file"]) {

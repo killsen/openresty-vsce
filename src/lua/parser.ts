@@ -5,7 +5,7 @@ import { newScope, getType, getValue, setValue, setChild, LuaScope } from './sco
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
-import { _getn } from './TableLib';
+import { _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
 export function loadBody(body: Statement[], _g: LuaScope) {

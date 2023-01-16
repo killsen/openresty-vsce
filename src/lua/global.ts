@@ -1,24 +1,46 @@
 
-import { NgxPath } from "./ngx";
-import { LuaScope } from "./scope";
 import * as lua from './index';
+import { NgxPath } from "./ngx";
+import { LuaScope, newScope, setValue } from "./scope";
 import { getItem, isArray, isObject, setItem } from "./utils";
-import { LuaBoolean, LuaString, LuaTable } from "./types";
-import { TableLib } from "./TableLib";
-import { callFunc } from "./modFunc";
+import { LuaTable } from "./types";
+import { _unpack } from "./libs/TableLib";
+import { GlobalLib } from "./libs/GlobalLib";
+import { CompletionItemKind } from 'vscode';
 
-/** 生成全局变量环境 */
-export function genGlobal(ctx: NgxPath) {
+// Lua的关键字
+const KeyWords = [
+    "and", "break", "do", "else", "elseif", "end", "false", "for",
+    "function", "if", "in", "local", "nil", "not", "or", "repeat",
+    "return", "then", "true", "until", "while", "goto",
+];
 
-    const _G: LuaScope = {
-        ["$local"]: {},
-        ["$scope"]: undefined,
-        ["$file"]: ctx.fileName,
-    };
+// 内置全局库
+const BuildInLibs = [
+    "io", "os", "string", "math", "table",
+    "package", "debug", "coroutine",
+    "ngx", "ndk",
+];
+
+/** 加载全局库 */
+function loadGlobal(ctx: NgxPath) {
+
+    let mod = lua.load(ctx, "_G");
+
+    let _G = (mod && mod["."] || {}) as LuaScope;
+    if (_G["$inited"]) { return _G; }
+
+    _G["$inited"] = true;
+    _G["$local" ] = {};
+    _G["$scope" ] = undefined;
+    _G["$file"  ] = "buildin";
 
     const _g: LuaTable = {};
 
     _G["_G"] = {
+        type: "lib",
+        doc: "## 全局变量 _G",
+        readonly: true,
         ".": _g, // 全局库
         ":": {},
         "$$mt": {
@@ -30,24 +52,21 @@ export function genGlobal(ctx: NgxPath) {
         }
     };
 
-    // 加载全局变量或关键字
-    let apis = lua.loadApiDoc(ctx, "_G");
-    if (apis) {
-        apis.forEach(api => {
-            _G[api.name] = {
-                name: api.name,
-                args: api.args,
-                doc: api.doc,
-                "()": api.args && [] || undefined,
-                kind: api.kind,
-            };
-        });
+    // 加载关键字或保留字
+    KeyWords.forEach(name => {
+        _G[name] = {
+            readonly: true,
+            kind: CompletionItemKind.Keyword,
+        };
+    });
+
+    // 注入全局函数
+    for (let k in GlobalLib) {
+        setItem(_G, [k, "()"], (GlobalLib as any)[k]);
     }
 
-    // 加载全局库
-    let libs = ["io", "os", "string", "math",
-        "package", "debug", "coroutine", "ngx", "ndk"];
-    libs.forEach(name => {
+    // 注入全局库
+    BuildInLibs.forEach(name => {
         _G[name] = _g[name] = lua.load(ctx, name);
     });
 
@@ -60,317 +79,41 @@ export function genGlobal(ctx: NgxPath) {
         _G["@string"] = res[0];
     }
 
-    _G["table" ] = _g["table"] = TableLib;
-    _G["unpack"] = TableLib["."]?.unpack;
-
-    // 模拟 ngx.thread.spawn, ngx.thread.wait 接口
-    setItem(_G, ["ngx", ".", "thread", ".", "spawn", "()"], ngx_thread_spawn);
-    setItem(_G, ["ngx", ".", "thread", ".", "wait" , "()"], ngx_thread_wait );
-
-    _G["print"] = {
-        "()": _print,
-        args: '(...)',
-        doc: "## print(...)\n打印输出"
-    };
-
-    _G["type"] = {
-        "()": _type,
-        args: '(v)',
-        doc: "## type(v)\n返回变量类型"
-    };
-
-    _G["ipairs"] = {
-        "()": ipairs,
-        args: '(t)',
-        doc: "## ipairs(t)\n迭代器"
-    };
-
-    _G["pairs"] = {
-        "()": pairs,
-        args: '(t)',
-        doc: "## pairs(t)\n迭代器"
-    };
-
-    _G["pcall"] = {
-        "()": pcall,
-        args: '(fun, ...)',
-        doc: "## pcall(fun, ...)\n执行函数"
-    };
-
-    _G["xpcall"] = {
-        "()": xpcall,
-        args: '(fun, onerr)',
-        doc: "## xpcall(fun, onerr)\n执行函数fun, 出错执行onerr回调函数"
-    };
-
-    _G["_load"] = {
-        "()": _load,
-        args: '(mod)',
-        text: ' "${1}"',
-        doc: "## _load(mod)\n加载模块"
-    };
-
-    _G["require"] = {
-        "()": require,
-        args: '(mod)',
-        text: ' "${1}"',
-        doc: "## require(mod)\n加载模块"
-    };
-
-    _G["setmetatable"] = {
-        "()": setmetatable,
-        args: '(t, mt)',
-        doc: "## setmetatable(t, mt)\n设置元表"
-    };
-
-    _G["getmetatable"] = {
-        "()": getmetatable,
-        args: '(t)',
-        doc: "## getmetatable(t)\n获取元表"
-    };
-
-    _G["rawget"] = {
-        "()": rawget,
-        args: '(t, key)',
-        doc: "## rawget(t, key)\n获取表对应key的值(不触发元表__index)"
-    };
-
-    _G["rawset"] = {
-        "()": rawset,
-        args: '(t, key, val)',
-        doc: "## rawset(t, key, val)\n设置表对应key的值(不触发元表__newindex)"
-    };
-
     return _G;
 
+}
+
+/** 生成全局变量环境 */
+export function genGlobal(ctx: NgxPath) {
+
+    const _G = loadGlobal(ctx);
+    const _g = newScope(_G, ctx.fileName);
+
+    setValue(_g, "_load", {
+        "()": _require,
+        args: '(modname)',
+        doc: "## _load(modname)\n加载模块"
+    }, true);
+
+    setValue(_g, "require", {
+        "()": _require,
+        args: '(modname)',
+        doc: "## require(modname)\n加载模块"
+    }, true);
+
+    return _g;
+
     /** 加载模块 */
-    function require(name: string) {
-        if (typeof name !== "string") {return;}
+    function _require(name: string) {
+        if ( typeof name !== "string" ) { return; }
+        if ( name === "cjson.safe" ) { name = "cjson"; }
 
-        if (name === "cjson.safe") {
-            name = "cjson";
-        } else if (name === "table") {
-            return TableLib;
-        } else if (name.startsWith("table.")) {
-            name = name.replace("table.", "");
-            let lib = TableLib["."] as any;
-            if (lib[name]) {return lib[name];}
-        }
-
-        if (typeof name === "string") {
-            return lua.load(ctx, name);
-        }
+        return name in _G ? _G[name]
+            :  name === "table.new"   ? getItem(_G, ["table", ".", "new"])
+            :  name === "table.nkeys" ? getItem(_G, ["table", ".", "nkeys"])
+            :  name === "table.clone" ? getItem(_G, ["table", ".", "clone"])
+            :  name === "table.clear" ? getItem(_G, ["table", ".", "clear"])
+            :  lua.load(ctx, name);
     }
 
-    /** 加载模块 */
-    function _load(name: string) {
-        if (typeof name !== "string") {return;}
-        return lua.load(ctx, name);
-    }
-
-}
-
-function getChild(obj: any, child: string) {
-
-    if (!(obj instanceof Object)) { return; }
-
-    let names = splitName(child);
-
-    let t = obj;
-    for (let i = 0; i < names.length; i++) {
-        t = t[names[i]];
-        if (!(obj instanceof Object)) { return; }
-    }
-
-    return t;
-
-}
-
-function splitName(name: string): string[] {
-
-    let names = [];
-
-    // 按冒号分割字符串
-    let arrI = name.trim().split(":");
-    for (let i = 0; i < arrI.length; i++) {
-
-        // 按点号分割字符串
-        let arrJ = arrI[i].trim().split(".");
-        for (let j = 0; j < arrJ.length; j++) {
-            let s = arrJ[j].trim();
-            s && names.push(s);
-            j < arrJ.length - 1 && names.push(".");
-        }
-
-        i < arrI.length - 1 && names.push(":");
-    }
-
-    return names;
-
-}
-
-// 打印输出
-function _print(...args: any[]) {
-    console.log(...args);
-}
-
-// 返回变量类型
-function _type(v: any) {
-
-    if (!isObject(v)) {
-        let t = typeof v;
-        return v === null       ? "nil"
-            :  v === undefined  ? LuaString
-            :  t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "function" ? "function"
-            :  LuaString;
-    } else {
-        let t = v.type;
-        return t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "thread"   ? "thread"
-            :  v["$$mt"]        ? "table"
-            :  v["()"]          ? "function"
-            :  v["."]           ? "table"
-            :  v[":"]           ? "table"
-            :  LuaString;
-    }
-
-}
-
-// 模拟 ngx.thread.spawn 接口
-function ngx_thread_spawn(funt: any, ...args: any[]) {
-    let res = callFunc(funt, ...args);
-    return {
-        type : "thread",
-        readonly: true,
-        result: isArray(res) ? res : [res]
-    };
-}
-
-// 模拟 ngx.thread.wait 接口
-function ngx_thread_wait(thread: any) {
-    if (isObject(thread) && isArray(thread.result)) {
-        return [ LuaBoolean, ...thread.result ];
-    }
-}
-
-/** ipairs 迭代 */
-function ipairs(t: any) {
-
-    if (!(t instanceof Object)) {return;}
-
-    let ti = t["."];
-    let ta = t["[]"];
-
-    if (!(ti instanceof Object)) {ti = null;}
-    if (!(ta instanceof Object)) {ta = null;}
-
-    if (!ti && !ta) {return;}
-
-    let i = 0;
-
-    // 生成迭代函数
-    return function() {
-        i = i + 1;
-        if (ta) {
-            return i===1 && [i, ta] || null;
-        } else if (ti) {
-            let v = ti[i];
-            return v && [i, v] || null;
-        }
-    };
-
-}
-
-/** pairs 迭代 */
-function pairs(t: any) {
-
-    if (!(t instanceof Object)) {return;}
-
-    let arr: any = [];
-
-    let ti = t["."];
-    if (ti instanceof Object) {
-        Object.keys(ti).forEach(k=>{
-            // if (!k.startsWith("$")) {
-                arr.push([ "." + k, ti[k] ]);
-            // }
-        });
-    }
-
-    let ta = t[":"];
-    if (ta instanceof Object) {
-        Object.keys(ta).forEach(k=>{
-            // if (!k.startsWith("$")) {
-                arr.push([ ":" + k, ta[k] ]);
-            // }
-        });
-    }
-
-    let i = -1;
-
-    // 生成迭代函数
-    return function() {
-        i = i + 1;
-        return arr[i];
-    };
-
-}
-
-/** 执行函数 */
-function pcall(fun: any, ...args: any) {
-
-    let res: any;
-    if (typeof fun === "function") {
-        res = fun(...args);
-    } else if (fun instanceof Object) {
-        fun = fun["()"];
-        if (typeof fun === "function") {
-            res = fun(...args);
-        } else {
-            res = fun["()"];
-        }
-    }
-
-    if (res instanceof Array) {
-        return [true, ...res];
-    } else {
-        return [true, res];
-    }
-
-}
-
-/** 执行函数 */
-function xpcall(fun: any) {
-    return pcall(fun);
-}
-
-/** 设置元表 */
-function setmetatable(t: any, mt: any) {
-
-    if (isObject(t) && isObject(mt)) {
-        t["$$mt"] = mt;
-    }
-
-    return t;
-
-}
-
-/** 获取元表 */
-function getmetatable(t: any) {
-    return getItem(t, ["$$mt"]);
-}
-
-/** 获取表对应key的值(不触发元表__index) */
-function rawget(t: LuaTable, k: string) {
-    return getItem(t, [".", k]);
-}
-
-/** 设置表对应key的值(不触发元表__newindex) */
-function rawset(t: LuaTable, k: string, v: any) {
-    setItem(t, [".", k], v);
 }

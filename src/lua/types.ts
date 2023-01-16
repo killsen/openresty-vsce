@@ -83,6 +83,7 @@ export interface LuaApi {
 	/** 接口文档 */ doc: string;
 	/** 文档位置 */ loc? : LuaLoc;
 	/** 文档路径 */ file?: string;
+    /** 只读属性 */ readonly: true;
 }
 
 export interface LuaApiDocs {
@@ -108,43 +109,16 @@ export const LuaNil  = null;
 export const LuaNull = null;
 
 // 数字类型
-export const LuaNumber = {
-    type: "number",
-    readonly : true
-};
-
-// 数字数组
-export const LuaNumberArray = {
-    type: "number[]",
-    readonly : true,
-    "[]": LuaNumber,
-};
+export const LuaNumber       = { type: "number",   readonly : true };
+export const LuaNumberArray  = { type: "number[]", readonly : true, "[]": LuaNumber };
 
 // 字符串类型
-export const LuaString = {
-    type: "string",
-    readonly : true
-};
-
-// 字符串数组
-export const LuaStringArray = {
-    type: "string[]",
-    readonly : true,
-    "[]": LuaString,
-};
+export const LuaString       = { type: "string",   readonly : true };
+export const LuaStringArray  = { type: "string[]", readonly : true, "[]": LuaString };
 
 // 布尔值类型
-export const LuaBoolean = {
-    type: "boolean",
-    readonly : true
-};
-
-// 布尔值数组
-export const LuaBooleanArray = {
-    type: "boolean[]",
-    readonly : true,
-    "[]": LuaBoolean,
-};
+export const LuaBoolean      = { type: "boolean",   readonly : true };
+export const LuaBooleanArray = { type: "boolean[]", readonly : true, "[]": LuaBoolean };
 
 export const LuaStringMap = {
     type: "map<string>",
@@ -156,17 +130,20 @@ export const LuaStringMap = {
 };
 
 // 线程类型
-export const LuaThread = {
-    type: "thread",
-    readonly : true,
-};
+export const LuaThread      = { type: "thread",   readonly : true };
+export const LuaThreadArray = { type: "thread[]", readonly : true, "[]": LuaThread };
 
-// 线程数组
-export const LuaThreadArray = {
-    type: "thread[]",
-    readonly : true,
-    "[]": LuaThread,
-};
+// 自定义类型
+export const LuaUserData      = { type: "userdata",   readonly : true };
+export const LuaUserDataArray = { type: "userdata[]", readonly : true, "[]": LuaUserData };
+
+// C数据
+export const LuaCData       = { type: "cdata",   readonly : true };
+export const LuaCDataArray  = { type: "cdata[]", readonly : true, "[]": LuaCData };
+
+// C类型
+export const LuaCType       = { type: "ctype",   readonly : true, "()": [ LuaCData ] };
+export const LuaCTypeArray  = { type: "ctype[]", readonly : true, "[]": LuaCType };
 
 export function getLuaType(typeName: string, isArr = false) {
 
@@ -181,6 +158,15 @@ export function getLuaType(typeName: string, isArr = false) {
 
     } else if (typeName === "thread") {  // 线程类型
         return isArr ? LuaThreadArray : LuaThread;
+
+    } else if (typeName === "userdata") {  // 自定义类型
+        return isArr ? LuaUserDataArray : LuaUserData;
+
+    } else if (typeName === "ctype") {  // C类型
+        return isArr ? LuaCTypeArray : LuaCType;
+
+    } else if (typeName === "cdata") {  // C数据
+        return isArr ? LuaCDataArray : LuaCData;
 
     } else if (typeName === "any") {  // 任意类型
         return LuaAny;
