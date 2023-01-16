@@ -5,108 +5,120 @@ import { loadDocs } from './markdown';
 import { NgxPath, getApiFile } from './ngx';
 import { LuaApi } from "./types";
 
-// mysql:new() -> db, err -- 创建mysql客户端
-function genApi(s: string): LuaApi | undefined {
+/** 加载 api 接口声明文件及文档 */
+function genApi(name: string): LuaApi | undefined {
 
-    s = s.trim();
-    if (!s) {return;}
+    // mysql:new() -> db, err -- 创建mysql客户端
 
-    let a = s.split('--');
-    let desc = (a[1] || '').trim();
+    name = name.trim();
+    if (!name) {return;}
 
-    a = a[0].split('->');
-    let res = (a[1] || '').trim();
+    let desc = "";
+    let idx = name.indexOf("--");
+    if (idx !== -1) {
+        desc = name.substring(idx + 2).trim();
+        name = name.substring(0, idx).trim();
+    }
 
-    let text = (a[0] || '').trim();
+    let text = name;  // 不含注释
 
-    a = a[0].split('(');
-    let name = (a[0] || '').trim();
-    let args = (a[1] || '').trim();
-    if (args) { args = '(' + args; }
+    let res  = "";
+    idx = name.indexOf("->");
+    if (idx !== -1) {
+        res  = name.substring(idx + 2).trim();
+        name = name.substring(0, idx).trim();
+    }
+
+    let args = "";
+    idx = name.indexOf("(");
+    if (idx !== -1) {
+        args = name.substring(idx).trim();
+        name = name.substring(0, idx).trim();
+    }
 
     if (!name) {return;}
 
-    let parent = "";
     let indexer = "";
-    let child = "";
-    if (name.indexOf(':')>0){
+    let parent  = "";
+    let child   = "";
+
+    let i = name.indexOf(":");
+    let j = name.indexOf("[");
+    let k = name.lastIndexOf(".");
+
+    if (i !== -1){
         indexer = ':';
-        parent = name.substring(0, name.indexOf(':'));
-        child = name.substring(name.indexOf(':')+1);
+        parent  = name.substring(0, i);
+        child   = name.substring(i + 1);
 
-    } else if (name.indexOf('[') > 0) {
+    } else if (j !== -1) {
         indexer = '.';
-        parent = name.substring(0, name.indexOf('['));
+        parent  = name.substring(0, j);
 
-    }else if (name.indexOf('.')>0){
+    }else if (k !== -1){
         indexer = '.';
-        a = name.split('.');
-        child = a.pop() || '';
-        parent = a.join('.');
+        parent  = name.substring(0, k);
+        child   = name.substring(k + 1);
     }
 
-    if (res) {
-        desc =  "-- " + desc + "\n" +
-                "local " + res + " = " + text;
-    }
+    let kind = args ? CompletionItemKind.Function
+         : desc === "保留字" ? CompletionItemKind.Keyword
+         : CompletionItemKind.Value;
 
-    let kind = CompletionItemKind.Value;
-
-    if (args) {
-        kind = CompletionItemKind.Function;
-
-    }else if(desc.indexOf("库")>=0){
-        kind = CompletionItemKind.Module;
-
-    }else if(desc.indexOf("关键字")>=0){
-        kind = CompletionItemKind.Keyword;
-
-    }else if(desc.indexOf("=")>=0){
-        kind = CompletionItemKind.EnumMember;
-    }
+    if (desc === "保留字") {desc = "";}
 
     return {
         text, name, args, res, desc, kind,
-        parent, indexer, child, doc: ""
+        parent, indexer, child, doc: "## " + text + "\n" + desc,
+        readonly: true,
     };
 
 }
 
+/** 加载 api 接口声明文件及文档 */
 export function loadApiDoc(ctx: NgxPath, name: string){
 
-    // 检查路径是否存在
+    // api 接口声明文件
     let apiFile = getApiFile(ctx, name);
     if (!apiFile) { return; }
 
-    let docs = loadDocs(apiFile, name);
-    let lines: string[] = [];
-
+    let lines: string[];
     try {
         let data = fs.readFileSync(apiFile);
         lines = data.toString().split("\n");
+        if (lines.length === 0) {return;}
     } catch (e) {
         return;
     }
 
-    let apis : LuaApi[] = [];
-    let map : { [key: string] : LuaApi } = {};
+    let docs = loadDocs(apiFile, name);
+    let apis = new Array<LuaApi>();
+    let map  = new Map<string, LuaApi>();
 
-    lines.forEach(line=>{
+    lines.forEach((line, index)=>{
         let api = genApi(line);
         if (!api) {return;}
 
-        // 接口文档
-        let doc = docs && (docs[api.name] || docs[api.child] || docs[api.desc]);
-        api.doc = doc && doc.doc || "";
-        api.loc = doc && doc.loc;
-        api.file = doc && doc.file;
+        // 接口声明文件及位置
+        api.file = apiFile;
+        api.loc = {
+            start : { line: index+1, column: 0 },
+            end   : { line: index+1, column: line.length},
+        };
 
         apis.push(api);
-        map[api.name] = api;
+        map.set(api.name, api);
+
+        // 接口文档
+        if (!docs) {return;}
+        let doc = docs[api.name] || docs[api.child] || docs[api.desc];
+        if (doc?.doc) {
+            api.doc = doc.doc;
+        }
     });
 
     apis.forEach(api=>{
-        let p = map[api.parent];
+        let p = map.get(api.parent);
         if (p) {p.kind = CompletionItemKind.Module;}
     });
 
