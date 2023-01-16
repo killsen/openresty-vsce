@@ -49,7 +49,7 @@ export function cleanUp(fileName: string){
     if (mod) {
         MOD_LOADED.delete(fileName);
 
-        const text = "清理模块：" + (count++) + "\t" + fileName;
+        const text = `清理模块 #${ count++ } ：${ fileName }`;
         console.log(text);
         window.setStatusBarMessage(text);
     }

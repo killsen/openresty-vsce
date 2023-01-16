@@ -94,6 +94,8 @@ function _load(ctx: NgxPath, name: string, apiFile?: string, modFile?: string): 
 
     ctx = {...ctx, fileName};  // 克隆并更改 fileName
 
+    const time1 = new Date().getTime();
+
     if (apiFile) {
         mod = requireModule(ctx, name);
     } else {
@@ -105,7 +107,9 @@ function _load(ctx: NgxPath, name: string, apiFile?: string, modFile?: string): 
         mod = requireModule(ctx, "dao", dao);
     }
 
-    const text = "加载模块：" + (count++) + "\t" + fileName;
+    const time2 = new Date().getTime();
+
+    const text = `加载模块 #${ count++ } - ${ time2 - time1 }ms ：${ fileName }`;
     console.log(text);
     window.setStatusBarMessage(text);
 
