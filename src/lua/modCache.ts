@@ -20,31 +20,13 @@ export function getModCache(fileName: string) {
 
 /** 更新模块缓存 */
 export function setModCache(fileName: string, mod: LuaModule) {
-
-    // 直接覆盖
     MOD_LOADED[fileName] = mod;
-
-    // let oldMod: any = MOD_LOADED[fileName];
-    // let newMod: any = mod;
-
-    // if (oldMod) {
-    //     Object.keys(oldMod).forEach(k=>{
-    //         delete oldMod[k];
-    //     });
-
-    //     Object.keys(newMod).forEach(k=>{
-    //         oldMod[k] = newMod[k];
-    //     });
-
-    // } else {
-    //     MOD_LOADED[fileName] = newMod;
-    // }
-
 }
 
 /** 设置模块引用关系 */
 export function setDepend(fileName: string, dependFile: string){
     if (fileName === dependFile) {return;}
+    if (fileName.endsWith(".editing")) {return;}
 
     const map = MOD_DEPENDS;
     if (map[fileName]) {
