@@ -1,0 +1,13 @@
+
+mime
+
+mime._VERSION
+
+mime.b64(C [, D])           -> A, B
+mime.dot(m [, B])           -> A, n
+mime.eol(C [, D, marker])   -> A, B
+mime.qp(C [, D, marker])    -> A, B
+mime.qpwrp(n [, B, length]) -> A, m
+mime.unb64(C [, D])         -> A, B
+mime.unqp(C [, D])          -> A, B
+mime.wrp(n [, B, length])   -> A, m

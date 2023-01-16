@@ -1,7 +1,23 @@
 
 table
-table.concat(t[,sep[,i[,j]]])
-table.insert(t,[pos,]value)
-table.maxn(t)
-table.remove(t[,pos])
-table.sort(t[,comp])
+
+table.new(narray, nhash)                            -- 用来预分配 table 空间
+table.clear(t)                                      -- 用来高效的释放 table 空间
+table.clone(t)                                      -- 克隆 table 对象
+
+table.concat(t, sep, start?, end?)                  -- 连接 table 元素, 以指定的分隔符(sep)隔开
+table.insert(t, [pos,] value)                       -- 插入 table 元素
+
+table.getn(t)                                       -- 返回 table 连续的数字索引最大值, 等价于 #table
+table.maxn(t)                                       -- 取得 table 数字索引最大值
+table.nkeys(t)                                      -- 返回 table 所有元素个数
+
+table.move((t, i, j, k, t2?)                        -- 移动 table 元素
+table.remove(t, pos?)                               -- 删除 table 元素
+
+table.pack(...)                                     -- 传入多个元素创建 table
+table.unpack(t, i?, j?)                             -- 返回 table 所有元素
+
+table.sort((t [, function(k, v) ... end])           -- 排序 table 元素
+table.foreach(t, function(k, v) ... end)            -- 遍历 table 所有元素
+table.foreachi(t, function(i, v) ... end)           -- 遍历 table 数组元素

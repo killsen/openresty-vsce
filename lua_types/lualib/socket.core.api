@@ -1,0 +1,87 @@
+
+socket
+
+socket._DATAGRAMSIZE
+socket._DEBUG
+socket._SETSIZE
+socket._SOCKETINVALID
+socket._VERSION
+
+socket.dns
+socket.dns.getaddrinfo(address)
+socket.dns.gethostname()
+socket.dns.getnameinfo()
+socket.dns.tohostname(address)
+socket.dns.toip(address)
+
+socket.gettime()
+socket.newtry(finalizer)
+socket.protect(func)
+socket.select(recvt, sendt [, timeout])
+socket.skip(d [, ret1, ret2 ... retN])
+socket.sleep(time)
+
+socket.connect(address, port [, locaddr] [, locport] [, family])  -> sock
+
+sock
+sock:setoption(option [, value])
+sock:bind(addr, port)
+sock:close()
+sock:listen(backlog)
+sock:getfd()
+sock:dirty()
+sock:send(chunk)
+sock:receive(size)
+
+socket.tcp()        -> tcp
+socket.tcp4()       -> tcp
+socket.tcp6()       -> tcp
+
+tcp
+tcp.class
+tcp:accept()
+tcp:bind()
+tcp:close()
+tcp:connect(address, port)
+tcp:dirty()
+tcp:getfamily()
+tcp:getfd()
+tcp:getoption(option)
+tcp:getpeername()
+tcp:getsockname()
+tcp:getstats()
+tcp:gettimeout()
+tcp:listen(backlog)
+tcp:receive([pattern [, prefix]])
+tcp:send(data [, i [, j]])
+tcp:setfd(fd)
+tcp:setoption(option [, value])
+tcp:setpeername()
+tcp:setsockname()
+tcp:setstats(received, sent, age)
+tcp:settimeout(value [, mode])
+tcp:shutdown(mode)
+
+socket.udp()        -> udp
+socket.udp4()       -> udp
+socket.udp6()       -> udp
+
+udp
+udp.class
+udp:close()
+udp:dirty()
+udp:getfamily()
+udp:getfd()
+udp:getoption(option)
+udp:getpeername()
+udp:getsockname()
+udp:gettimeout()
+udp:receive([size])
+udp:receivefrom([size])
+udp:send(datagram)
+udp:sendto(datagram, ip, port)
+udp:setfd(fd)
+udp:setoption(option [, value])
+udp:setpeername(address, port)
+udp:setsockname(address, port)
+udp:settimeout(value)

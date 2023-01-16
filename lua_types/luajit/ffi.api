@@ -4,30 +4,31 @@
 
 ffi
 
-ffi.C
-ffi.C.*
+------------------------------------------------------------
+ofs                                             -> number
+bpos                                            -> number
+bsize                                           -> number
+------------------------------------------------------------
 
-clib
-clib.*
+ffi.C                                           -> userdata
 
-ffi.os
-ffi.arch
+ffi.os                                          -> string
+ffi.arch                                        -> string
 
-ffi.new()
 ffi.cdef(def)
 
-ffi.load(name [,global])            -> clib
-ffi.new(ct [,nelem] [,init...])     -> cdata
-ffi.typeof(ct)                      -> ctype
-ffi.cast(ct, init)                  -> cdata
-ffi.metatype(ct, metatable)         -> ctype
-ffi.gc(cdata, finalizer)            -> cdata
-ffi.sizeof(ct [,nelem])             -> size
-ffi.alignof(ct)                     -> align
-ffi.offsetof(ct, field)             -> ofs [,bpos,bsize]
-ffi.istype(ct, obj)                 -> boolean
-ffi.errno([newerr])                 -> err
-ffi.string(ptr [,len])              -> string
-ffi.copy(dst, src [,len])
-ffi.fill(dst, len [,c])
-ffi.abi(param)                      -> boolean
+ffi.load(name, global?)                         -> userdata
+ffi.new(ct, nelem?, init?, ...)                 -> cdata
+ffi.typeof(ct)                                  -> ctype
+ffi.cast(ct, init)                              -> cdata
+ffi.metatype(ct, metatable)                     -> ctype
+ffi.gc(cdata, finalizer)                        -> cdata
+ffi.sizeof(ct, nelem?)                          -> number
+ffi.alignof(ct)                                 -> number
+ffi.offsetof(ct, field)                         -> ofs, bpos, bsize
+ffi.istype(ct, obj)                             -> boolean
+ffi.errno(newerr?)                              -> string
+ffi.string(ptr, len?)                           -> string
+ffi.copy(dst, src, len?)
+ffi.fill(dst, len, c?)
+ffi.abi(param)                                  -> boolean
