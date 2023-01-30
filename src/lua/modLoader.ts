@@ -68,6 +68,7 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, 
         // 解析注释中的类型定义
         let $$comm = parseComments(chunk.comments);
         setValue(_g, "$$comm", $$comm, true);
+        setValue(_g, "$$comments", chunk.comments, true);
 
         // 初始化返回值数组
         setValue(_g, "$$return", [], true);
@@ -83,7 +84,8 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, 
                 mod["@@"] = func;
             } else {
                 // 默认使用 new 方法作为构造函数
-                func = getItem(mod, [".", "new", "()"]);
+                func = getItem(mod, [".", "new", "()"]) ||
+                       getItem(mod, [":", "new", "()"]);
                 if (typeof func === "function") {
                     setValue(_g, "@@", func, true);
                     mod["@@"] = func;

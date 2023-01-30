@@ -1,6 +1,8 @@
 
 import { LuaModule, LuaDao } from "./types";
 
+const readonly = true;
+
 export function loadDao(mod: LuaModule): LuaDao | undefined {
 
     let t = mod["."];
@@ -51,7 +53,7 @@ export function loadDao(mod: LuaModule): LuaDao | undefined {
                         + "[" + name + "](file:"+ $file +")"
                         + " ( " + desc + " ) " ;
 
-                dao.row[f.name] = { doc, $loc, $file };
+                dao.row[f.name] = { doc, $loc, $file, readonly };
             }
 
         });

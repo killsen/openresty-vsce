@@ -1,8 +1,8 @@
 
-import { Node, Statement } from 'luaparse';
+import { Node, Statement, Comment } from 'luaparse';
 import { LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
-import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
+import { callFunc, loadType, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 import { _getn } from './libs/TableLib';
@@ -69,21 +69,24 @@ export function loadNode(node: Node, _g: LuaScope): any {
     if (node.type === "LocalStatement" || node.type === "AssignmentStatement") {
 
         // 是否本地变量
-        let isLocal = (node.type === "LocalStatement");
+        const isLocal = (node.type === "LocalStatement");
+
+        // local t = {}  --> @MyType
+        const vtypeInLine = get_vtype_inline(node, _g);
 
         // -- @t : @MyType  //自定义类型
         // local t = { k=v, { k=v } }
         const vtypes = node.variables.map(n => get_vtype(n, _g));
         node.init.forEach((n, i) => {
             if (n.type === "TableConstructorExpression") {
-                n.vtype = vtypes[i];  //关联类型
+                n.vtype = i === 0 && vtypeInLine || vtypes[i];  //关联类型
             }
         });
 
         // 返回值（可能多个）
-        let res: any[] = [];
+        const res: any[] = [];
         node.init.forEach((n, i) => {
-            let r = loadNode(n, _g);
+            const r = loadNode(n, _g);
             if (isArray(r)) {
                 if (i === node.init.length - 1) {
                     res.push(...r);
@@ -97,8 +100,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 待赋值的变量名（可能多个）
         node.variables.forEach((n, i) => {
+            const v = i === 0 && vtypeInLine || res[i];
+
             switch (n.type) {
-                case "Identifier":
+                case "Identifier": {
                     // 找到光标所在的位置
                     if ($$node === n) {
                         $$node.scope = _g;
@@ -106,8 +111,9 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     }
 
                     // local变量或者upvalue
-                    setValue(_g, n.name, res[i], isLocal, n.loc);
+                    setValue(_g, n.name, v, isLocal, n.loc);
                     break;
+                }
 
                 case "MemberExpression": {
                     let k = n.identifier.name;
@@ -126,17 +132,17 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         return;  // 退出
                     }
 
-                    if (res[i] instanceof Object && typeof res[i]["()"] === "function" ){
+                    if (v instanceof Object && typeof v["()"] === "function" ){
                         // 生成请求参数类型
                         let $$req = getValue(_g, "$$req");
-                        if ($$req && $$req[k]) {res[i]["()"]["$$req"] = $$req[k];}
+                        if ($$req && $$req[k]) {v["()"]["$$req"] = $$req[k];}
 
                         // 生成返回值类型 v21.11.25
                         let $$res = getValue(_g, "$$res");
-                        if ($$res && $$res[k]) {res[i]["()"]["$$res"] = $$res[k];}
+                        if ($$res && $$res[k]) {v["()"]["$$res"] = $$res[k];}
                     }
 
-                    setChild(_g, t, n.indexer, k, res[i], n.identifier.loc);
+                    setChild(_g, t, n.indexer, k, v, n.identifier.loc);
                     break;
                 }
 
@@ -161,7 +167,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         k = k.substring(1);
                     }
 
-                    setChild(_g, t, indexer, k, res[i], n.index.loc);
+                    setChild(_g, t, indexer, k, v, n.index.loc);
                     break;
                 }
 
@@ -790,15 +796,37 @@ function addLint(n: Node, k: string, _g: LuaScope) {
 
 }
 
+function get_vtype_inline(n: Node, _g: LuaScope): any {
+
+    let comments = getValue(_g, "$$comments") as Comment[];
+    if (!comments) {return;}
+
+    let c = comments.find(c => {
+        return c.loc?.start.line === n.loc?.start.line;
+    });
+
+    if (c?.raw.startsWith("-->")) {
+        console.log( c.raw );
+        let typeName = c.raw.substring(3).trim();
+        let t = loadType(typeName, _g);
+        return t;
+    }
+
+}
+
 // 获取参数类型
 function get_vtype(n: Node, _g: LuaScope): any {
 
     if (n.type === "Identifier") {
-        return getType(_g, n.name);
+        let t = getType(_g, n.name);
+        if (t) { return t; }
+
+        let v = getValue(_g, n.name);
+        if (v?.readonly) { return v; }
 
     } else if (n.type === "MemberExpression") {
         const vtype = get_vtype(n.base, _g);
-        if (vtype) {
+        if (vtype && vtype["type"] !== "any") {
             const t = vtype["."] || {};
             const k = n.identifier.name;
             if (!(k in t)) {

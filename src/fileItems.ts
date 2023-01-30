@@ -109,6 +109,14 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
         text = getLinkText(doc, pos, r1, r2, r0);
     }
 
+    // --> $pos_bi_order
+    if (!text) {
+        let r0 = /\s*-->\s*[$@]\w*/;
+        let r1 = /[$@]\w*/;
+        let r2 = /[$@\w]/;
+        text = getLinkText(doc, pos, r1, r2, r0);
+    }
+
     let modType, modPath;
 
     if (text) {

@@ -3,6 +3,7 @@ import { LuaModule } from './types';
 import { NgxPath } from "./ngx";
 import { isObject, getItem, setItem, delItem, toTable } from './utils';
 import * as lua from './index';
+const readonly = true;
 
 export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefined {
 
@@ -266,7 +267,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
 
         });
 
-        return { ".": obj, doc: doc.join("\n") };
+        return { ".": obj, doc: doc.join("\n"), readonly };
 
     }
 
@@ -366,11 +367,11 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
 
             if (userType.loaded) {
                 doc = doc + "\n---\n" + userType.doc;   // 补上 userType 文档
-                userObj = { ... userObj, doc };
+                userObj = { ... userObj, doc, readonly };
             }
 
             if (isArray) {
-                return { "[]": userType, doc };         // userType 数组引用
+                return { "[]": userType, doc, readonly };         // userType 数组引用
             } else {
                 return userObj;                         // userType 对象引用
             }
@@ -381,17 +382,20 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
             let row = daoType.row;
 
             if (isArray) {
-                return { "[]": { ".": row }, doc };     // dao 数组引用
+                return { "[]": { ".": row, readonly }, doc, readonly };     // dao 数组引用
             } else {
-                return { ".": row, doc };               // dao 对象引用
+                return { ".": row, doc, readonly };               // dao 对象引用
             }
 
         } else {
 
-            return { doc };
+            if (isArray) {
+                return { "[]": { type: name, readonly }, doc, readonly };
+            } else {
+                return { type: name, doc, readonly };
+            }
 
         }
-
 
     }
 

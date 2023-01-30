@@ -6,6 +6,7 @@ import { setDepend } from "./modCache";
 import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
 import { NgxThreadLib } from './libs/NgxLib';
+const readonly = true;
 
 /** 通过API文件加载接口声明 */
 export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
@@ -23,9 +24,9 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     let daoDoc = "";
     if (dao) {
         daoDoc = dao.doc;
-        let daoRow = { ".": dao.row, doc: "## $"+ dao.name +"\ndao 类型单行数据\n" + daoDoc };
+        let daoRow = { ".": dao.row, doc: "## $"+ dao.name +"\ndao 类型单行数据\n" + daoDoc, readonly };
         mod["row"] = daoRow;
-        mod["row[]"] = { "[]": daoRow, doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + daoDoc };
+        mod["row[]"] = { "[]": daoRow, doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + daoDoc, readonly };
     }
 
     function genNode(api: LuaApi) {

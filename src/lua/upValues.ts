@@ -145,6 +145,7 @@ function loadScope(option: LuaScopeOption) {
     // 解析注释中的类型定义
     let $$comm = parseComments(chunk.comments);
     setValue(_g, "$$comm", $$comm, true);
+    setValue(_g, "$$comments", chunk.comments, true);
 
     // 导入外部构造函数
     let firstComm = $$comm && $$comm[1];

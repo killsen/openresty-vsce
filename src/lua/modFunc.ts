@@ -5,6 +5,7 @@ import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule, getLuaType } from './types';
 import { getItem, isObject } from './utils';
+const readonly = true;
 
 /** 调用函数 */
 export function callFunc(t: any, ...args: any) {
@@ -159,7 +160,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     // 参数类型定义
     myFunc.$argTypes = new Proxy({}, {
         get(target, prop) {
-            let i = Number(prop);
+            let i = Number(prop) as number;
             let p = node.parameters[i];
             if (p?.type === "Identifier") {
                 let typeName = types && types[p.name];
@@ -175,7 +176,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 }
 
 /** 通过类型名称取得类型 */
-function loadType(typeName: string, _g: LuaScope) {
+export function loadType(typeName: string, _g: LuaScope) {
 
     if (typeof typeName !== "string") {return;}
 
@@ -203,10 +204,10 @@ function loadType(typeName: string, _g: LuaScope) {
                 let daoType = mod["$dao"];
                 let daoRow = daoType["row"];
                 let doc = "## "+ typeName +"\ndao 类型单行数据\n" + daoType.doc;
-                let t = { doc, ".": { ...daoRow } };  // 复制字段定义
+                let t = { doc, ".": daoRow, readonly };
                 if (isArr) {
                     doc = "## "+ typeName +"[]\ndao 类型多行数据\n" + daoType.doc;
-                    return { doc, "[]": t };  // 数组
+                    return { doc, "[]": t, readonly };  // 数组
                 } else {
                     return t;
                 }
@@ -221,10 +222,10 @@ function loadType(typeName: string, _g: LuaScope) {
             if (mod instanceof Object && mod["."] instanceof Object) {
                 let userType = mod["."];
                 let doc = "## "+ typeName +"\n自定义类型对象\n" + mod.doc;
-                let t = { doc, ".": { ...userType } };  // 复制字段定义
+                let t = { doc, ".": userType, readonly };  // 复制字段定义
                 if (isArr) {
                     doc = "## "+ typeName +"[]\n自定义类型数组\n" + mod.doc;
-                    return { doc, "[]": t };  // 数组
+                    return { doc, "[]": t, readonly };  // 数组
                 } else {
                     return t;
                 }
