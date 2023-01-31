@@ -1,9 +1,11 @@
 
-import { LuaBoolean, LuaString, LuaTable } from '../types';
+import { LuaBoolean, LuaNil, LuaNumber, LuaString, LuaTable } from '../types';
 import { getItem, isObject, setItem } from "../utils";
 import { _unpack } from "./TableLib";
 
 export const GlobalLib = {
+    tonumber: _tonumber,
+    tostring: _tostring,
     unpack  : _unpack,
     print : _print,
     type : _type,
@@ -16,6 +18,27 @@ export const GlobalLib = {
     rawget : _rawget,
     rawset : _rawset,
 };
+
+// 转数字
+function _tonumber(v: any) {
+    let t = typeof v;
+    let num = Number(v);
+    return v === null        ? LuaNil
+        :  t === "string"    ? ( isNaN(num) ? LuaNil : num )
+        :  t === "number"    ? v
+        :  t === "boolean"   ? LuaNil
+        :  LuaNumber;
+}
+
+// 转字符串
+function _tostring(v: any) {
+    let t = typeof v;
+    return v === null       ? "nil"
+        :  t === "string"   ? String(v)
+        :  t === "number"   ? String(v)
+        :  t === "boolean"  ? String(v)
+        :  LuaString;
+}
 
 // 打印输出
 function _print(...args: any[]) {
