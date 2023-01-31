@@ -669,7 +669,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     {
                         let scope = getItem(node.vtype, ["."]);  // 成员类型字段
                         if (isObject(scope)) {
-                            if (!(f.key.name in scope)) {
+                            if (!(f.key.name in scope) && !("*" in scope)) {
                                 addLint(f.key, f.key.name, _g);  // 字段未定义
                             }
                         }
@@ -822,7 +822,7 @@ function get_vtype(n: Node, _g: LuaScope): any {
         if (isObject(t)) { return t; }
 
         let v = getValue(_g, n.name);
-        if (isObject(v) && v.readonly) { return v; }
+        if (isObject(v) && v.readonly && v["type"] !== "any") { return v; }
 
     } else if (n.type === "MemberExpression") {
         const vtype = get_vtype(n.base, _g);
