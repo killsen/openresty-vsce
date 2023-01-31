@@ -1,5 +1,5 @@
 
-import { LuaString, LuaTable } from '../types';
+import { LuaBoolean, LuaString, LuaTable } from '../types';
 import { getItem, isObject, setItem } from "../utils";
 import { _unpack } from "./TableLib";
 
@@ -44,6 +44,7 @@ function _type(v: any) {
             :  v["()"]          ? "function"
             :  v["."]           ? "table"
             :  v[":"]           ? "table"
+            :  v["[]"]          ? "table"
             :  LuaString;
     }
 
@@ -117,14 +118,14 @@ function _pcall(fun: any, ...args: any) {
         if (typeof fun === "function") {
             res = fun(...args);
         } else {
-            res = fun["()"];
+            res = fun;
         }
     }
 
     if (res instanceof Array) {
-        return [true, ...res];
+        return [LuaBoolean, ...res];
     } else {
-        return [true, res];
+        return [LuaBoolean, res];
     }
 
 }
