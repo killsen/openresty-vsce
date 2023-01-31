@@ -33,7 +33,7 @@ export function getContents(name: string, t: any) {
         if (t.type === "lib" || t.type === "api") {return [t.doc];}
 
         // 提示变量类型
-        if (typeof t.type === "string" && !t.doc) {
+        if (typeof t.type === "string" && (!t.doc || t.doc === "## str\n")) {
             return [`${ name } : \`${ t.type }\``];
         }
 

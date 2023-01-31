@@ -1,6 +1,6 @@
 
 import { Node, Statement, Comment } from 'luaparse';
-import { LuaModule, LuaNumber, LuaString } from './types';
+import { LuaAny, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, loadType, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
@@ -310,7 +310,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             // 一次都没有运行，跑一次代码
             if (runCount === 0) {
                 node.variables.forEach(v => {
-                    setValue(newG, v.name, null, true, v.loc);
+                    setValue(newG, v.name, LuaAny, true, v.loc);
                 });
                 loadBody(node.body, newG);
             }
@@ -819,25 +819,29 @@ function get_vtype(n: Node, _g: LuaScope): any {
 
     if (n.type === "Identifier") {
         let t = getType(_g, n.name);
-        if (t) { return t; }
+        if (isObject(t)) { return t; }
 
         let v = getValue(_g, n.name);
-        if (v?.readonly) { return v; }
+        if (isObject(v) && v.readonly) { return v; }
 
     } else if (n.type === "MemberExpression") {
         const vtype = get_vtype(n.base, _g);
-        if (vtype && vtype["type"] !== "any") {
+        if (isObject(vtype) && vtype["type"] !== "any") {
             const t = vtype["."] || {};
             const k = n.identifier.name;
-            if (!(k in t)) {
+            if (k in t) {
+                return t[k];
+            } else if ("*" in t) {
+                return t["*"];
+            } else {
                 addLint(n.identifier, k, _g);
+                return {};
             }
-            return t[k] || {};
         }
 
     } else if (n.type === "IndexExpression") {
         const vtype = get_vtype(n.base, _g);
-        if (vtype) {
+        if (isObject(vtype)) {
             return vtype["[]"] || {};
         }
     }

@@ -120,19 +120,23 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
                 p.$dao = dao; // 用于 dao 补全
             }
 
-        } else {
-            if (api.res && !isNaN(Number(api.res))) {
-                let parent = mod[api.parent] as any;
+        } else if (api.res) {
+            if (!isNaN(Number(api.res))) {
+                const parent = mod[api.parent] as any;
                 if (parent && parent["."]) {
                     parent["."][api.child] = Number(api.res);
                     return;
                 }
             }
-            let t = genValue(api.res);
-            if (isObject(t)) {
-                let p2 = p as any;
-                for (let k in t) {
-                    p2[k] = t[k];
+
+            const t1 = genValue(api.res);
+            if (isObject(t1)) {
+                const t2 = p as any;
+                for (let k in t1) {
+                    if ((t2[k] === null || t2[k] === undefined) &&
+                        (t1[k] !== null && t1[k] !== undefined)) {
+                        t2[k] = t1[k];  // 仅覆盖 t2 不存在的 key
+                    }
                 }
             }
 
@@ -140,7 +144,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
     });
 
-    let t = name === "_G" ? { "." : mod } : mod[requireName];
+    const t = name === "_G" ? { "." : mod } : mod[requireName];
     if (!t) { return; }
 
     if (name === "table") {

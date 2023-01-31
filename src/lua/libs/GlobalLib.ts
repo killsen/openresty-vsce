@@ -66,7 +66,7 @@ function _ipairs(t: any) {
 
     // 生成迭代函数
     return function() {
-        i = i + 1;
+        i++;
         if (ta) {
             return i===1 && [i, ta] || null;
         } else if (ti) {
@@ -80,34 +80,28 @@ function _ipairs(t: any) {
 /** pairs 迭代 */
 function _pairs(t: any) {
 
-    if (!(t instanceof Object)) {return;}
+    if (!isObject(t)) {return;}
 
-    let arr: any = [];
+    const arr = [] as [string, any][];
 
-    let ti = t["."];
-    if (ti instanceof Object) {
-        Object.keys(ti).forEach(k=>{
-            // if (!k.startsWith("$")) {
-                arr.push([ "." + k, ti[k] ]);
-            // }
-        });
+    const ti = t["."];
+    if (isObject(ti)) {
+        for (let k in ti) {
+            k !== "*" && arr.push([ k, ti[k] ]);
+        }
     }
 
-    let ta = t[":"];
-    if (ta instanceof Object) {
-        Object.keys(ta).forEach(k=>{
-            // if (!k.startsWith("$")) {
-                arr.push([ ":" + k, ta[k] ]);
-            // }
-        });
+    const ta = t[":"];
+    if (isObject(ta)) {
+        for (let k in ta) {
+            k !== "*" && arr.push([ ":" + k, ta[k] ]);
+        }
     }
-
-    let i = -1;
 
     // 生成迭代函数
+    let i = 0;
     return function() {
-        i = i + 1;
-        return arr[i];
+        return arr[i++];
     };
 
 }
