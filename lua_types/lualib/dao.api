@@ -10,12 +10,13 @@ dao.table_desc          -> string               -- 描述
 dao.table_index         -> any                  -- 索引
 dao.field_list          -> field[]              -- 字段列表
 
-    field.name          -> string               -- 名称
-    field.desc          -> string               -- 描述
-    field.type          -> string               -- 类型
-    field.def           -> string               -- 默认值
-    field.len           -> number               -- 长度
-    field.pk            -> boolean              -- 主键
+    field                                       -- 字段信息
+    field.name          -> string               -- 字段名称
+    field.desc          -> string               -- 字段描述
+    field.type          -> string               -- 字段类型
+    field.def           -> string               -- 字段默认值
+    field.len           -> number               -- 字段长度
+    field.pk            -> boolean              -- 字段主键
 
 dao.new  (data)         -> row                  -- 创建数据
 
@@ -39,6 +40,7 @@ dao:create()            -> res, err             -- 创建表
 dao:drop()              -> res, err             -- 删除表
 dao:clear()             -> res, err             -- 清空表
 
+res                                             -- 数据库操作返回信息
 res.affected_rows       -> number               -- 影响的记录行数
 res.insert_id           -> number               -- INSERT 查询中产生的 AUTO_INCREMENT 的 ID 号
 res.server_status       -> number               -- 服务器状态
