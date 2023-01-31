@@ -1,15 +1,15 @@
 
 coroutine
 
-coroutine.create(f)
+coroutine.create(f)                     -> thread
 coroutine.resume(co[,val1,...])
-coroutine.running()
+coroutine.running()                     -> thread
 coroutine.status(co)
-coroutine.wrap(f)
+coroutine.wrap(f)                       -> thread
 coroutine.yield(...)
 
-coroutine._create(f)                    -- coroutine.create
-coroutine._resume(co[,val1,...])        -- coroutine.resume
-coroutine._status(co)                   -- coroutine.status
-coroutine._wrap(f)                      -- coroutine.wrap
-coroutine._yield(...)                   -- coroutine.yield
+coroutine._create(f)                    -> thread   -- coroutine.create
+coroutine._resume(co[,val1,...])                    -- coroutine.resume
+coroutine._status(co)                               -- coroutine.status
+coroutine._wrap(f)                      -> thread   -- coroutine.wrap
+coroutine._yield(...)                               -- coroutine.yield

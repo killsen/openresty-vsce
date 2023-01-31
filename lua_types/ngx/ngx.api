@@ -7,7 +7,9 @@ err                         -> string
 ------------------------------------------------------------
 
 ngx.null
-ngx.ctx                     -> any
+
+ngx.ctx
+ngx.ctx.*                   -> any
 
 ngx.arg                     -> map<string>
 
