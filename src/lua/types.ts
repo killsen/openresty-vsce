@@ -197,6 +197,10 @@ export function getLuaType(typeName: string, isArr = false) {
     } else if (typeName === "cdata") {  // C数据
         return isArr ? LuaCDataArray : LuaCData;
 
+    } else if (typeName === "table" || typeName === "object") {
+        const t = { type: "table", ".": { "*": LuaAny } };
+        return isArr ? { type: "table[]", "[]": t } : t;
+
     } else if (typeName === "any") {  // 任意类型
         return LuaAny;
 
