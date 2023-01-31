@@ -57,7 +57,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
                 p["."][k] = p["."][k] || {};
                 p = p["."][k];
             } else {
-                p = mod[k] = mod[k] || {};
+                p = mod[k] = mod[k] || { readonly };
             }
         });
 
@@ -69,9 +69,10 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         }
 
         if (p) {
-            p.doc = api.doc + daoDoc;
+            p.doc = api.doc;
             p.$file = api.file;
             p.$loc = api.loc;
+            p.readonly = true;
         }
 
         return p;
@@ -163,6 +164,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         }
         t["$file"] = dao["$file"];
         t["$dao"] = dao;
+        t["doc"] = daoDoc;
     } else if (t instanceof Object) {
         t["$file"] = fileName;
     }
