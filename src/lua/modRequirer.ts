@@ -87,12 +87,16 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     function genValue(name: string) {
         if (!name) {return;}
         name = name.replace(/\s/g, "");
+
+        let m = mod[name];
+        if (m) { return m; }
+
         let isArr = name.endsWith("[]");
         if (isArr) {
             name = name.substring(0, name.length-2);
         }
 
-        let m = mod[name];
+        m = mod[name];
         if (m) {
             return isArr ? { "[]": m, doc: m.doc } : m;
         } else {
