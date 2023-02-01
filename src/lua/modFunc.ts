@@ -180,8 +180,12 @@ export function loadType(typeName: string, _g: LuaScope) {
 
     if (typeof typeName !== "string") {return;}
 
-    // 自定义类型命名: 兼容处理
-    typeName = typeName.replace("@", "");
+    const fullName = typeName;
+    const mapRegx  = /map\s*<\s*(\S+)\s*>\s*/;
+    const map      = typeName.match(mapRegx);
+
+    typeName = map ? map[1] : typeName;
+    typeName = typeName.replace("@", "");  // 自定义类型命名: 兼容处理
 
     // 是否数组
     let isArr = typeName.indexOf("[]") !== -1;
@@ -189,8 +193,27 @@ export function loadType(typeName: string, _g: LuaScope) {
         typeName = typeName.replace("[]", "");
     }
 
-    typeName = typeName.trim();
     if (!typeName) {return;}
+
+    let dataType = getType(typeName, isArr, _g);
+    if (!dataType) {return;}
+
+    return map ? mapType(fullName, dataType) : dataType;
+
+}
+
+function mapType(typeName: string, dataType: any) {
+    return {
+        type: typeName.trim(),
+        readonly : true,
+        ".": {
+            "*": dataType
+        },
+        "[]": dataType,
+    };
+}
+
+function getType(typeName: string, isArr: boolean, _g: LuaScope) {
 
     let t = getLuaType(typeName, isArr);
     if (t) {return t;}
