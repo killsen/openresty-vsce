@@ -443,7 +443,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     setArgsCall(funt, i, _g);
                 }
 
-                set_vtype(funt, arg, i);  // 形参类型
+                set_vtype(funt, arg, _g, node.arguments, i);  // 形参类型
 
                 let t = loadNode(arg, _g);
                 if (t instanceof Array) {
@@ -472,7 +472,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let funt = loadNode(node.base, _g);
             if (!funt) {return;}
 
-            set_vtype(funt, node.arguments);  // 形参类型
+            set_vtype(funt, node.arguments, _g);  // 形参类型
 
             let args = loadNode(node.arguments, _g);
 
@@ -855,11 +855,20 @@ const $dao_ext = {
 };
 
 // 设置形参类型
-function set_vtype(funt: any, arg: Node, i = 0) {
+function set_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [], i = 0) {
 
-    if (!funt) {return;}
+    if (typeof funt !== "object") {return;}
 
     if (arg.type !== "TableConstructorExpression") {return;}
+
+    // table.insert( arr, {} )  根据第一个参数 arr 的类型推导最后一个参数的类型
+    if (funt.doc?.startsWith("table.insert") && args.length >= 2 && i === args.length-1) {
+        let vtype = get_vtype(args[0], _g);
+        if (vtype && vtype["[]"]) {
+            arg.vtype = vtype["[]"];
+            return;
+        }
+    }
 
     if (i===0 && isObject(funt.$$req)) {
         // api 请求参数字段
