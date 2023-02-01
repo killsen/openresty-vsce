@@ -103,7 +103,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     // -- @order : $pos_bi_order
     if (!text) {
-        let r0 = /\s*--\s*@\w*\s*:\s*[$@]\w*/;
+        let r0 = /\s*--\s*@\w*\s*:\s*(map\s*<)?\s*[$@]\w*\s*>?/;
         let r1 = /[$@]\w*/;
         let r2 = /[$@\w]/;
         text = getLinkText(doc, pos, r1, r2, r0);
@@ -111,7 +111,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
 
     // --> $pos_bi_order
     if (!text) {
-        let r0 = /\s*-->\s*[$@]\w*/;
+        let r0 = /\s*-->\s*(map\s*<)?\s*[$@]\w*\s*>?/;
         let r1 = /[$@]\w*/;
         let r2 = /[$@\w]/;
         text = getLinkText(doc, pos, r1, r2, r0);
