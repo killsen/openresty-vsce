@@ -72,7 +72,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
         const isLocal = (node.type === "LocalStatement");
 
         // local t = {}  --> @MyType
-        const vtypeInLine = get_vtype_inline(node, _g);
+        const vtypeInLine = get_vtype_inline(node, _g);  // 取得行内类型声明
 
         // -- @t : @MyType  //自定义类型
         // local t = { k=v, { k=v } }
@@ -640,13 +640,25 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             node.fields.forEach((f, index) => {
 
+                // 取得行内类型声明
+                const vtypeInLine = get_vtype_inline(f, _g);
+
+                // 传递成员类型
                 if (f.value.type === "TableConstructorExpression") {
                     if (f.type === "TableKeyString") {
-                        f.value.vtype = getItem(node.vtype, [".", f.key.name]);  // 传递成员类型
+                        f.value.vtype = vtypeInLine ||
+                                        getItem(node.vtype, [".", f.key.name]) ||
+                                        getItem(node.vtype, [".", "*"]);
+
+                    } else if (f.type === "TableKey") {
+                        f.value.vtype = vtypeInLine ||
+                                        getItem(node.vtype, [".", "*"]) ||
+                                        getItem(node.vtype, ["[]"]);
 
                     } else if (f.type === "TableValue") {
-                        f.value.vtype = getItem(node.vtype, ["[]"]);  // 传递数组成员类型
-
+                        f.value.vtype = vtypeInLine ||
+                                        getItem(node.vtype, ["[]"]) ||
+                                        getItem(node.vtype, [".", "*"]);
                     }
                 }
 
@@ -658,6 +670,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                         let v = loadNode(f.value, _g);
                         if (v instanceof Array) { v = v[0]; } // 返回数组取第一项
+
+                        v = vtypeInLine || v;  //优先使用行内类型声明
 
                         if (typeof k === "string" || typeof k === "number") {
                             setChild(_g, t, ".", k, v, f.key.loc);
@@ -677,6 +691,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         let v = loadNode(f.value, _g);
                         if (v instanceof Array) { v = v[0]; } // 返回数组取第一项
 
+                        v = vtypeInLine || v;  //优先使用行内类型声明
+
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);
                         break;
                     }
@@ -692,6 +708,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         }
 
                         let v = loadNode(f.value, _g);
+
+                        v = vtypeInLine || v;  //优先使用行内类型声明
 
                         if (v instanceof Array) {  // 返回是数组
                             if (index === node.fields.length - 1) {
@@ -796,6 +814,7 @@ function addLint(n: Node, k: string, _g: LuaScope) {
 
 }
 
+// 取得行内类型声明
 function get_vtype_inline(n: Node, _g: LuaScope): any {
 
     let comments = getValue(_g, "$$comments") as Comment[];
