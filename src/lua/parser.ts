@@ -820,16 +820,21 @@ function get_vtype_inline(n: Node, _g: LuaScope): any {
     let comments = getValue(_g, "$$comments") as Comment[];
     if (!comments) {return;}
 
-    let c = comments.find(c => {
-        return c.loc?.start.line === n.loc?.start.line;
-    });
-
-    if (c?.raw.startsWith("-->")) {
-        console.log( c.raw );
-        let typeName = c.raw.substring(3).trim();
-        let t = loadType(typeName, _g);
-        return t;
+    let map = (comments as any)["$$map"];
+    if (!map) {
+        map = (comments as any)["$$map"] = {};
+        comments.forEach(c => {
+            let i = c.loc!.start.line;
+            let s = c.raw;
+            if (s.startsWith("-->")) {
+                s = s.substring(3).trim();
+                map[i] = s;
+            }
+        });
     }
+
+    let typeName = map[n.loc!.start.line];
+    return typeName && loadType(typeName, _g);
 
 }
 
