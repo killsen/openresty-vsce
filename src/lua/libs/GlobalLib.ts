@@ -1,5 +1,5 @@
 
-import { LuaBoolean, LuaNil, LuaNumber, LuaString, LuaTable } from '../types';
+import { LuaAny, LuaBoolean, LuaNil, LuaNumber, LuaString, LuaTable } from '../types';
 import { getItem, isObject, setItem } from "../utils";
 import { _unpack } from "./TableLib";
 
@@ -92,10 +92,10 @@ function _ipairs(t: any) {
     return function() {
         i++;
         if (ta) {
-            return i===1 && [i, ta] || null;
+            return i===1 && [LuaNumber, ta];
         } else if (ti) {
             let v = ti[i];
-            return v && [i, v] || null;
+            return v && [i, v];
         }
     };
 
@@ -106,19 +106,29 @@ function _pairs(t: any) {
 
     if (!isObject(t)) {return;}
 
-    const arr = [] as [string, any][];
+    const arr = [] as [any, any][];
+
+    if (t["[]"]) {
+        arr.push([ LuaNumber, t["[]"] ]);
+    }
 
     const ti = t["."];
     if (isObject(ti)) {
         for (let k in ti) {
-            k !== "*" && arr.push([ k, ti[k] ]);
+            k !== "*" && k.startsWith("$") && arr.push([ k, ti[k] ]);
+        }
+        for (let k in ti) {
+            k !== "*" && !k.startsWith("$") && arr.push([ k, ti[k] ]);
+        }
+        if (ti["*"]) {
+            arr.push([ LuaAny, ti["*"] ]);
         }
     }
 
     const ta = t[":"];
     if (isObject(ta)) {
         for (let k in ta) {
-            k !== "*" && arr.push([ ":" + k, ta[k] ]);
+            arr.push([ ":" + k, ta[k] ]);
         }
     }
 
