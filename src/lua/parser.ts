@@ -815,35 +815,47 @@ function get_vtype_inline(n: Node, _g: LuaScope): any {
 }
 
 // 获取参数类型
-function get_vtype(n: Node, _g: LuaScope): any {
+function get_vtype(n: Node, _g: LuaScope) {
+
+    let vtype : any;
 
     if (n.type === "Identifier") {
-        let t = getType(_g, n.name);
-        if (isObject(t)) { return t; }
-
-        let v = getValue(_g, n.name);
-        if (isObject(v) && v.readonly && v["type"] !== "any") { return v; }
+        vtype = getType(_g, n.name) || getValue(_g, n.name);
 
     } else if (n.type === "MemberExpression") {
-        const vtype = get_vtype(n.base, _g);
-        if (isObject(vtype) && vtype["type"] !== "any") {
-            const t = vtype["."] || {};
-            const k = n.identifier.name;
-            if (k in t) {
-                return t[k];
-            } else if ("*" in t) {
-                return t["*"];
-            } else {
-                addLint(n.identifier, k, _g);
-                return {};
-            }
+        let t = loadNode(n.base, _g);
+        if (isArray(t)) { t = t[0]; }
+        if (!isObject(t) || t["type"] === "any") { return; }
+
+        let ti = t["."];
+        if (!isObject(t)) {return;}
+
+        let k = n.identifier.name;
+
+        if (k in ti) {
+            vtype = ti[k];
+        } else if ("*" in ti) {
+            vtype = ti["*"];
+        } else if (t.readonly) {
+            addLint(n.identifier, k, _g);
         }
 
     } else if (n.type === "IndexExpression") {
-        const vtype = get_vtype(n.base, _g);
-        if (isObject(vtype)) {
-            return vtype["[]"] || {};
-        }
+        let t = loadNode(n.base, _g);
+        if (isArray(t)) { t = t[0]; }
+        if (!isObject(t) || t["type"] === "any") { return; }
+
+        vtype = getItem(t, ["[]"] || getItem(t, [".", "*"]));
+
+    } else {
+        let t = loadNode(n, _g);
+        if (isArray(t)) { t = t[0]; }
+        vtype = t;
+    }
+
+    // 只读的自定义类型
+    if (isObject(vtype) && vtype.readonly && vtype["type"] !== "any") {
+        return vtype;
     }
 
 }
