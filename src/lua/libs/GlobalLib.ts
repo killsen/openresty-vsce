@@ -1,6 +1,7 @@
 
+import { callFunc } from '../modFunc';
 import { LuaAny, LuaBoolean, LuaNil, LuaNumber, LuaString, LuaTable } from '../types';
-import { getItem, isObject, setItem } from "../utils";
+import { getItem, isArray, isObject, setItem } from "../utils";
 import { _unpack } from "./TableLib";
 
 export const GlobalLib = {
@@ -76,42 +77,42 @@ function _type(v: any) {
 /** ipairs 迭代 */
 function _ipairs(t: any) {
 
-    if (!(t instanceof Object)) {return;}
-
-    let ti = t["."];
-    let ta = t["[]"];
-
-    if (!(ti instanceof Object)) {ti = null;}
-    if (!(ta instanceof Object)) {ta = null;}
-
-    if (!ti && !ta) {return;}
+    const ti = getItem(t, ["."]);
+    const ta = getItem(t, ["[]"]);
 
     let i = 0;
 
-    // 生成迭代函数
-    return function() {
-        i++;
-        if (ta) {
-            return i===1 && [LuaNumber, ta];
-        } else if (ti) {
-            let v = ti[i];
-            return v && [i, v];
-        }
+    const iter = {
+        "()" : () => {
+            i++;
+            if (ta) {
+                return i===1 ? [ LuaNumber, ta ] : undefined;
+            } else {
+                const val = isObject(ti) && ti[i];
+                return val   ? [ i, val ]
+                    :  i===1 ? [ LuaNumber, LuaAny ]
+                    :  undefined;
+            }
+        },
+        type : "lib",
+        doc  : "## iter(table, index) \n ipairs 迭代函数",
+        args : "(table, index)",
+        readonly: true,
     };
+
+    return [ iter, t, 0 ];
 
 }
 
 /** pairs 迭代 */
 function _pairs(t: any) {
 
-    if (!isObject(t)) {return;}
-
     const arr = [] as [any, any][];
 
-    let ti = t["."];
+    let ti = getItem(t, ["."]);
     if (isObject(ti)) {
         for (let k in ti) {
-            k !== "*" && !k.startsWith("$") && arr.push([ k, ti[k] ]);
+            k !== "*" && !k.startsWith("$") && arr.push([ Number(k) || k, ti[k] ]);
         }
         for (let k in ti) {
             // $ 字段信息放后面
@@ -122,7 +123,7 @@ function _pairs(t: any) {
         }
     }
 
-    ti = t[":"];
+    ti = getItem(t, [":"]);
     if (isObject(ti)) {
         for (let k in ti) {
             k !== "*" && !k.startsWith("$") && arr.push([ ":" + k, ti[k] ]);
@@ -133,34 +134,34 @@ function _pairs(t: any) {
         }
     }
 
-    if (t["[]"]) {
-        arr.push([ LuaNumber, t["[]"] ]);
+    ti = getItem(t, ["[]"]);
+    if (ti) {
+        arr.push([ LuaNumber, ti ]);
     }
 
-    // 生成迭代函数
+    if (arr.length === 0) {
+        arr.push([LuaAny, LuaAny]);
+    }
+
     let i = 0;
-    return function() {
-        return arr[i++];
+    const iter = {
+        "()" : () => arr[i++],
+        doc  : "## iter(table, key) \n pairs 迭代函数",
+        args : "(table, key)",
+        type : "lib",
+        readonly: true,
     };
+
+    return [ iter, t, null ];
 
 }
 
 /** 执行函数 */
 function _pcall(fun: any, ...args: any) {
 
-    let res: any;
-    if (typeof fun === "function") {
-        res = fun(...args);
-    } else if (fun instanceof Object) {
-        fun = fun["()"];
-        if (typeof fun === "function") {
-            res = fun(...args);
-        } else {
-            res = fun;
-        }
-    }
+    const res = callFunc(fun, ...args);
 
-    if (res instanceof Array) {
+    if (isArray(res)) {
         return [LuaBoolean, ...res];
     } else {
         return [LuaBoolean, res];
