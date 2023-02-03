@@ -1,3 +1,4 @@
+import { getItem } from "./utils";
 
 /** 作用域 */
 export interface LuaScope {
@@ -105,30 +106,31 @@ export function setChild(_g: LuaScope, t: any, indexer: string, key: string | nu
     if (typeof key === "number") { key = String(key); }
     if (typeof key !== "string") {return;}
 
-    let $file = getValue(_g, "$file");
 
     let ti = t[indexer];
     if (!(ti instanceof Object)) {
         ti = t[indexer] = {};
     }
 
-    // 不允许修改其它模块的成员变量
-    let oldVal = ti[key];
-    if (oldVal instanceof Object) {
-        if (oldVal["$file"] !== $file) {
-            // console.log("不允许修改：", key, oldVal["$file"], $file);
-            return;
-        }
-    }
-
-    ti[key] = val;
+    let $file = getValue(_g, "$file");
 
     if (!key.startsWith("$")) {
+        let keyExist = key in ti;
+        let keyFile$ = getItem(t, [".", "$" + key + "$", "$file"]);
+
+        // 不允许修改其它模块的成员变量
+        if (keyExist && $file && keyFile$ && $file !== keyFile$) {
+            // console.log("不允许修改：", key, keyFile$, $file);
+            return;
+        }
+
         ti["$" + key + "$"] = {
             ["$file"]: $file,
             ["$loc"]: loc, // 保留成员变量的位置
         };
     }
+
+    ti[key] = val;
 
     // function t.f(self, a, b, c) -> t:f(a, b, c)
     if (isSelfCall(val) && indexer === ".") {
