@@ -560,22 +560,29 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let k = loadNode(node.index, _g);
             let t = loadNode(node.base, _g);
 
-            if (isArray(t)) { t = t[0]; } // 返回的可能是数组
+            // 返回的可能是数组
+            if (isArray(k)) { k = k[0]; }
+            if (isArray(t)) { t = t[0]; }
+
             if (!isObject(t)) {return;}
 
             if ("[]" in t) {
                 return t["[]"];  // 数组元素
             }
 
+            if (typeof k === "number") {
+                k = String(k);
+            }
+
             let ti = getItem(t, ["."]);
             if (isObject(ti)) {
-                if (k in ti) {return ti[k];}
+                if (typeof k === "string" && k in ti) {return ti[k];}
                 if ("*" in ti) {return ti["*"];}
             }
 
             let mt = getItem(t, ["$$mt", ".", "__index", "."]);
             if (isObject(mt)) {
-                if (k in mt) {return mt[k];}
+                if (typeof k === "string" && k in mt) {return mt[k];}
                 if ("*" in mt) {return mt["*"];}
             } else {
                 // __index 元方法
