@@ -3,7 +3,7 @@ import { Node, Statement, Comment } from 'luaparse';
 import { LuaAny, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, loadType, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
-import { getItem, isArray, isDownScope, isInScope, isNull, isObject, notNull } from './utils';
+import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
 import { Range, Position, Diagnostic } from 'vscode';
 import { _getn } from './libs/TableLib';
 
@@ -235,7 +235,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         let res = loadBody(n.body, newG);
                         setReturn(res, _g);
 
-                        if (notNull(ok) && isNull(ok_res)) {
+                        if (isTrue(ok) && isFalse(ok_res)) {
                             ok_res = res;  // 条件成立时的返回值
                         }
                         break;
@@ -245,7 +245,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             }
 
-            if (notNull(ok_res)) {
+            if (isTrue(ok_res)) {
                 setReturn(ok_res, _g);  // 条件成立时的返回值
             }
 
@@ -277,40 +277,46 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // FOR语句: for k, v in  pairs(t) do ... end
         //          for i, v in ipairs(t) do ... end
         case 'ForGenericStatement': {
-            let newG = newScope(_g);
-            let iter: Function | undefined; // 迭代函数
 
-            node.iterators.forEach(n=>{
-                let t = loadNode(n, newG);
-                if (t instanceof Array) {
-                    t.forEach(v => {
-                        if (typeof v === "function") {
-                            iter = v;
-                        }
-                    });
-                } else if(typeof t === "function") {
-                    iter = t;
+            const arr = [] as any[];
+            node.iterators.forEach((n, i) => {
+                const res = loadNode(n, _g);
+                if (isArray(res)) {
+                    if (i === node.iterators.length - 1) {
+                        arr.push(...res);
+                    } else {
+                        arr.push(res[0]);
+                    }
+                } else {
+                    arr.push(res);
                 }
             });
 
+            // ipairs({1, 2, 3}) -> _iter, _obj = t, _next = 0
+            let [_iter, _obj, _next] = arr;
+
             let runCount = 0;  // 运行次数
 
-            if (iter) { // 迭代函数
-                while(1){
-                    let res = iter(); // 执行迭代函数
-                    if (!(res instanceof Array)) {break;}
-                    runCount++;
-                    node.variables.forEach((v, i)=>{
-                        setValue(newG, v.name, res[i], true, v.loc);
-                    });
-                    loadBody(node.body, newG);
-                }
-            }
+            while(runCount < 1000){  //最多运行 1000 次, 避免死循环
 
-            // 一次都没有运行，跑一次代码
-            if (runCount === 0) {
-                node.variables.forEach(v => {
-                    setValue(newG, v.name, LuaAny, true, v.loc);
+                let res : any[];
+                res = callFunc(_iter, _obj, _next);  // 执行迭代函数
+                res = isArray(res) ? res :
+                      isNil(res) ? [] : [res];
+
+                if ( runCount > 0 ) {
+                    if ( res.length === 0        ) { break; }  // 未返回数据
+                    if ( res[0] === _next        ) { break; }  // 与上一的返回值相同
+                    if ( res.some(v => isNil(v)) ) { break; }  // 含有空值
+                }
+
+                _next = res[0];
+                runCount++;
+
+                const newG = newScope(_g);
+                node.variables.forEach((v, i)=>{
+                    const val = i < res.length ? res[i] : LuaAny;
+                    setValue(newG, v.name, val, true, v.loc);
                 });
                 loadBody(node.body, newG);
             }

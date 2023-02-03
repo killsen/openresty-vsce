@@ -1,14 +1,23 @@
 
 import { Node, Comment } from 'luaparse';
 
-/** nil 或者 false */
-export function isNull(t: any) {
-    return t === undefined || t === null || t === false;
+/** 是否为假: nil 或者 false */
+export function isFalse(t: any) {
+    return t === false || isNil(t);
 }
 
-/** 非 nil 且非 false */
-export function notNull(t: any) {
-    return t !== undefined && t !== null && t !== false;
+/** 是否为真: 非 nil 且非 false */
+export function isTrue(t: any) {
+    return !isFalse(t);
+}
+
+/** 是否为空: nil */
+export function isNil(t: any) {
+    if (isObject(t)) {
+        return Object.keys(t).length === 0;
+    } else {
+        return t === undefined || t === null;
+    }
 }
 
 /** 是否数组 */

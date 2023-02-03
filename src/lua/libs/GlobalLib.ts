@@ -108,28 +108,33 @@ function _pairs(t: any) {
 
     const arr = [] as [any, any][];
 
-    if (t["[]"]) {
-        arr.push([ LuaNumber, t["[]"] ]);
-    }
-
-    const ti = t["."];
+    let ti = t["."];
     if (isObject(ti)) {
         for (let k in ti) {
-            k !== "*" && k.startsWith("$") && arr.push([ k, ti[k] ]);
+            k !== "*" && !k.startsWith("$") && arr.push([ k, ti[k] ]);
         }
         for (let k in ti) {
-            k !== "*" && !k.startsWith("$") && arr.push([ k, ti[k] ]);
+            // $ 字段信息放后面
+            k !== "*" && k.startsWith("$") && arr.push([ k, ti[k] ]);
         }
         if (ti["*"]) {
             arr.push([ LuaAny, ti["*"] ]);
         }
     }
 
-    const ta = t[":"];
-    if (isObject(ta)) {
-        for (let k in ta) {
-            arr.push([ ":" + k, ta[k] ]);
+    ti = t[":"];
+    if (isObject(ti)) {
+        for (let k in ti) {
+            k !== "*" && !k.startsWith("$") && arr.push([ ":" + k, ti[k] ]);
         }
+        for (let k in ti) {
+            // $ 字段信息放后面
+            k !== "*" && k.startsWith("$") && arr.push([ ":" + k, ti[k] ]);
+        }
+    }
+
+    if (t["[]"]) {
+        arr.push([ LuaNumber, t["[]"] ]);
     }
 
     // 生成迭代函数
