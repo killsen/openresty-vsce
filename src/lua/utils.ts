@@ -14,7 +14,8 @@ export function isTrue(t: any) {
 /** 是否为空: nil */
 export function isNil(t: any) {
     if (isObject(t)) {
-        return Object.keys(t).length === 0;
+        return !t["type"] && !t["."] && !t[":"] && !t["()"] &&
+                Object.keys(t).length === 0;
     } else {
         return t === undefined || t === null;
     }
