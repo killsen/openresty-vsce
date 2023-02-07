@@ -137,7 +137,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
         if (needToRun) {
             isRunning = true;  // 避免递归回调：造成死循环
-            resValue = loadBody(node.body, newG);
+            resValue = loadBody(node.body, newG, node.loc);
             isRunning = false;
         }
 
@@ -176,40 +176,96 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 }
 
 /** 通过类型名称取得类型 */
-export function loadType(typeName: string, _g: LuaScope) {
+export function loadType(name: string, _g: LuaScope): any {
 
-    if (typeof typeName !== "string") {return;}
+    if (typeof name !== "string") { return; }
 
-    const fullName = typeName;
-    const mapRegx  = /map\s*<\s*(\S+)\s*>\s*/;
-    const map      = typeName.match(mapRegx);
+    name = name.trim();
+    if (!name) { return; }
 
-    typeName = map ? map[1] : typeName;
-    typeName = typeName.replace("@", "");  // 自定义类型命名: 兼容处理
-
-    // 是否数组
-    let isArr = typeName.indexOf("[]") !== -1;
-    if (isArr) {
-        typeName = typeName.replace("[]", "");
+    // map<T> 或 arr<T>
+    let m = name.match(/^(map|arr)\s*<\s*(.+)\s*>$/);
+    if (m) {
+        let T = loadType(m[2], _g);
+        return m[1] === "map"
+            && mapType(name, T)   // map<T>
+            || arrType(name, T);  // arr<T>
     }
 
-    if (!typeName) {return;}
+    // T[] 或 T[K]
+    m = name.match(/^(.+)\[(.*)\]$/);
+    if (m) {
+        let T = loadType(m[1], _g);
+        let K = m[2].replace(/["']/g, "").trim();
+        if (K) { // T[K]
+            T = getItem(T, [".", K]) || getItem(T, [".", "*"]) || getItem(T, ["[]"]);
+            return newType(name, T);
+        } else {
+            return arrType(name, T); // T[]
+        }
+    }
 
-    let dataType = getType(typeName, isArr, _g);
-    if (!dataType) {return;}
+    // T1 | T2 & T3
+    if (name.includes("|") || name.includes("&")) {
+        let T = {} as any;
+        name.split(/[|&]/).forEach(name => {
+            name = name.trim();
+            if (!name) {return;}
+            let t: any = loadType(name, _g) || getValue(_g, name);
+            if (isObject(t)) {
+                T = { ...t, ...T, ".": { ...t["."], ...T["."] }};
+            }
+        });
+        return newType(name, T);
+    }
 
-    return map ? mapType(fullName, dataType) : dataType;
+    // T.K
+    if (name.includes(".")) {
+        let K = name.split(".");
+        let T = loadType(K[0].trim(), _g);
+        for (let i=1; i<K.length; i++) {
+            T = getItem(T, [".", K[i].trim()]);
+        }
+        return newType(name, T);
+    }
 
+    // @T
+    let namex = name.replace("@", "").trim();
+    let T = getType(namex, false, _g) || getValue(_g, namex);
+    return newType(name, T);
 }
 
-function mapType(typeName: string, dataType: any) {
+function mapType(name: string, T: any) {
+    T = isObject(T) ? T : { "." : {}, readonly };
     return {
-        type: typeName.trim(),
-        readonly : true,
+        type: name,
+        readonly: true,
+        doc: "",
         ".": {
-            "*": dataType
+            "*": T
         },
-        "[]": dataType,
+        "[]": T,
+    };
+}
+
+function arrType(name: string, T: any) {
+    T = isObject(T) ? T : { "." : {}, readonly };
+    return {
+        type: name,
+        readonly: true,
+        doc: "",
+        "[]": T,
+    };
+}
+
+function newType(name: string, T: any) {
+    T = isObject(T) ? T : { "." : {}, readonly };
+    return {
+        ... T,
+        "." : { ...T["."] },
+        type: name,
+        readonly: (name !== "table" && name !== "object"),
+        doc: "",
     };
 }
 

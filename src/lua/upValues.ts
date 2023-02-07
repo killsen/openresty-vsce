@@ -3,8 +3,8 @@ import * as luaparse from "luaparse";
 import * as lua from './index';
 import * as ngx from './ngx';
 import { TextDocument, Position } from 'vscode';
-import { loadNode, } from './parser';
-import { isInScope, isDownScope, parseComments } from './utils';
+import { loadBody } from './parser';
+import { parseComments } from './utils';
 import { setValue } from './scope';
 import { loadModule, loadModuleByCode } from './modLoader';
 
@@ -140,7 +140,6 @@ function loadScope(option: LuaScopeOption) {
 
     const _G = lua.genGlobal(ctx);
     const _g = lua.newScope(_G, ctx.fileName);
-    const _d = lua.newScope(_g);
 
     // 解析注释中的类型定义
     let $$comm = parseComments(chunk.comments);
@@ -171,29 +170,18 @@ function loadScope(option: LuaScopeOption) {
         }
     }
 
-    for (const s of chunk.body) {
+    setValue(_g, "$$node", $$node, true);
+    setValue(_g, "$$func", null, true);
+    setValue(_g, "$$call", null, true);
 
-        if (isInScope(s, $$node)) { // 作用域内
-            setValue(_g, "$$node", $$node, true);
-            setValue(_g, "$$func", null, true);
-            setValue(_g, "$$call", null, true);
-            loadNode(s, _g);
+    loadBody(chunk.body, _g);
 
-        }else if (isDownScope(s, $$node)) { // 作用域下
-            loadNode(s, _d);
-
-        } else { // 作用域上
-            loadNode(s, _g);
+    if ($$node.scope) {
+        let t = mergeScope($$node.scope);
+        if ("$$call" in _g) {
+            t["$$call"] = _g["$$call"];  // 参数提示
         }
-
-        if ($$node.scope instanceof Object) {
-            let t: any = mergeScope($$node.scope);
-            if (t instanceof Object) {
-                t["$$call"] = _g["$$call"];  // 参数提示
-            }
-            return t;
-        }
-
+        return t;
     }
 
     let $$func = _g["$$func"];
@@ -201,8 +189,8 @@ function loadScope(option: LuaScopeOption) {
         delete _g["$$func"];
         $$func();
         if ($$node.scope) {
-            let t: any = mergeScope($$node.scope);
-            if (t instanceof Object) {
+            let t = mergeScope($$node.scope);
+            if ("$$call" in _g) {
                 t["$$call"] = _g["$$call"];  // 参数提示
             }
             return t;
@@ -213,7 +201,7 @@ function loadScope(option: LuaScopeOption) {
 }
 
 /** 合并作用域变量集合 */
-function mergeScope(t: any) {
+function mergeScope(t: any) : any {
 
     if (!t) { return {}; }
 

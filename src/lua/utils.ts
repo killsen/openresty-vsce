@@ -124,9 +124,10 @@ export function toTable(obj: any, level = 0) {
 
 }
 
+type NodeX = { loc?: Node["loc"] };
 
 /** 是否在作用域内 */
-export function isInScope(node: Node, $$node: Node) {
+export function isInScope(node: NodeX, $$node: NodeX) {
 
     let loc = node.loc;
     let $$loc = $$node.loc;
@@ -144,7 +145,7 @@ export function isInScope(node: Node, $$node: Node) {
 }
 
 /** 检查作用域是否下面 */
-export function isDownScope(node: Node, $$node: Node) {
+export function isDownScope(node: NodeX, $$node: NodeX) {
 
     let loc = node.loc;
     let $$loc = $$node.loc;

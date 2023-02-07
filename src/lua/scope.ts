@@ -43,7 +43,7 @@ export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, 
     if (isLocal) {
         _g["$local"][key] = true;
 
-        if (!key.startsWith("$")) {
+        if (loc && !key.startsWith("$")) {
             _g["$" + key + "$"] = {
                 ["$file"]: getValue(_g, "$file"),
                 ["$loc"]: loc, // 保留本地变量的位置

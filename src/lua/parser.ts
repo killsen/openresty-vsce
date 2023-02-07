@@ -8,9 +8,9 @@ import { Range, Position, Diagnostic } from 'vscode';
 import { _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
-export function loadBody(body: Statement[], _g: LuaScope) {
+export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
 
-    if (!(_g instanceof Object)) { return; }
+    if ( !isObject(_g) || body.length === 0 ) { return; }
 
     if(!getValue(_g, "$$return")) {
         setValue(_g, "$$return", [], true);  // 初始化返回值
@@ -18,6 +18,15 @@ export function loadBody(body: Statement[], _g: LuaScope) {
 
     // 光标所在位置
     let $$node: Node | undefined = getValue(_g, "$$node");
+    if ($$node && loc && !isInScope({ loc }, $$node)) {
+        $$node = undefined;  // 光标所在位置不在当前代码块内
+    }
+
+    // 类型声明注解:  1) t : T   2) t & T   3) t | T
+    const comments: Comment[] | undefined = getValue(_g, "$$comments");
+    const typeRegx = /---\s*(\w+)\s*([:|&])\s*(.+)/;
+
+    let lastLine = loc?.start.line || 0;
 
     body.forEach(node=>{
 
@@ -29,6 +38,24 @@ export function loadBody(body: Statement[], _g: LuaScope) {
             $$node = undefined;
             _g = newScope(_g);  // 光标下方代码：使用新的作用域
         }
+
+        comments?.forEach(c => {
+            const line = c.loc!.start.line;
+            if (line > lastLine && line <= node.loc!.start.line) {
+                const m = c.raw.match(typeRegx);
+                if (m) {
+                    const key = m[1].trim();
+                    const typ = m[2] === ":" ? m[3].trim() : `${m[1]} ${m[2]} ${m[3]}`;
+                    const val = loadType(typ, _g) as any;
+                    if (val) {
+                        setValue(_g, "$type_" + key, val, true);
+                        setValue(_g, key, val, true);
+                    }
+                }
+            }
+        });
+
+        lastLine = node.loc!.end.line;
 
         try {
             loadNode(node, _g);
@@ -232,7 +259,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         }
 
                         setValue(newG, "$$return", [], true);
-                        let res = loadBody(n.body, newG);
+                        let res = loadBody(n.body, newG, n.loc);
                         setReturn(res, _g);
 
                         if (isTrue(ok) && isFalse(ok_res)) {
@@ -241,7 +268,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         break;
                     }
                     case 'ElseClause':
-                        loadBody(n.body, newScope(_g));
+                        loadBody(n.body, newScope(_g), n.loc);
                 }
             }
 
@@ -255,12 +282,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
         case 'RepeatStatement':  // repeat ... until (condition)
         case 'WhileStatement':   // while(condition) do ... end
             loadNode(node.condition, _g);
-            loadBody(node.body, newScope(_g));
+            loadBody(node.body, newScope(_g), node.loc);
             break;
 
         // DO语句: do ... end
         case 'DoStatement':
-            loadBody(node.body, newScope(_g));
+            loadBody(node.body, newScope(_g), node.loc);
             break;
 
         // FOR语句: for i=1, 100, 1 do ... end
@@ -270,7 +297,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             loadNode(node.start, newG);
             loadNode(node.end, newG);
             node.step && loadNode(node.step, newG);
-            loadBody(node.body, newG);
+            loadBody(node.body, newG, node.loc);
             break;
         }
 
@@ -318,7 +345,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     const val = i < res.length ? res[i] : LuaAny;
                     setValue(newG, v.name, val, true, v.loc);
                 });
-                loadBody(node.body, newG);
+                loadBody(node.body, newG, node.loc);
             }
 
             break;

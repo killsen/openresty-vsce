@@ -101,17 +101,13 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
     let r2 = /[$%#@\w.]/;
     let text = getLinkText(doc, pos, r1, r2, r0);
 
-    // -- @order : $pos_bi_order
+    /** 类型注解
+     *  -- @t : $pos_bi_order
+     *  --- t : $pos_bi_order
+     *  -->     $pos_bi_order
+     */
     if (!text) {
-        let r0 = /\s*--\s*@\w*\s*:\s*(map\s*<)?\s*[$@]\w*\s*>?/;
-        let r1 = /[$@]\w*/;
-        let r2 = /[$@\w]/;
-        text = getLinkText(doc, pos, r1, r2, r0);
-    }
-
-    // --> $pos_bi_order
-    if (!text) {
-        let r0 = /\s*-->\s*(map\s*<)?\s*[$@]\w*\s*>?/;
+        let r0 = /(--.*:|---|-->).*[$@]\w*/;
         let r1 = /[$@]\w*/;
         let r2 = /[$@\w]/;
         text = getLinkText(doc, pos, r1, r2, r0);
