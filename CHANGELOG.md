@@ -1,5 +1,42 @@
 # 升级日志
 
+## v1.8.6
+
+### 完善行内类型注解, 演示代码如下:
+
+```lua
+
+local function test(argt)
+-- @argt    : { aaa: number, bbb: number }  // 参数类型
+-- @return  : @argt & { ccc: string }       // 返回类型
+
+    return {
+        aaa = argt.aaa,
+        bbb = argt.bbb,
+        ccc = "ccc",
+        ddd = "ddd", -- 提示: 字段未定义 'ddd'
+    }
+
+end
+
+local res = test { aaa = 111, bbb = 222 }
+
+ngx.say("aaa", res.aaa)
+ngx.say("bbb", res.bbb)
+ngx.say("ccc", res.ccc)
+
+res.ddd = "DDD"  -- 提示: 字段未定义 'ddd'
+
+--- res : res & { ddd : string }  // 新增 ddd 字段
+
+res.ddd = "DDD"  -- 不再提示
+
+--- res : res | { aaa, bbb, ccc }  // 只保留 aaa, bbb, ccc 字段
+
+res.ddd = "DDD"  -- 提示: 字段未定义 'ddd'
+
+```
+
 ## v1.8.5
 
 * 完善行内类型注解
