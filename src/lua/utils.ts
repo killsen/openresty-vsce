@@ -159,51 +159,56 @@ export function isDownScope(node: NodeX, $$node: NodeX) {
 /** 解析注释中的类型定义 */
 export function parseComments(comments: Comment[] | undefined) {
 
-    if (!comments) {return;}
+    if (!comments) { return; }
 
     let $$comm: { [key: number]: { name: string, value: string, desc: string } } = {};
 
     comments.forEach(c => {
-        let loc = c.loc;
-        if (!loc) {return;}
-        if (loc.start.line !== loc.end.line) {return;}
+        // 单行注释
+        if (!c.loc || c.loc.start.line !== c.loc.end.line) { return; }
 
-        let str = c.value.trim();
-        let desc = "";
+        const line = c.loc.start.line;
+        const text = c.raw.trim();
 
-        // 外部构造器 @@@
-        if (str.startsWith("@@@") && str.indexOf(":") !== -1 ) {
-            let arr = str.split(":");
-            arr = arr[1].split("--");
-            let value = arr[0].trim();
-            $$comm[loc.start.line] = { name: "@@@",  value, desc };
+        // -- @@@ : %wx -- 外部构造函数
+        let m = text.match(/^--\s*(?<name>@@@)\s*:\s*(?<value>\S+)\s*(--\s*(?<desc>.*))?/);
+        if (m && m.groups) {
+            $$comm[line] = {
+                name  : m.groups.name,
+                value : m.groups.value,
+                desc  : m.groups.desc || "",
+            };
             return;
         }
 
-        // 构造器 @@ <Constructor>
-        if (str.startsWith("@@")) {
-            $$comm[loc.start.line] = { name: "@@",  value: "<Constructor>", desc };
+        // -- @@ <Constructor> -- 内部构造器
+        m = text.match(/^--\s*(?<name>@@)\s*/);
+        if (m && m.groups) {
+            $$comm[line] = {
+                name  : m.groups.name,
+                value : "<Constructor>",
+                desc  : "",
+            };
             return;
         }
 
-        if (!str.startsWith("@")) {
-            desc = str.trim();
-            $$comm[loc.start.line] = { name: "", value: "", desc };
+        // -- @req : $pos_dd_store  // 参数类型声明
+        m = text.match(/^--\s*@(?<name>\w+)\s*:\s*(?<value>.+)/);
+        if (m && m.groups) {
+            let name  = m.groups.name;
+            let value = m.groups.value.trim();
+            let desc  = "";
+
+            let pos = value.indexOf("//");
+            if (pos !== -1) {
+                desc = value.substring(pos+2).trim();
+                value = value.substring(0, pos).trim();
+            }
+
+            $$comm[line] = { name, value, desc };
             return;
         }
 
-        // @req : $pos_dd_store  // 后面是注释
-        let arr = str.split(":");
-        if (arr.length !== 2) {return;}
-
-        let name = arr[0].replace(/[@\s]/g, "");
-        arr = arr[1].split("//");
-        let value = arr[0].trim();
-        desc = (arr[1] || "").trim();
-
-        if (!name || !value) {return;}
-
-        $$comm[loc.start.line] = { name, value, desc };
     });
 
     return $$comm;
