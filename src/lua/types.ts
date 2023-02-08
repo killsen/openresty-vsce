@@ -102,6 +102,8 @@ function makeType(typeName: string, isArray = false) : LuaModule {
         get(target, prop) {
             if (prop === "readonly") {
                 return true;
+            } else if (prop === "basic" ) {
+                return true;
             } else if (prop === "type" ) {
                 return isArray ? `${ typeName }[]` : typeName;
             } else if (prop === "[]" && (isArray || typeName === "any")) {

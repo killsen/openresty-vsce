@@ -4,7 +4,7 @@ import { newScope, getValue, setValue, LuaScope } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule, getLuaType } from './types';
-import { getItem, isObject } from './utils';
+import { getItem, isArray, isObject } from './utils';
 const readonly = true;
 
 /** 调用函数 */
@@ -36,6 +36,18 @@ export function callFunc(t: any, ...args: any) {
     }
 
 }
+
+
+function getFunc(t: any) {
+    if (typeof t === "function") { return t; }
+
+    let f = getItem(t, ["()"]);
+    if (typeof f === "function") { return f; }
+
+    f = getItem(t, ["$$mt", ".", "__call", "()"]);
+    if (typeof f === "function") { return f; }
+}
+
 
 /** 生成函数 */
 export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
@@ -175,10 +187,43 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
 }
 
+function getValueX(name: string, _g: LuaScope) {
+    name = name.replace(/\s/g, "");
+    let K = name.includes(".") ? name.split(".") : [ name ];
+    let T = getValue(_g, K[0].trim());
+    for (let i=1; i<K.length; i++) {
+        T = getItem(T, [".", K[i].trim()]);
+    }
+    return T;
+}
+
+function getReqOfFunc(name: string, _g: LuaScope) {
+    let t = getValueX(name, _g);
+    if (isObject(t) && t.$$req) {
+        return t.$$req;
+    }
+    let f = getFunc(t);
+    return f && f.$argTypes && f.$argTypes[0];
+}
+
+function getResOfFunc(name: string, _g: LuaScope) {
+    let t = getValueX(name, _g);
+    if (isObject(t) && t.$$res) {
+        return t.$$res;
+    }
+    let v = callFunc(t);
+    return isArray(v) ? v[0] : v;
+}
+
 /** 通过类型名称取得类型 */
 export function loadType(name: string, _g: LuaScope): any {
 
     if (typeof name !== "string") { return; }
+
+    let pos = name.indexOf("//");
+    if (pos !== -1) {
+        name = name.substring(0, pos);  // 去掉注释
+    }
 
     name = name.trim();
     if (!name) { return; }
@@ -190,6 +235,13 @@ export function loadType(name: string, _g: LuaScope): any {
         return m[1] === "map"
             && mapType(name, T)   // map<T>
             || arrType(name, T);  // arr<T>
+    }
+
+    // req<T> 或 res<T>
+    m = name.match(/^(req|res)\s*<\s*(.+)\s*>$/);
+    if (m) {
+        let T = m[1] === "req" ? getReqOfFunc(m[2], _g) : getResOfFunc(m[2], _g);
+        return newType(name, T);
     }
 
     // T[] 或 T[K]
@@ -205,15 +257,62 @@ export function loadType(name: string, _g: LuaScope): any {
         }
     }
 
-    // T1 | T2 & T3
-    if (name.includes("|") || name.includes("&")) {
-        let T = {} as any;
-        name.split(/[|&]/).forEach(name => {
-            name = name.trim();
-            if (!name) {return;}
-            let t: any = loadType(name, _g) || getValue(_g, name);
+    // T1 | T2 | T3
+    if (name.includes("|")) {
+        let T = { type: name, readonly: true, doc: "", ".": {} } as any;
+        let Ti = {} as any;
+
+        let names = name.split("|")
+            .map( n => n.trim() )
+            .filter( n => !!n );
+
+        names.forEach((n, i) => {
+            let t: any = loadType(n, _g);
+            let ti = t && t["."] || {};
+            if (i === 0) {
+                Ti = { ...ti };
+            } else {
+                for (let k in Ti) {
+                    !(k in ti) && delete Ti[k];  // 取交集
+                }
+            }
+            names[i] = t?.type || n;
+        });
+
+        T["."] = Ti;
+        T.type = names.join(" | ");
+        return T;
+    }
+
+    // T1 & T2 & T3
+    if (name.includes("&")) {
+        let T = { type: name, readonly: true, doc: "", ".": {} } as any;
+
+        let names = name.split("&")
+            .map( n => n.trim() )
+            .filter( n => !!n );
+
+        names.forEach((n, i) => {
+            let t: any = loadType(n, _g);
             if (isObject(t)) {
-                T = { ...t, ...T, ".": { ...t["."], ...T["."] }};
+                T = { ...t, ...T, ".": { ...t["."], ...T["."] }};  // 取并集
+            }
+            names[i] = t?.type || n;
+        });
+
+        T.type = names.join(" & ");
+        return T;
+    }
+
+    // { K1, K2 : T2 }
+    m = name.match(/^\{(.*)\}$/);
+    if (m) {
+        let T = { type: name, readonly: true, doc: "", ".": {} } as any;
+        m[1].split(",").forEach(s => {
+            let [k, t] = s.split(":");
+            k = k.trim();
+            if (k) {
+                T["."][k] = loadType(t, _g) || {};
             }
         });
         return newType(name, T);
@@ -238,7 +337,7 @@ export function loadType(name: string, _g: LuaScope): any {
 function mapType(name: string, T: any) {
     T = isObject(T) ? T : { "." : {}, readonly };
     return {
-        type: name,
+        type: T.type ? `map<${ T.type }>` : name,
         readonly: true,
         doc: "",
         ".": {
@@ -251,7 +350,7 @@ function mapType(name: string, T: any) {
 function arrType(name: string, T: any) {
     T = isObject(T) ? T : { "." : {}, readonly };
     return {
-        type: name,
+        type: T.type ? `${ T.type }[]` : name,
         readonly: true,
         doc: "",
         "[]": T,
@@ -259,8 +358,8 @@ function arrType(name: string, T: any) {
 }
 
 function newType(name: string, T: any) {
-    T = isObject(T) ? T : { "." : {}, readonly };
-    return {
+    T = isObject(T) ? T : {};
+    return T.basic | T.readonly ? T : {
         ... T,
         "." : { ...T["."] },
         type: name,
@@ -271,8 +370,15 @@ function newType(name: string, T: any) {
 
 function getType(typeName: string, isArr: boolean, _g: LuaScope) {
 
+    let pos = typeName.indexOf("//");
+    if (pos !== -1) {
+        typeName = typeName.substring(0, pos);  // 去掉注释
+    }
+
+    typeName = typeName.trim();
+
     let t = getLuaType(typeName, isArr);
-    if (t) {return t;}
+    if (t) { return t; }
 
     if (typeName.startsWith("$")) {
         // 加载 dao 类型
@@ -283,10 +389,10 @@ function getType(typeName: string, isArr: boolean, _g: LuaScope) {
                 let daoType = mod["$dao"];
                 let daoRow = daoType["row"];
                 let doc = "## "+ typeName +"\ndao 类型单行数据\n" + daoType.doc;
-                let t = { doc, ".": daoRow, readonly };
+                let t = { type: typeName, doc, ".": daoRow, readonly };
                 if (isArr) {
                     doc = "## "+ typeName +"[]\ndao 类型多行数据\n" + daoType.doc;
-                    return { doc, "[]": t, readonly };  // 数组
+                    return { type: typeName + "[]", doc, "[]": t, readonly };  // 数组
                 } else {
                     return t;
                 }
@@ -301,10 +407,10 @@ function getType(typeName: string, isArr: boolean, _g: LuaScope) {
             if (mod instanceof Object && mod["."] instanceof Object) {
                 let userType = mod["."];
                 let doc = "## "+ typeName +"\n自定义类型对象\n" + mod.doc;
-                let t = { doc, ".": userType, readonly };  // 复制字段定义
+                let t = { type: typeName, doc, ".": userType, readonly };  // 复制字段定义
                 if (isArr) {
                     doc = "## "+ typeName +"[]\n自定义类型数组\n" + mod.doc;
-                    return { doc, "[]": t, readonly };  // 数组
+                    return { type: typeName + "[]", doc, "[]": t, readonly };  // 数组
                 } else {
                     return t;
                 }
