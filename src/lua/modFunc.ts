@@ -215,8 +215,64 @@ function getResOfFunc(name: string, _g: LuaScope) {
     return isArray(v) ? v[0] : v;
 }
 
+// 两边括号
+const PairMap : { [key: string]: string} = {
+    "(" : ")",
+    "{" : "}",
+};
+
+// 预解析: (小括号) {花括号}
+function parseTypes(name: string, _map: Map<string, string>) {
+
+    if (!name.includes("(") && !name.includes("{")) {
+        return name;
+    }
+
+    let temp = [] as string[];
+    let pref = "", subf = "";
+    let step = 0 , pos  = 0;
+
+    for (let i=0; i<name.length; i++) {
+        let char = name[i];
+
+        if (pref && subf) {
+            if (pref === char) {            // 左边括号 ( {
+                step++;
+            } else if (subf === char) {     // 右边括号 ) }
+                step--;
+            }
+
+            if (step === 0) {
+                let find = name.substring(pos+1, i);    // 不含两边括号
+                let text = parseTypes(find, _map);
+                let key = "#T" + _map.size;
+
+                _map.set(key, pref + text + subf);      // 包含两边括号
+                temp.push(key);                         // 不含两边括号
+
+                pref = "";
+                subf = "";
+            }
+
+        } else if (char in PairMap) {
+            pref = char;
+            subf = PairMap[char];
+            step = 1;
+            pos  = i;
+
+        } else {
+            temp.push(char);
+        }
+
+    }
+
+    return temp.join("");
+
+}
+
+
 /** 通过类型名称取得类型 */
-export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
+export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: Map<string, string>): any {
 
     if (typeof name !== "string") { return; }
 
@@ -228,10 +284,17 @@ export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
     name = name.trim();
     if (!name) { return; }
 
+    if (!_map) {
+        _map = new Map<string, string>();
+        name = parseTypes(name, _map);
+    }
+
+    name = _map.get(name) || name;
+
     // map<T> 或 arr<T>
     let m = name.match(/^(map|arr)\s*<\s*(.+)\s*>$/);
     if (m) {
-        let T = loadType(m[2], _g, loc);
+        let T = loadType(m[2], _g, _loc, _map);
         return m[1] === "map"
             && mapType(name, T)   // map<T>
             || arrType(name, T);  // arr<T>
@@ -247,7 +310,7 @@ export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
     // T[] 或 T[K]
     m = name.match(/^(.+)\[(.*)\]$/);
     if (m) {
-        let T = loadType(m[1], _g, loc);
+        let T = loadType(m[1], _g, _loc, _map);
         let K = m[2].replace(/["']/g, "").trim();
         if (K) { // T[K]
             T = getItem(T, [".", K]) || getItem(T, [".", "*"]) || getItem(T, ["[]"]);
@@ -255,6 +318,38 @@ export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
         } else {
             return arrType(name, T); // T[]
         }
+    }
+
+    // ( T )
+    m = name.match(/^\((.*)\)$/);
+    if (m) {
+        let T = loadType(m[1], _g, _loc, _map) || {};
+        return { ...T, type: "(" + (T.type || m[2]) + ")", readonly: true, doc: ""};
+    }
+
+    // { K1, K2 : T2 }
+    m = name.match(/^\{(.*)\}$/);
+    if (m) {
+        let T = { type: name, doc: "", ".": {} } as any;
+        let names = [] as string[];
+        m[1].split(",").forEach(s => {
+            let [k, t] = s.split(":");
+            let n = k.trim();
+            k = k.replace("?", "").trim();
+            t = t && t.trim() || "string";
+            if (k) {
+                let v = loadType(t, _g, _loc, _map) || {};
+                setChild(_g, T, ".", k, v, _loc);
+
+                if (t !== "string" && v.type) {
+                    n = n + ": " + v.type;
+                }
+                names.push(n);
+            }
+        });
+        T.readonly = true;
+        T.type = "{ " + names.join(", ") + " }";
+        return T;
     }
 
     // T1 | T2 | T3
@@ -267,7 +362,7 @@ export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
             .filter( n => !!n );
 
         names.forEach((n, i) => {
-            let t: any = loadType(n, _g, loc);
+            let t: any = loadType(n, _g, _loc, _map);
             let ti = t && t["."] || {};
             if (i === 0) {
                 Ti = { ...ti };
@@ -293,7 +388,7 @@ export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
             .filter( n => !!n );
 
         names.forEach((n, i) => {
-            let t: any = loadType(n, _g, loc);
+            let t: any = loadType(n, _g, _loc, _map);
             if (isObject(t)) {
                 T = { ...t, ...T, ".": { ...t["."], ...T["."] }};  // 取并集
             }
@@ -304,28 +399,10 @@ export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
         return T;
     }
 
-    // { K1, K2 : T2 }
-    m = name.match(/^\{(.*)\}$/);
-    if (m) {
-        let T = { type: name, doc: "", ".": {} } as any;
-        m[1].split(",").forEach(s => {
-            let [k, t] = s.split(":");
-            k = k.replace("?", "").trim();
-            t = t && t.trim() || "string";
-            if (k) {
-                let v = loadType(t, _g) || {};
-                setChild(_g, T, ".", k, v, loc);
-                // T["."][k] = loadType(t, _g) || {};
-            }
-        });
-        T.readonly = true;
-        return newType(name, T);
-    }
-
     // T.K
     if (name.includes(".")) {
         let K = name.split(".");
-        let T = loadType(K[0].trim(), _g, loc);
+        let T = loadType(K[0].trim(), _g, _loc, _map);
         for (let i=1; i<K.length; i++) {
             T = getItem(T, [".", K[i].trim()]);
         }
