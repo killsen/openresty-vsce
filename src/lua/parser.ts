@@ -46,7 +46,7 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
                 if (m) {
                     const key = m[1].trim();
                     const typ = m[2] === ":" ? m[3].trim() : `${m[1]} ${m[2]} ${m[3]}`;
-                    const val = loadType(typ, _g) as any;
+                    const val = loadType(typ, _g, c.loc) as any;
                     if (val) {
                         setValue(_g, "$type_" + key, val, true);
                         setValue(_g, key, val, true);
@@ -854,27 +854,33 @@ function addLint(n: Node, k: string, _g: LuaScope) {
 
 }
 
+type CommentMap = { [key: number] : { name: string, loc: Node["loc"]  } };
+
 // 取得行内类型声明
 function get_vtype_inline(n: Node, _g: LuaScope): any {
 
     let comments = getValue(_g, "$$comments") as Comment[];
     if (!comments) {return;}
 
-    let map = (comments as any)["$$map"];
+    let map = (comments as any)["$$map"] as CommentMap;
     if (!map) {
         map = (comments as any)["$$map"] = {};
         comments.forEach(c => {
-            let i = c.loc!.start.line;
-            let s = c.raw;
-            if (s.startsWith("-->")) {
-                s = s.substring(3).trim();
-                map[i] = s;
+            let line = c.loc!.start.line;
+            let name = c.raw;
+            if (name.startsWith("-->")) {
+                map[line] = {
+                    name : name.substring(3).trim(),
+                    loc  : c.loc
+                };
             }
         });
     }
 
-    let typeName = map[n.loc!.start.line];
-    return typeName && loadType(typeName, _g);
+    let c = map[n.loc!.start.line];
+    if (!c) {return;}
+
+    return loadType(c.name, _g, c.loc);
 
 }
 

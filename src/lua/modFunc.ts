@@ -1,6 +1,6 @@
 
 import { Node, FunctionDeclaration } from 'luaparse';
-import { newScope, getValue, setValue, LuaScope } from './scope';
+import { newScope, getValue, setValue, LuaScope, setChild } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule, getLuaType } from './types';
@@ -216,7 +216,7 @@ function getResOfFunc(name: string, _g: LuaScope) {
 }
 
 /** 通过类型名称取得类型 */
-export function loadType(name: string, _g: LuaScope): any {
+export function loadType(name: string, _g: LuaScope, loc?: Node["loc"]): any {
 
     if (typeof name !== "string") { return; }
 
@@ -231,7 +231,7 @@ export function loadType(name: string, _g: LuaScope): any {
     // map<T> 或 arr<T>
     let m = name.match(/^(map|arr)\s*<\s*(.+)\s*>$/);
     if (m) {
-        let T = loadType(m[2], _g);
+        let T = loadType(m[2], _g, loc);
         return m[1] === "map"
             && mapType(name, T)   // map<T>
             || arrType(name, T);  // arr<T>
@@ -247,7 +247,7 @@ export function loadType(name: string, _g: LuaScope): any {
     // T[] 或 T[K]
     m = name.match(/^(.+)\[(.*)\]$/);
     if (m) {
-        let T = loadType(m[1], _g);
+        let T = loadType(m[1], _g, loc);
         let K = m[2].replace(/["']/g, "").trim();
         if (K) { // T[K]
             T = getItem(T, [".", K]) || getItem(T, [".", "*"]) || getItem(T, ["[]"]);
@@ -267,7 +267,7 @@ export function loadType(name: string, _g: LuaScope): any {
             .filter( n => !!n );
 
         names.forEach((n, i) => {
-            let t: any = loadType(n, _g);
+            let t: any = loadType(n, _g, loc);
             let ti = t && t["."] || {};
             if (i === 0) {
                 Ti = { ...ti };
@@ -293,35 +293,39 @@ export function loadType(name: string, _g: LuaScope): any {
             .filter( n => !!n );
 
         names.forEach((n, i) => {
-            let t: any = loadType(n, _g);
+            let t: any = loadType(n, _g, loc);
             if (isObject(t)) {
                 T = { ...t, ...T, ".": { ...t["."], ...T["."] }};  // 取并集
             }
             names[i] = t?.type || n;
         });
 
-        T.type = names.join(" & ");
+        T.type = names.join(" & ").replace(/\s*\}\s*&\s*\{\s*/g, ", ");
         return T;
     }
 
     // { K1, K2 : T2 }
     m = name.match(/^\{(.*)\}$/);
     if (m) {
-        let T = { type: name, readonly: true, doc: "", ".": {} } as any;
+        let T = { type: name, doc: "", ".": {} } as any;
         m[1].split(",").forEach(s => {
             let [k, t] = s.split(":");
-            k = k.trim();
+            k = k.replace("?", "").trim();
+            t = t && t.trim() || "string";
             if (k) {
-                T["."][k] = loadType(t, _g) || {};
+                let v = loadType(t, _g) || {};
+                setChild(_g, T, ".", k, v, loc);
+                // T["."][k] = loadType(t, _g) || {};
             }
         });
+        T.readonly = true;
         return newType(name, T);
     }
 
     // T.K
     if (name.includes(".")) {
         let K = name.split(".");
-        let T = loadType(K[0].trim(), _g);
+        let T = loadType(K[0].trim(), _g, loc);
         for (let i=1; i<K.length; i++) {
             T = getItem(T, [".", K[i].trim()]);
         }
