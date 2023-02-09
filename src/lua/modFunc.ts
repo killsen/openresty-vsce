@@ -547,6 +547,8 @@ export function setScopeCall(scope: any, $$node: Node, _g: LuaScope){
         k => /^[a-zA-Z_][0-9a-zA-Z_]*$/.test(k)
     );
 
+    if (args.length === 0) {return;}
+
     const $$call = {
         args  : "{ " + args.join(", ") + " }",
         doc   : "",
