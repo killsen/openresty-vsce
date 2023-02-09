@@ -537,19 +537,15 @@ export function setScopeCall(scope: any, $$node: Node, _g: LuaScope){
 
     $$node.scope = scope;
 
-    if (!(scope instanceof Object)) {return;}
+    if (!isObject(scope)) {return;}
 
-    let args: string[] = [];
+    const args = Object.keys(scope).filter (
+        k => /^[a-zA-Z_][0-9a-zA-Z_]*$/.test(k)
+    );
 
-    Object.keys(scope).forEach(k=>{
-        if (k.startsWith("$")) {return;}
-        if (/\d+/.test(k)) {return;}
-        args.push(k);
-    });
-
-    let $$call = {
-        doc : "",
-        args : "{" + args.join(", ") + "}",
+    const $$call = {
+        args  : "{ " + args.join(", ") + " }",
+        doc   : "",
         index : 0
     };
 
@@ -562,19 +558,29 @@ export function setArgsCall(funt: any, index: number, _g: LuaScope){
 
     if (!isObject(funt)) {return;}
 
-    if ("()" in funt) {
-        setValue(_g, "$$call", { args: funt.args, doc: funt.doc, index }, false);
-        return;
+    let args = [] as string[];
+    let doc  = "";
+
+    if (funt["()"]) {
+        doc  =  funt.doc  || "";
+        args = (funt.args || "").replace(/[()\s]/g, "").split(",");
+    } else {
+        let _call = getItem(funt, ["$$mt", ".", "__call"]) as LuaModule;
+        if (!isObject(_call)) { return; }
+
+        doc  =  _call.doc  || "";
+        args = (_call.args || "").replace(/[()\s]/g, "").split(",");
+        args.shift();  // 去掉第一个参数
     }
 
-    let _call = getItem(funt, ["$$mt", ".", "__call"]);
-    if (!isObject(_call)) {return;}
+    if (args.length === 0) {return;}
 
-    let args: string = _call.args || "";
-    let argx = args.replace(/[()\s]/g, "").split(",");
-    argx.shift();  // 去掉第一个参数
-    args = argx.join(", ");
+    const $$call = {
+        args : "( " + args.join(", ") + " )",
+        doc,
+        index,
+    };
 
-    setValue(_g, "$$call", { args: `( ${ args } )`, doc: _call.doc, index }, false);
+    setValue(_g, "$$call", $$call, false);
 
 }
