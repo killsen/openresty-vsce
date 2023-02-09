@@ -1,39 +1,53 @@
 # 升级日志
 
-## v1.8.6
+## v1.8.7
 
-### 完善行内类型注解, 演示代码如下:
+### 行内类型注解新增支持复杂类型声明, 演示代码如下:
 
 ```lua
 
-local function test(argt)
--- @argt    : { aaa: number, bbb: number }  // 参数类型
--- @return  : @argt & { ccc: string }       // 返回类型
+--  复杂类型声明
+--- HttpOption : { uri, method?, body?, query? }    //声明类型 HttpOption
+--- HttpOption & { headers?: map<string> }          //添加字段 headers
+--- HttpOption & { ssl_verify?: boolean  }          //添加字段 ssl_verify
 
-    return {
-        aaa = argt.aaa,
-        bbb = argt.bbb,
-        ccc = "ccc",
-        ddd = "ddd", -- 提示: 字段未定义 'ddd'
-    }
+-- http 请求
+local function request(option)
+-- @option : @HttpOption  //声明参数类型
 
+    local http  = require "resty.http"
+    local httpc = http.new()
+
+    local  res, err = httpc:request_uri(option.uri, option)
+    return res, err
 end
 
-local res = test { aaa = 111, bbb = 222 }
+local opt = {}  --> @HttpOption
+-- 类似 TypeScript 写法:
+-- let opt = {} as HttpOption
+-- 下面的 opt 对象就支持成员字段补全了
 
-ngx.say("aaa", res.aaa)
-ngx.say("bbb", res.bbb)
-ngx.say("ccc", res.ccc)
+opt.uri     = "https://www.baidu.com"
+opt.method  = "POST"
+opt.body    = "{}"
+opt.headers = {
+    ["Content-Type"] = "application/json"
+}
 
-res.ddd = "DDD"  -- 提示: 字段未定义 'ddd'
+local res, err = request(opt)
+if not res then
+    ngx.say(err)
+elseif (res.status == 200) then
+    ngx.say(res.body)
+end
 
---- res : res & { ddd : string }  // 新增 ddd 字段
-
-res.ddd = "DDD"  -- 不再提示
-
---- res : res | { aaa, bbb, ccc }  // 只保留 aaa, bbb, ccc 字段
-
-res.ddd = "DDD"  -- 提示: 字段未定义 'ddd'
+-- 直接调用函数也是有参数类型成员字段补全的
+local res, err = request { uri = "https://www.baidu.com", method = "GET" }
+if not res then
+    ngx.say(err)
+elseif (res.status == 200) then
+    ngx.say(res.body)
+end
 
 ```
 
