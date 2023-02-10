@@ -137,6 +137,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         return;  // 退出
                     }
 
+                    if (getType(_g, n.name)) {  // 预设类型的变量才检查
+                        check_vtype(vtypes[i], v, n, _g);
+                    }
+
                     // local变量或者upvalue
                     setValue(_g, n.name, v, isLocal, n.loc);
                     break;
@@ -169,6 +173,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         if ($$res && $$res[k]) {v["()"]["$$res"] = $$res[k];}
                     }
 
+                    check_vtype(vtypes[i], v, n, _g);  // 类型检查
                     setChild(_g, t, n.indexer, k, v, n.identifier.loc);
                     break;
                 }
@@ -194,6 +199,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         k = k.substring(1);
                     }
 
+                    check_vtype(vtypes[i], v, n, _g);  // 类型检查
                     setChild(_g, t, indexer, k, v, n.index.loc);
                     break;
                 }
@@ -322,9 +328,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
             // ipairs({1, 2, 3}) -> _iter, _obj = t, _next = 0
             let [_iter, _obj, _next] = arr;
 
+            // 是否内置的 ipairs 或者 pairs
+            let isPairs = isObject(_iter) && _iter.readonly;
+
             let runCount = 0;  // 运行次数
 
-            while(runCount < 1000){  //最多运行 1000 次, 避免死循环
+            while(runCount < 1000){  // 最多运行 1000 次, 避免死循环
 
                 let res : any[];
                 res = callFunc(_iter, _obj, _next);  // 执行迭代函数
@@ -334,7 +343,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 if ( runCount > 0 ) {
                     if ( res.length === 0        ) { break; }  // 未返回数据
                     if ( res[0] === _next        ) { break; }  // 与上一的返回值相同
-                    if ( res.some(v => isNil(v)) ) { break; }  // 含有空值
+                    if (!isPairs) {
+                        // 自定义的迭代函数需要检查是否返回空值
+                        if ( res.some(v => isNil(v)) ) { break; }
+                    }
                 }
 
                 _next = res[0];
@@ -682,24 +694,27 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                 // 取得行内类型声明
                 const vtypeInLine = get_vtype_inline(f, _g);
+                let vtype : any;
+
+                if (f.type === "TableKeyString") {
+                    vtype = vtypeInLine ||
+                            getItem(node.vtype, [".", f.key.name]) ||
+                            getItem(node.vtype, [".", "*"]);
+
+                } else if (f.type === "TableKey") {
+                    vtype = vtypeInLine ||
+                            getItem(node.vtype, [".", "*"]) ||
+                            getItem(node.vtype, ["[]"]);
+
+                } else if (f.type === "TableValue") {
+                    vtype = vtypeInLine ||
+                            getItem(node.vtype, ["[]"]) ||
+                            getItem(node.vtype, [".", "*"]);
+                }
 
                 // 传递成员类型
                 if (f.value.type === "TableConstructorExpression") {
-                    if (f.type === "TableKeyString") {
-                        f.value.vtype = vtypeInLine ||
-                                        getItem(node.vtype, [".", f.key.name]) ||
-                                        getItem(node.vtype, [".", "*"]);
-
-                    } else if (f.type === "TableKey") {
-                        f.value.vtype = vtypeInLine ||
-                                        getItem(node.vtype, [".", "*"]) ||
-                                        getItem(node.vtype, ["[]"]);
-
-                    } else if (f.type === "TableValue") {
-                        f.value.vtype = vtypeInLine ||
-                                        getItem(node.vtype, ["[]"]) ||
-                                        getItem(node.vtype, [".", "*"]);
-                    }
+                    f.value.vtype = vtype;
                 }
 
                 switch (f.type) {
@@ -712,6 +727,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         if (v instanceof Array) { v = v[0]; } // 返回数组取第一项
 
                         v = vtypeInLine || v;  //优先使用行内类型声明
+
+                        check_vtype(vtype, v, f.key, _g);  // 类型检查
 
                         if (typeof k === "string" || typeof k === "number") {
                             setChild(_g, t, ".", k, v, f.key.loc);
@@ -733,6 +750,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                         v = vtypeInLine || v;  //优先使用行内类型声明
 
+                        check_vtype(vtype, v, f.key, _g);  // 类型检查
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);
                         break;
                     }
@@ -754,13 +772,16 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         if (v instanceof Array) {  // 返回是数组
                             if (index === node.fields.length - 1) {
                                 v.forEach(item => {
+                                    check_vtype(vtype, v, f.value, _g);  // 类型检查
                                     setChild(_g, t, ".", i++, item, f.loc);
                                 });
                             } else {
                                 v = v[0];  // 返回数组取第一项
+                                check_vtype(vtype, v, f.value, _g);  // 类型检查
                                 setChild(_g, t, ".", i++, v, f.loc);
                             }
                         } else {
+                            check_vtype(vtype, v, f.value, _g);  // 类型检查
                             setChild(_g, t, ".", i++, v, f.loc);
                         }
 
@@ -828,9 +849,62 @@ function getReturn(_g: LuaScope) {
 
 }
 
+function getTypeName(v: any) {
+
+    if (!isObject(v)) {
+        let t = typeof v;
+        return t === "string"   ? "string"
+            :  t === "number"   ? "number"
+            :  t === "boolean"  ? "boolean"
+            :  t === "function" ? "function"
+            :  "any";
+    } else {
+        let t = v.type;
+        return t === "string"   ? "string"
+            :  t === "number"   ? "number"
+            :  t === "boolean"  ? "boolean"
+            :  t === "thread"   ? "thread"
+            :  t === "thread"   ? "userdata"
+            :  t === "thread"   ? "cdata"
+            :  t === "ctype"    ? "ctype"
+            :  t === "any"      ? "any"
+            :  v["$$mt"]        ? "table"
+            :  v["()"]          ? "function"
+            :  v["."]           ? "table"
+            :  v[":"]           ? "table"
+            :  v["[]"]          ? "table"
+            :  "any";
+    }
+}
+
+
+// 类型检查
+function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
+
+    if (v1 === v2) {return;}
+    if (n.isLinted) {return;}
+
+    let lints = getValue(_g, "$$lints");
+    if(!lints) {return;}
+
+    if (!isObject(v1) || !v1.readonly) { return; }
+    if (v1?.type === v2?.type) {return;}
+
+    let vt1 = getTypeName(v1);
+    if (vt1 === "any") {return;}
+
+    let vt2 = getTypeName(v2);
+    if (vt2 === "any") {return;}
+
+    if (vt1 === vt2) {return;}
+
+    addLint(n, "", _g, `不能将类型 “${ vt2 }” 分配给类型 “${ vt1 }”`);
+
+}
+
 
 // 为 apicheck 提供成员字段检查
-function addLint(n: Node, k: string, _g: LuaScope) {
+function addLint(n: Node, k: string, _g: LuaScope, message?: string) {
 
     if (k.startsWith("_")) {return;}
 
@@ -843,12 +917,14 @@ function addLint(n: Node, k: string, _g: LuaScope) {
     let start = n.loc!.start;
     let end   = n.loc!.end;
 
+    message = message || `成员字段 “${ k }” 不存在或属性未定义`;
+
     lints.push({
         range: new Range(
             new Position(start.line-1, start.column),
             new Position(end.line-1, end.column)
         ),
-        message: `字段未定义 '${ k }'`,
+        message,
         severity: 1,
     });
 
@@ -915,7 +991,20 @@ function get_vtype(n: Node, _g: LuaScope) {
         if (isArray(t)) { t = t[0]; }
         if (!isObject(t) || t["type"] === "any") { return; }
 
-        vtype = getItem(t, ["[]"] || getItem(t, [".", "*"]));
+        let k = loadNode(n.index, _g);
+        let vt = getTypeName(k);
+
+        if (typeof k === "number") {
+            vtype = getItem(t, [".", String(k)]) || getItem(t, ["[]"]);
+        } else if (typeof k === "string") {
+            vtype = getItem(t, [".", k]);
+        } else if (vt === "number") {
+            vtype = getItem(t, ["[]"]);
+        } else if (vt === "string") {
+            vtype = getItem(t, [".", "*"]);
+        }
+
+        vtype = vtype || getItem(t, ["[]"] || getItem(t, [".", "*"]));
 
     } else {
         let t = loadNode(n, _g);
