@@ -1,5 +1,29 @@
 # 升级日志
 
+## v1.8.8
+
+### 赋值语句新增类型检查, 演示代码如下:
+
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+-- 显式声明变量 xzy 的类型为 “number”
+--- xyz : number
+local xyz
+
+xyz = 123
+ngx.say(xyz)
+
+-- 错误提示：不能将类型 “string” 分配给类型 “number”
+xyz = "abc"
+ngx.say(xyz)
+
+-- 忽略检查：将 “boolen” 类型当做 “any” 类型分配给类型 “number”
+xyz = true  --> any
+ngx.say(xyz)
+
+```
+
 ## v1.8.7
 
 ### 行内类型注解新增支持复杂类型声明, 演示代码如下:

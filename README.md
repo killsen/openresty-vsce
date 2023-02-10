@@ -2,6 +2,7 @@
 
 ## 功能 (Features)
 
+* 本插件仅支持 Windows, 暂不支持 Linux 或 IOS
 * 支持 io, math, os, string, table 内置库代码补全
 * 支持 coroutine, debug, package 内置库代码补全
 * 支持 [ffi](https://luajit.org/ext_ffi_api.html), [jit](https://luajit.org/ext_jit.html), [bit](https://bitop.luajit.org/api.html) LuaJit内置库代码补全
@@ -14,6 +15,72 @@
 * 支持 Attach 调试 ([EmmyLuaDebugger](https://github.com/EmmyLua/EmmyLuaDebugger))
 * 支持静态检查  ([LuaCheck](https://github.com/mpeterv/luacheck))
 * 支持自定义类型声明 [演示代码](https://raw.githubusercontent.com/killsen/openresty-appx/main/nginx/testing/typed.lua)
+
+## 类型声明演示代码
+
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+-- 简单类型声明 ----------------------------
+--- xyz : number
+local xyz
+
+xyz = 123
+ngx.say(xyz)
+
+-- 错误提示：不能将类型 “string” 分配给类型 “number”
+xyz = "abc"
+ngx.say(xyz)
+
+-- 忽略检查：将 “boolen” 类型当做 “any” 类型分配给类型 “number”
+xyz = true  --> any
+ngx.say(xyz)
+
+--  复杂类型声明 ----------------------------
+--- HttpOption : { uri, method?, body?, query? }    //声明类型 HttpOption
+--- HttpOption & { headers?: map<string> }          //添加字段 headers
+--- HttpOption & { ssl_verify?: boolean  }          //添加字段 ssl_verify
+
+-- http 请求
+local function request(option)
+-- @option : @HttpOption  //声明参数类型
+
+    local http  = require "resty.http"
+    local httpc = http.new()
+
+    local  res, err = httpc:request_uri(option.uri, option)
+    return res, err
+end
+
+local opt = {}  --> @HttpOption
+-- 类似 TypeScript 写法:
+-- let opt = {} as HttpOption
+-- 下面的 opt 对象就支持成员字段补全了
+
+opt.uri     = "https://www.baidu.com"
+opt.method  = "POST"
+opt.body    = "{}"
+opt.headers = {
+    ["Content-Type"] = "application/json"
+}
+
+local res, err = request(opt)
+if not res then
+    ngx.say(err)
+elseif (res.status == 200) then
+    ngx.say(res.body)
+end
+
+-- 直接调用函数也是有参数类型成员字段补全的
+local res, err = request { uri = "https://www.baidu.com", method = "GET" }
+if not res then
+    ngx.say(err)
+elseif (res.status == 200) then
+    ngx.say(res.body)
+end
+
+```
+
 
 ## 依赖 (Dependences)
 
