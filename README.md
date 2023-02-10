@@ -2,7 +2,7 @@
 
 ## 功能 (Features)
 
-* 本插件仅支持 Windows, 暂不支持 Linux 或 IOS
+* 本插件仅支持 Windows 操作系统
 * 支持 io, math, os, string, table 内置库代码补全
 * 支持 coroutine, debug, package 内置库代码补全
 * 支持 [ffi](https://luajit.org/ext_ffi_api.html), [jit](https://luajit.org/ext_jit.html), [bit](https://bitop.luajit.org/api.html) LuaJit内置库代码补全
