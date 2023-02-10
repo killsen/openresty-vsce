@@ -38,22 +38,36 @@ export function loadDao(mod: LuaModule): LuaDao | undefined {
                     name: f["name"] || f[1] || "",
                     desc: f["desc"] || f[2] || "",
                     type: f["type"] || f[3] || "varchar",
-                    pk : !!f["pk"], // 主键
+                    len : f["len"],
+                    pk  : !!f["pk"], // 主键
                     $loc, $file
                 };
+
+                // 将数据库字段类型转换成 lua 数据类型
+                let type = f.type === "varchar"       ? "string"
+                         : f.type === "text"          ? "string"
+                         : f.type === "date"          ? "string"
+                         : f.type === "datetime"      ? "string"
+                         : f.type === "boolean"       ? "boolean"
+                         : f.type === "money"         ? "number"
+                         : f.type.includes("int")     ? "number"
+                         : f.type.includes("long")    ? "number"
+                         : f.type.includes("double")  ? "number"
+                         : "string";
 
                 dao.fields.push(f);
 
                 let pkStr = f.pk && " `(主键)`" || "";
+                let fLen = f.len ? "(" + f.len + ")" : "";
 
                 // markdown 文档提示内容
                 let doc = "## " + f.name + "\n\n"
-                        + "`< " + f.type + " >`" + "\n\n"
+                        + "`< " + type + " >`" + " `" + f.type + fLen + "`" + "\n\n"
                         + "### " + f.desc + pkStr + "\n\n"
                         + "[" + name + "](file:"+ $file +")"
                         + " ( " + desc + " ) " ;
 
-                dao.row[f.name] = { doc, $loc, $file, readonly };
+                dao.row[f.name] = { doc, type, $loc, $file, readonly };
             }
 
         });
