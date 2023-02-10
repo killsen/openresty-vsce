@@ -44,15 +44,17 @@ export function loadDao(mod: LuaModule): LuaDao | undefined {
                 };
 
                 // 将数据库字段类型转换成 lua 数据类型
-                let type = f.type === "varchar"       ? "string"
-                         : f.type === "text"          ? "string"
-                         : f.type === "date"          ? "string"
-                         : f.type === "datetime"      ? "string"
-                         : f.type === "boolean"       ? "boolean"
-                         : f.type === "money"         ? "number"
-                         : f.type.includes("int")     ? "number"
-                         : f.type.includes("long")    ? "number"
-                         : f.type.includes("double")  ? "number"
+                let type = f.type === "varchar"         ? "string"
+                         : f.type === "text"            ? "string"
+                         : f.type === "date"            ? "string"
+                         : f.type === "datetime"        ? "string"
+                         : f.type === "boolean"         ? "boolean"
+                         : f.type === "money"           ? "number"
+                         : f.type.includes("int")       ? "number"
+                         : f.type.includes("currency")  ? "number"
+                         : f.type.includes("long")      ? "number"
+                         : f.type.includes("double")    ? "number"
+                         : f.type.includes("single")    ? "number"
                          : "string";
 
                 dao.fields.push(f);
