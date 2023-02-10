@@ -130,6 +130,10 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
                 const parent = mod[api.parent] as any;
                 if (parent && parent["."]) {
                     parent["."][api.child] = Number(api.res);
+                    parent["."]["$" + api.child + "$"] = {
+                        ["$file"]: api.file,
+                        ["$loc"]: api.loc,
+                    };
                     return;
                 }
             }
