@@ -112,11 +112,17 @@ function _pairs(t: any) {
     let ti = getItem(t, ["."]);
     if (isObject(ti)) {
         for (let k in ti) {
-            k !== "*" && !k.startsWith("$") && arr.push([ Number(k) || k, ti[k] ]);
-        }
-        for (let k in ti) {
-            // $ 字段信息放后面
-            k !== "*" && k.startsWith("$") && arr.push([ k, ti[k] ]);
+            if (k !== "*" && !k.startsWith("$")) {
+                if (isNaN(Number(k))) {
+                    arr.push([ k, ti[k] ]);
+                    k = "$" + k + "$";
+                    if (k in ti) {
+                        arr.push([ k, ti[k] ]);
+                    }
+                } else {
+                    arr.push([ Number(k), ti[k] ]);
+                }
+            }
         }
         if (ti["*"]) {
             arr.push([ LuaAny, ti["*"] ]);
@@ -126,11 +132,13 @@ function _pairs(t: any) {
     ti = getItem(t, [":"]);
     if (isObject(ti)) {
         for (let k in ti) {
-            k !== "*" && !k.startsWith("$") && arr.push([ ":" + k, ti[k] ]);
-        }
-        for (let k in ti) {
-            // $ 字段信息放后面
-            k !== "*" && k.startsWith("$") && arr.push([ ":" + k, ti[k] ]);
+            if (k !== "*" && !k.startsWith("$")) {
+                arr.push([ ":" + k, ti[k] ]);
+                k = "$" + k + "$";
+                if (k in ti) {
+                    arr.push([ ":" + k, ti[k] ]);
+                }
+            }
         }
     }
 
