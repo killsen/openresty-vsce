@@ -108,6 +108,9 @@ LuaAny["."  ] = { "*": LuaAny };
 LuaAny["$mt"] = { __call : { "()" : [LuaAny] } };
 export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
 
+// 不存在类型
+export const LuaNever = { type: "never", basic, readonly };
+
 // 字符串类型
 export const LuaString       = { type: "string", basic, readonly };
 export const LuaStringArray  = { type: "string[]", "[]": LuaString, readonly };
@@ -149,6 +152,9 @@ export function getLuaType(typeName: string, isArr = false) {
 
     if (typeName === "any") {  // 任意类型
         return isArr ? LuaAnyArray : LuaAny;
+
+    } else if (typeName === "never") {  // 不存在类型
+        return LuaNever;
 
     } else if (typeName === "string") {  // 字符串类型
         return isArr ? LuaStringArray : LuaString;
