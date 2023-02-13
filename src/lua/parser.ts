@@ -1,10 +1,10 @@
 
 import { Node, Statement, Comment } from 'luaparse';
-import { LuaAny, LuaModule, LuaNumber, LuaString } from './types';
+import { getLuaType, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
-import { callFunc, loadType, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
+import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
-import { Range, Position, Diagnostic } from 'vscode';
+import { addLint, check_vtype, getTypeName, get_vtype, get_vtype_inline, loadType, set_vtype } from './vtype';
 import { _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -235,15 +235,17 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 条件判断语句:  if (condition) then ... elseif (condition) then ... else ... end
         case 'IfStatement': {
             let ok_res : any;
+            let elsG = _g;
 
             for (let n of node.clauses) {
+
+                const newG = newScope(elsG);
+
                 switch (n.type) {
                     case "IfClause":
                     case 'ElseifClause': {
                         // 返回条件是否成立
-                        let ok = loadNode(n.condition, _g);
-
-                        let newG = newScope(_g);
+                        let ok = loadNode(n.condition, elsG);
 
                         // TODO: 【未完成】条件判断 type 类型推导
                         if (n.condition.type === "BinaryExpression") {
@@ -256,10 +258,29 @@ export function loadNode(node: Node, _g: LuaScope): any {
                                 left.arguments[0].type === "Identifier" &&
                                 right.type === "StringLiteral") {
 
-                                let type = loadNode(right, _g);
-                                if (type === "string") {
-                                    let name = left.arguments[0].name;
-                                    setValue(newG, name, LuaString, true, left.arguments[0].loc);
+                                let type = loadNode(right, newG);
+                                if (typeof type === "string") {
+                                    let k = left.arguments[0].name;
+                                    let v = getValue(newG, k);
+
+                                    let vtype: any;
+                                    let vtypes = v?.types as any[];
+                                    if (isArray(vtypes)) {
+                                        vtype = vtypes.find(vt => type === getTypeName(vt));
+
+                                        elsG = newScope(newG);
+                                        vtypes = vtypes.filter(vt => type !== getTypeName(vt));
+
+                                        v = vtypes.length === 1 ? vtypes[0] : { ...v, types: vtypes };
+                                        setValue(elsG, "$type_" + k, v, true);
+                                        setValue(elsG, k, v, true);
+                                    }
+
+                                    vtype = vtype || getLuaType(type);
+                                    if (vtype?.readonly) {
+                                        setValue(newG, "$type_" + k, vtype, true);
+                                        setValue(newG, k, vtype, true);
+                                    }
                                 }
                             }
                         }
@@ -274,7 +295,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         break;
                     }
                     case 'ElseClause':
-                        loadBody(n.body, newScope(_g), n.loc);
+                        loadBody(n.body, newG, n.loc);
                 }
             }
 
@@ -500,6 +521,9 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 } else {
                     args.push(t);
                 }
+
+                check_vtype(arg.vtype, args[i], arg, _g);  // 比较实参与形参类型
+
             });
 
             return callFunc(funt, ...args);
@@ -649,12 +673,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             let ti = getItem(t, [node.indexer]);
             let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
+            let ta = getItem(t, ["[]"]);
 
             // 找到光标所在的位置
             if ($$node === node.identifier) {
                 $$node.scope = {
                     ... isObject(mt) ? mt : {},
                     ... isObject(ti) ? ti : {},
+                    ... isObject(ta) ? { insert : () => {} } : {},
                 };
                 return;  // 退出
             }
@@ -677,7 +703,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             }
 
-            if (isObject(ti) || isObject(mt)) {
+            if (isObject(ti) || isObject(mt) || t.basic) {
                 // 为 apicheck 提供成员字段检查
                 addLint(node.identifier, k, _g);
             }
@@ -846,244 +872,5 @@ function getReturn(_g: LuaScope) {
     });
 
     return arr[arr.length - 1]; // 最后的返回值
-
-}
-
-function getTypeName(v: any) {
-
-    if (!isObject(v)) {
-        let t = typeof v;
-        return t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "function" ? "function"
-            :  "any";
-    } else {
-        let t = v.type;
-        return t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "thread"   ? "thread"
-            :  t === "thread"   ? "userdata"
-            :  t === "thread"   ? "cdata"
-            :  t === "ctype"    ? "ctype"
-            :  t === "any"      ? "any"
-            :  v["$$mt"]        ? "table"
-            :  v["()"]          ? "function"
-            :  v["."]           ? "table"
-            :  v[":"]           ? "table"
-            :  v["[]"]          ? "table"
-            :  "any";
-    }
-}
-
-
-// 类型检查
-function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
-
-    if (v1 === v2) {return;}
-    if (n.isLinted) {return;}
-
-    let lints = getValue(_g, "$$lints");
-    if(!lints) {return;}
-
-    if (!isObject(v1) || !v1.readonly) { return; }
-    if (v1?.type === v2?.type) {return;}
-
-    let vt1 = getTypeName(v1);
-    if (vt1 === "any") {return;}
-
-    let vt2 = getTypeName(v2);
-    if (vt2 === "any") {return;}
-
-    if (vt1 === vt2) {return;}
-
-    addLint(n, "", _g, `不能将类型 “${ vt2 }” 分配给类型 “${ vt1 }”`);
-
-}
-
-
-// 为 apicheck 提供成员字段检查
-function addLint(n: Node, k: string, _g: LuaScope, message?: string) {
-
-    if (k.startsWith("_")) {return;}
-
-    let lints = getValue(_g, "$$lints") as Diagnostic[];
-    if(!lints) {return;}
-
-    if (n.isLinted) {return;}
-        n.isLinted = true;
-
-    let start = n.loc!.start;
-    let end   = n.loc!.end;
-
-    message = message || `成员字段 “${ k }” 不存在或属性未定义`;
-
-    lints.push({
-        range: new Range(
-            new Position(start.line-1, start.column),
-            new Position(end.line-1, end.column)
-        ),
-        message,
-        severity: 1,
-    });
-
-}
-
-type CommentMap = { [key: number] : { name: string, loc: Node["loc"]  } };
-
-// 取得行内类型声明
-function get_vtype_inline(n: Node, _g: LuaScope): any {
-
-    let comments = getValue(_g, "$$comments") as Comment[];
-    if (!comments) {return;}
-
-    let map = (comments as any)["$$map"] as CommentMap;
-    if (!map) {
-        map = (comments as any)["$$map"] = {};
-        comments.forEach(c => {
-            let line = c.loc!.start.line;
-            let name = c.raw;
-            if (name.startsWith("-->")) {
-                map[line] = {
-                    name : name.substring(3).trim(),
-                    loc  : c.loc
-                };
-            }
-        });
-    }
-
-    let c = map[n.loc!.start.line];
-    if (!c) {return;}
-
-    return loadType(c.name, _g, c.loc);
-
-}
-
-// 获取参数类型
-function get_vtype(n: Node, _g: LuaScope) {
-
-    let vtype : any;
-
-    if (n.type === "Identifier") {
-        vtype = getType(_g, n.name) || getValue(_g, n.name);
-
-    } else if (n.type === "MemberExpression") {
-        let t = loadNode(n.base, _g);
-        if (isArray(t)) { t = t[0]; }
-        if (!isObject(t) || t["type"] === "any") { return; }
-
-        let ti = t["."];
-        if (!isObject(t)) {return;}
-
-        let k = n.identifier.name;
-
-        if (k in ti) {
-            vtype = ti[k];
-        } else if ("*" in ti) {
-            vtype = ti["*"];
-        } else if (t.readonly) {
-            addLint(n.identifier, k, _g);
-        }
-
-    } else if (n.type === "IndexExpression") {
-        let t = loadNode(n.base, _g);
-        if (isArray(t)) { t = t[0]; }
-        if (!isObject(t) || t["type"] === "any") { return; }
-
-        let k = loadNode(n.index, _g);
-        let vt = getTypeName(k);
-
-        if (typeof k === "number") {
-            vtype = getItem(t, [".", String(k)]) || getItem(t, ["[]"]);
-        } else if (typeof k === "string") {
-            vtype = getItem(t, [".", k]);
-        } else if (vt === "number") {
-            vtype = getItem(t, ["[]"]);
-        } else if (vt === "string") {
-            vtype = getItem(t, [".", "*"]);
-        }
-
-        vtype = vtype || getItem(t, ["[]"] || getItem(t, [".", "*"]));
-
-    } else {
-        let t = loadNode(n, _g);
-        if (isArray(t)) { t = t[0]; }
-        vtype = t;
-    }
-
-    // 只读的自定义类型
-    if (isObject(vtype) && vtype.readonly && vtype["type"] !== "any") {
-        return vtype;
-    }
-
-}
-
-const $dao_ext = {
-    _order_by : { doc: "## _order_by \n\n `< string >` \n\n ### 排序 \n\n" },
-    _group_by : { doc: "## _group_by \n\n `< string >` \n\n ### 汇总 \n\n" },
-    _limit    : { doc: "## _limit    \n\n `< number | string >` \n\n ### 记录数 \n\n" },
-};
-
-// 设置形参类型
-function set_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [], i = 0) {
-
-    if (typeof funt !== "object") {return;}
-
-    if (arg.type !== "TableConstructorExpression") {return;}
-
-    // table.insert( arr, {} )  根据第一个参数 arr 的类型推导最后一个参数的类型
-    if (funt.doc?.startsWith("table.insert") && args.length >= 2 && i === args.length-1) {
-        let vtype = get_vtype(args[0], _g);
-        if (vtype && vtype["[]"]) {
-            arg.vtype = vtype["[]"];
-            return;
-        }
-    }
-
-    if (i===0 && isObject(funt.$$req)) {
-        // api 请求参数字段
-        arg.vtype = funt.$$req;
-
-    } else if (i===0 && isObject(funt.$dao) && isObject(funt.$dao.row)) {
-        // dao 对象参数字段
-        const row = funt.$dao.row;
-        const doc = funt.doc || "" as string;
-
-        if (/dao[:.](get|list)/g.test(doc)) {
-            arg.vtype = {
-                ["." ] : { ...row, ...$dao_ext },
-                ["[]"] : { ".": {} },
-            };
-        }else if (/dao[:.](add|set)/g.test(doc)) {
-            arg.vtype = {
-                ["." ] : row,
-                ["[]"] : { ".": row },
-            };
-        } else {
-            arg.vtype = {
-                ["." ] : row,
-                ["[]"] : { ".": {} },
-            };
-        }
-
-    } else {
-        // 自定义类型参数字段
-        let func = getItem(funt, ["()"]);
-        if (func) {
-            if (func.$argTypes) {
-                arg.vtype = func.$argTypes[i];
-            }
-            return;
-        }
-
-        // 元表 __call 方法
-        func = getItem(funt, ["$$mt", ".", "__call", "()"]);
-        if (func) {
-            if (func.$argTypes) {
-                arg.vtype = func.$argTypes[i+1];  //参数向后位移一位哦！！
-            }
-        }
-    }
 
 }

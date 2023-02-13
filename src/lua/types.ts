@@ -96,60 +96,29 @@ export interface LuaApiDoc {
     loc: LuaLoc;
 }
 
-// 创建类型
-function makeType(typeName: string, isArray = false) : LuaModule {
-    return new Proxy({} as LuaModule, {
-        get(target, prop) {
-            if (prop === "readonly") {
-                return true;
-            } else if (prop === "basic" ) {
-                return true;
-            } else if (prop === "type" ) {
-                return isArray ? `${ typeName }[]` : typeName;
-            } else if (prop === "[]" && (isArray || typeName === "any")) {
-                return makeType(typeName);
-
-            } else if (prop === "." && typeName === "any") {
-                return { "*" : makeType("any") };
-            } else if (prop === "()" && typeName === "any") {
-                return [ makeType("any") ];
-
-            } else if (prop === "()" && typeName === "ctype") {
-                return [ makeType("cdata") ];
-            }
-        },
-        set(target, _prop, _value) {
-            return true;
-        },
-        ownKeys(target) {
-            return [ "readonly", "type", "[]", "()", "." ];
-        },
-        getOwnPropertyDescriptor(k) {
-            return {
-                enumerable  : true,
-                configurable: true,
-            };
-        }
-    });
-}
-
-// 任意类型
-export const LuaAny = makeType("any");
+const basic = true;
+const readonly = true;
 
 export const LuaNil  = null;
 export const LuaNull = null;
 
-// 数字类型
-export const LuaNumber       = makeType("number");
-export const LuaNumberArray  = makeType("number", true);
+// 任意类型
+export const LuaAny = { type: "any", basic, readonly, ".": {}, "$mt": {} };
+LuaAny["."  ] = { "*": LuaAny };
+LuaAny["$mt"] = { __call : { "()" : [LuaAny] } };
+export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
 
 // 字符串类型
-export const LuaString       = makeType("string");
-export const LuaStringArray  = makeType("string", true);
+export const LuaString       = { type: "string", basic, readonly };
+export const LuaStringArray  = { type: "string[]", "[]": LuaString, readonly };
+
+// 数字类型
+export const LuaNumber       = { type: "number", basic, readonly };
+export const LuaNumberArray  = { type: "number[]", "[]": LuaNumber, readonly };
 
 // 布尔值类型
-export const LuaBoolean      = makeType("boolean");
-export const LuaBooleanArray = makeType("boolean", true);
+export const LuaBoolean      = { type: "boolean", basic, readonly };
+export const LuaBooleanArray = { type: "boolean[]", "[]": LuaBoolean, basic, readonly };
 
 export const LuaStringMap = {
     type: "map<string>",
@@ -161,24 +130,27 @@ export const LuaStringMap = {
 };
 
 // 线程类型
-export const LuaThread      = makeType("thread");
-export const LuaThreadArray = makeType("thread", true);
+export const LuaThread      = { type: "thread", basic, readonly };
+export const LuaThreadArray = { type: "thread[]", "[]": LuaThread, readonly };
 
 // 自定义类型
-export const LuaUserData      = makeType("userdata");
-export const LuaUserDataArray = makeType("userdata", true);
+export const LuaUserData      = { type: "userdata", basic, readonly };
+export const LuaUserDataArray = { type: "userdata[]", "[]": LuaUserData, readonly };
 
 // C数据
-export const LuaCData       = makeType("cdata");
-export const LuaCDataArray  = makeType("cdata", true);
+export const LuaCData       = { type: "cdata", basic, readonly };
+export const LuaCDataArray  = { type: "cdata[]", "[]": LuaCData, readonly };
 
 // C类型
-export const LuaCType       = makeType("ctype");
-export const LuaCTypeArray  = makeType("ctype", true);
+export const LuaCType       = { type: "ctype", "()": [LuaCData], basic, readonly };
+export const LuaCTypeArray  = { type: "ctype[]", "[]": LuaCType, readonly };
 
 export function getLuaType(typeName: string, isArr = false) {
 
-    if (typeName === "string") {  // 字符串类型
+    if (typeName === "any") {  // 任意类型
+        return isArr ? LuaAnyArray : LuaAny;
+
+    } else if (typeName === "string") {  // 字符串类型
         return isArr ? LuaStringArray : LuaString;
 
     } else if (typeName === "number") {  // 数字类型
@@ -202,9 +174,6 @@ export function getLuaType(typeName: string, isArr = false) {
     } else if (typeName === "table" || typeName === "object") {
         const t = { type: "table", ".": { "*": LuaAny } };
         return isArr ? { type: "table[]", "[]": t } : t;
-
-    } else if (typeName === "any") {  // 任意类型
-        return LuaAny;
 
     } else if (typeName === "void") {  // nil值
         return LuaNil;

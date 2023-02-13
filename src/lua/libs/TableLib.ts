@@ -1,6 +1,6 @@
 
 import { LuaString } from '../types';
-import { isObject } from "../utils";
+import { getItem, isObject } from "../utils";
 
 export const TableLib = {
     new  : _new,
@@ -125,6 +125,7 @@ function _move (t: any, i: number, j:number, k:number, t2?: any) {
     if (arguments.length < 4) { return; }
 
     if (!isObject(t)) {return;}
+    if (t.readonly) {return getItem(t, ["[]"]) ;}
     let ti = t["."];
     if (!isObject(ti)) {return;}
 
