@@ -3,7 +3,7 @@ import { Diagnostic, Position, Range } from "vscode";
 import { callFunc, getFunc } from "./modFunc";
 import { loadNode } from "./parser";
 import { getValue, LuaScope, setChild } from "./scope";
-import { getLuaType, LuaModule } from "./types";
+import { getLuaType, LuaAny, LuaModule, LuaNever } from "./types";
 import { getItem, isArray, isObject } from "./utils";
 
 const readonly = true;
@@ -41,12 +41,15 @@ function getResOfFunc(name: string, _g: LuaScope) {
 const PairMap : { [key: string]: string} = {
     "(" : ")",
     "{" : "}",
+    "<" : ">",
 };
 
 // 预解析: (小括号) {花括号}
 function parseTypes(name: string, _map: Map<string, string>) {
 
-    if (!name.includes("(") && !name.includes("{")) {
+    name = name.trim();
+
+    if (!name.includes("(") && !name.includes("{") && !name.includes("<")) {
         return name;
     }
 
@@ -65,12 +68,17 @@ function parseTypes(name: string, _map: Map<string, string>) {
             }
 
             if (step === 0) {
-                let find = name.substring(pos+1, i);    // 不含两边括号
-                let text = parseTypes(find, _map);
+                let str = name.substring(pos+1, i).trim();  // 不含两边括号
+                let val = parseTypes(str, _map).trim();
                 let key = "#T" + _map.size;
 
-                _map.set(key, pref + text + subf);      // 包含两边括号
-                temp.push(key);                         // 不含两边括号
+                if (pref === "<") {
+                    _map.set(key, val);                 // 不含两边括号   #Tn : ...
+                    temp.push(pref + key + subf);       // 包含两边括号  <#Tn>
+                } else {
+                    _map.set(key, pref + val + subf);   // 包含两边括号   #Tn : {...} 或 (...)
+                    temp.push(key);                     // 不含两边括号   #Tn
+                }
 
                 pref = "";
                 subf = "";
@@ -88,7 +96,7 @@ function parseTypes(name: string, _map: Map<string, string>) {
 
     }
 
-    return temp.join("");
+    return temp.join("").trim();
 
 }
 
@@ -113,37 +121,8 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
 
     name = _map.get(name) || name;
 
-    // map<T> 或 arr<T>
-    let m = name.match(/^(map|arr)\s*<\s*(.+)\s*>$/);
-    if (m) {
-        let T = loadType(m[2], _g, _loc, _map);
-        return m[1] === "map"
-            && mapType(name, T)   // map<T>
-            || arrType(name, T);  // arr<T>
-    }
-
-    // req<T> 或 res<T>
-    m = name.match(/^(req|res)\s*<\s*(.+)\s*>$/);
-    if (m) {
-        let T = m[1] === "req" ? getReqOfFunc(m[2], _g) : getResOfFunc(m[2], _g);
-        return newType(name, T);
-    }
-
-    // T[] 或 T[K]
-    m = name.match(/^(.+)\[(.*)\]$/);
-    if (m) {
-        let T = loadType(m[1], _g, _loc, _map);
-        let K = m[2].replace(/["']/g, "").trim();
-        if (K) { // T[K]
-            T = getItem(T, [".", K]) || getItem(T, [".", "*"]) || getItem(T, ["[]"]);
-            return newType(name, T);
-        } else {
-            return arrType(name, T); // T[]
-        }
-    }
-
     // ( T )
-    m = name.match(/^\((.*)\)$/);
+    let m = name.match(/^\((.*)\)$/);
     if (m) {
         let T = loadType(m[1], _g, _loc, _map) || {};
         return { ...T, type: "(" + (T.type || m[2]) + ")", readonly, doc};
@@ -178,27 +157,43 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     if (name.includes("|")) {
         let names = name.split("|").map( n => n.trim() ).filter( n => !!n );
         let types = names.map( n => loadType(n, _g, _loc, _map) );
-        return mergeTypes(types);
+        return unionTypes(types);
     }
 
     // T1 & T2 & T3
     if (name.includes("&")) {
-        let T = { type: name, readonly, doc, ".": {} } as any;
+        let names = name.split("&").map( n => n.trim() ).filter( n => !!n );
+        let types = names.map( n => loadType(n, _g, _loc, _map) );
+        return mergeTypes(types);
+    }
 
-        let names = name.split("&")
-            .map( n => n.trim() )
-            .filter( n => !!n );
+    // map<T> 或 arr<T>
+    m = name.match(/^(map|arr)\s*<\s*(.+)\s*>$/);
+    if (m) {
+        let T = loadType(m[2], _g, _loc, _map);
+        return m[1] === "map"
+            && mapType(name, T)   // map<T>
+            || arrType(name, T);  // arr<T>
+    }
 
-        names.forEach((n, i) => {
-            let t: any = loadType(n, _g, _loc, _map);
-            if (isObject(t)) {
-                T = { ...t, ...T, ".": { ...t["."], ...T["."] }};  // 取并集
-            }
-            names[i] = t?.type || n;
-        });
+    // req<T> 或 res<T>
+    m = name.match(/^(req|res)\s*<\s*(.+)\s*>$/);
+    if (m) {
+        let T = m[1] === "req" ? getReqOfFunc(m[2], _g) : getResOfFunc(m[2], _g);
+        return newType(name, T);
+    }
 
-        T.type = names.join(" & ").replace(/\s*\}\s*&\s*\{\s*/g, ", ");
-        return T;
+    // T[] 或 T[K]
+    m = name.match(/(.+)\[(.*)\]$/);
+    if (m) {
+        let T = loadType(m[1], _g, _loc, _map);
+        let K = m[2].replace(/["']/g, "").trim();
+        if (K) { // T[K]
+            T = getItem(T, [".", K]) || getItem(T, [".", "*"]) || getItem(T, ["[]"]);
+            return newType(name, T);
+        } else {
+            return arrType(name, T); // T[]
+        }
     }
 
     // T.K
@@ -218,58 +213,148 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
 }
 
 // T1 | T2 | T3
-function mergeTypes(vtypes: any[]) {
+function unionTypes(vtypes: any[]) {
 
-    if (vtypes.length === 0) { return; }
+    if (vtypes.length === 0) { return LuaNever; }
     if (vtypes.length === 1) { return vtypes[0]; }
 
     let types = [] as any[];
+
     vtypes.forEach(vt => {
+        if (!isObject(vt)) { return; }
+        if (vt.type === "never") { return; }  // 忽略 never
         if (isArray(vt.types)) {
             (vt.types as any[]).forEach( t => {
-                if (!types.includes(t)) {
-                    types.push(t);
-                }
+                if (!isObject(t)) { return; }
+                if (t.type === "never") { return; }  // 忽略 never
+                !types.includes(t) && types.push(t);
             });
-        } else if (!types.includes(vt)) {
-            types.push(vt);
+        } else {
+            !types.includes(vt) && types.push(vt);
         }
     });
 
+    if (types.length === 0) { return LuaNever; }
     if (types.length === 1) {return types[0];}
 
-    let Ti = {} as any;
-    let Ta = {} as any;
-    let names = [] as string[];
+    let tAny = types.find( vt => vt?.type === "any" );
+    if (tAny) { return LuaAny; }
 
-    types.forEach((t, i) => {
-        let ti = t["."] || {};
-        Ta = { ...Ta, ...ti };
+    let tInter = {} as any;         // 交集
+    let tUnion = {} as any;         // 并集
+    let tItems = [] as any[];       // 数组
+    let tNames = [] as string[];    // 名称
+
+    types.forEach((vt, i) => {
+        if (!isObject(vt)) { return; }
+
+        let ti = vt["."] || {};
+
+        vt.type  && tNames.push(vt.type);
+        vt["[]"] && tItems.push(vt["[]"]);
+
         if (i === 0) {
-            Ti = { ...ti };
+            tInter = { ...ti };
+            tUnion = { ...ti };
         } else {
-            for (let k in Ti) {
+            // 并集
+            tUnion = { ...ti, ...tUnion };
+            for (let k in ti) {
+                if (!k.startsWith("$")) {
+                    if (tUnion[k] !== ti[k]) {
+                        tUnion[k] = unionTypes([tUnion[k], ti[k]]);
+                    }
+                }
+            }
+            // 交集
+            for (let k in tInter) {
                 if (!k.startsWith("$")) {
                     if (k in ti) {
-                        if (Ti[k] !== ti[k]) {
-                            Ti[k] = Ta[k] = mergeTypes([Ti[k], ti[k]]);
-                        }
+                        tInter[k] = tUnion[k];
                     } else {
-                        delete Ti[k];
-                        delete Ti['$' + k + '$'];
+                        delete tInter[k];
+                        delete tInter['$' + k + '$'];
+                    }
+                }
+            }
+
+        }
+    });
+
+    const type  = tNames.join(" | ");
+    const vtype = { type, types, readonly, doc, ".": tUnion } as any;
+    const T     = { type, types, vtype, readonly, doc, ".": tInter } as any;
+
+    if (tItems.length > 0) {
+        T["[]"] = vtype["[]"] = unionTypes(tItems);
+    }
+
+    return T;
+
+}
+
+// T1 & T2 & T3
+function mergeTypes(vtypes: any[]) : any {
+
+    if (vtypes.length === 0) { return LuaNever; }
+    if (vtypes.length === 1) { return vtypes[0]; }
+
+    let types = [] as any[];
+
+    vtypes.forEach(vt => {
+        if (!isObject(vt)) { return; }
+        if (vt.type === "any") { return; }  // 忽略 any
+        !types.includes(vt) && types.push(vt);
+    });
+
+    if (types.length === 0) { return LuaAny; }
+    if (types.length === 1) {return types[0];}
+
+    // 只要有一个 never 或者基本类型的返回 never
+    let tNever = types.find( vt => vt.type === "never" || vt.basic );
+    if (tNever) { return LuaNever; }
+
+    let tUnion = {} as any;         // 并集
+    let tItems = [] as any[];       // 数组
+    let tNames = [] as string[];    // 名称
+
+    types.forEach((vt, i) => {
+        if (!isObject(vt)) { return; }
+
+        let ti = vt["."] || {};
+
+        vt.type  && tNames.push(vt.type);
+        vt["[]"] && tItems.push(vt["[]"]);
+
+        if (i === 0) {
+            tUnion = { ...ti };
+        } else {
+            // 并集
+            tUnion = { ...ti, ...tUnion };
+            for (let k in ti) {
+                if (!k.startsWith("$")) {
+                    if (tUnion[k] !== ti[k]) {
+                        tUnion[k] = mergeTypes([tUnion[k], ti[k]]);
+                        if (tUnion[k].type === "never") {
+                            tNever = LuaNever;
+                        }
                     }
                 }
             }
         }
-        if (t.type) {
-            names.push(t.type);
-        }
     });
 
-    const doc   = "";
-    const type  = names.join(" | ");
-    const vtype = { type, types, readonly, doc, ".": Ta };
-    const T     = { type, types, vtype, readonly, doc, ".": Ti };
+    if (tNever) { return tNever; }
+
+    const type  = tNames.join(" & ").replace(/\s*\}\s*&\s*\{\s*/g, ", ");
+    const T     = { type, readonly, doc, ".": tUnion } as any;
+
+    if (tItems.length > 0) {
+        let vt = mergeTypes(tItems);
+        if (vt.type === "never") { return LuaNever; }
+        T["[]"] = vt;
+    }
+
     return T;
 
 }
@@ -406,6 +491,7 @@ export function getTypeName(v: any) {
             :  t === "thread"   ? "cdata"
             :  t === "ctype"    ? "ctype"
             :  t === "any"      ? "any"
+            :  t === "never"    ? "never"
             :  v["$$mt"]        ? "table"
             :  v["()"]          ? "function"
             :  v["."]           ? "table"
@@ -434,12 +520,20 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
     let vt2 = getTypeName(v2);
     if (vt2 === "any") {return;}
 
+    if (vt1 === "never" || vt2 === "never") {
+        addLint(n, "", _g, `不能将类型 “${ vt2 }” 分配给类型 “${ vt1 }”`);
+    }
+
     // if (vt1 === vt2) {return;}
 
     let at1 : string[] = isArray(v1.types) ? v1.types.map(getTypeName) : [vt1];
     let at2 : string[] = isArray(v2.types) ? v2.types.map(getTypeName) : [vt2];
 
-    if (at1.some(t => at2.includes(t) )) {
+    if (at1.some(t => t === "any" || at2.includes(t) )) {
+        return;
+    }
+
+    if (at2.some(t => t === "any" )) {
         return;
     }
 
