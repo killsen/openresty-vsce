@@ -1,6 +1,6 @@
 
 import { Node, Statement, Comment } from 'luaparse';
-import { getLuaType, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
+import { getBasicType, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
@@ -276,7 +276,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                                         setValue(elsG, k, v, true);
                                     }
 
-                                    vtype = vtype || getLuaType(type);
+                                    vtype = vtype || getBasicType(type);
                                     if (vtype?.readonly) {
                                         setValue(newG, "$type_" + k, vtype, true);
                                         setValue(newG, k, vtype, true);

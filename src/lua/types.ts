@@ -1,5 +1,7 @@
 
 import { CompletionItemKind } from "vscode";
+import { LuaScope } from "./scope";
+import { loadType } from "./vtype";
 
 export interface LuaLoc {
     start: {
@@ -103,13 +105,14 @@ export const LuaNil  = null;
 export const LuaNull = null;
 
 // 任意类型
-export const LuaAny = { type: "any", basic, readonly, ".": {}, "$mt": {} };
+export const LuaAny       = { type: "any", basic, readonly, ".": {}, "$mt": {} };
+export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
 LuaAny["."  ] = { "*": LuaAny };
 LuaAny["$mt"] = { __call : { "()" : [LuaAny] } };
-export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
 
 // 不存在类型
-export const LuaNever = { type: "never", basic, readonly };
+export const LuaNever       = { type: "never", basic, readonly };
+export const LuaNeverArray  = { type: "never[]", "[]": LuaNever, readonly };
 
 // 字符串类型
 export const LuaString       = { type: "string", basic, readonly };
@@ -122,15 +125,6 @@ export const LuaNumberArray  = { type: "number[]", "[]": LuaNumber, readonly };
 // 布尔值类型
 export const LuaBoolean      = { type: "boolean", basic, readonly };
 export const LuaBooleanArray = { type: "boolean[]", "[]": LuaBoolean, basic, readonly };
-
-export const LuaStringMap = {
-    type: "map<string>",
-    readonly : true,
-    ".": {
-        "*": LuaString
-    },
-    "[]": LuaString,
-};
 
 // 线程类型
 export const LuaThread      = { type: "thread", basic, readonly };
@@ -148,47 +142,61 @@ export const LuaCDataArray  = { type: "cdata[]", "[]": LuaCData, readonly };
 export const LuaCType       = { type: "ctype", "()": [LuaCData], basic, readonly };
 export const LuaCTypeArray  = { type: "ctype[]", "[]": LuaCType, readonly };
 
-export function getLuaType(typeName: string, isArr = false) {
+const LuaTypes: any = {
+    "any"       : LuaAny        , "any[]"       : LuaAnyArray,
+    "never"     : LuaNever      , "never[]"     : LuaNeverArray,
+    "string"    : LuaString     , "string[]"    : LuaStringArray,
+    "number"    : LuaNumber     , "number[]"    : LuaNumberArray,
+    "boolean"   : LuaBoolean    , "boolean[]"   : LuaBooleanArray,
+    "thread"    : LuaThread     , "thread[]"    : LuaThreadArray,
+    "userdata"  : LuaUserData   , "userdata[]"  : LuaUserDataArray,
+    "ctype"     : LuaCType      , "ctype[]"     : LuaCTypeArray,
+    "cdata"     : LuaCData      , "cdata[]"     : LuaCDataArray,
 
-    if (typeName === "any") {  // 任意类型
-        return isArr ? LuaAnyArray : LuaAny;
+    "map<string>"   : { type: "map<string>"     , ".": { "*": LuaString      }, readonly },
+    "map<number>"   : { type: "map<number>"     , ".": { "*": LuaNumber      }, readonly },
+    "map<boolean>"  : { type: "map<boolean>"    , ".": { "*": LuaBoolean     }, readonly },
+    "map<any>"      : { type: "map<any>"        , ".": { "*": LuaAny         }, readonly },
 
-    } else if (typeName === "never") {  // 不存在类型
-        return LuaNever;
+    "map<string[]>" : { type: "map<string[]>"   , ".": { "*": LuaStringArray  }, readonly },
+    "map<number[]>" : { type: "map<number[]>"   , ".": { "*": LuaNumberArray  }, readonly },
+    "map<boolean[]>": { type: "map<boolean[]>"  , ".": { "*": LuaBooleanArray }, readonly },
+    "map<any[]>"    : { type: "map<any[]>"      , ".": { "*": LuaAnyArray     }, readonly },
+};
 
-    } else if (typeName === "string") {  // 字符串类型
-        return isArr ? LuaStringArray : LuaString;
+/** 获取基本类型或复杂类型 */
+export function getLuaType(typeName: string, _g: LuaScope) {
 
-    } else if (typeName === "number") {  // 数字类型
-        return isArr ? LuaNumberArray : LuaNumber;
+    let t = getBasicType(typeName);
+    if (t) { return t; }
 
-    } else if (typeName === "boolean") {  // 布尔值
-        return isArr ? LuaBooleanArray : LuaBoolean;
+    if (typeName.match(/(<.+>|{.+}|.+&.+|.+\|.+)/)) {
+        t = loadType(typeName, _g);
+        return t;
+    }
 
-    } else if (typeName === "thread") {  // 线程类型
-        return isArr ? LuaThreadArray : LuaThread;
+}
 
-    } else if (typeName === "userdata") {  // 自定义类型
-        return isArr ? LuaUserDataArray : LuaUserData;
+/** 获取基本类型 */
+export function getBasicType(typeName: string) {
 
-    } else if (typeName === "ctype") {  // C类型
-        return isArr ? LuaCTypeArray : LuaCType;
+    typeName = typeName.replace(/\s/g, "");  // 清除空格
 
-    } else if (typeName === "cdata") {  // C数据
-        return isArr ? LuaCDataArray : LuaCData;
+    if (typeName in LuaTypes) {
+        return LuaTypes[typeName];
 
     } else if (typeName === "table" || typeName === "object") {
+        return { type: "table", ".": { "*": LuaAny } };
+
+    } else if (typeName === "table[]" || typeName === "object[]") {
         const t = { type: "table", ".": { "*": LuaAny } };
-        return isArr ? { type: "table[]", "[]": t } : t;
+        return { type: "table[]", "[]": t };
 
-    } else if (typeName === "void") {  // nil值
+    } else if (typeName === "void") {
         return LuaNil;
 
-    } else if (typeName === "nil") {  // nil值
+    } else if (typeName === "nil") {
         return LuaNil;
-
-    } else if (typeName === "map<string>") {
-        return LuaStringMap;
 
     }
 

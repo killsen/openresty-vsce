@@ -6,6 +6,7 @@ import { setDepend } from "./modCache";
 import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
 import { NgxThreadLib } from './libs/NgxLib';
+import { LuaScope } from './scope';
 const readonly = true;
 
 /** 通过API文件加载接口声明 */
@@ -18,15 +19,15 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     let apis = loadApiDoc(ctx, name);
     if (!apis) { return ; }
 
-    let mod: { [key: string]: LuaModule } = {};
+    let _g: LuaScope = { $local: {}, $scope: undefined, $file: fileName };
     let requireName = "";
 
     let daoDoc = "";
     if (dao) {
         daoDoc = dao.doc;
         let daoRow = { ".": dao.row, doc: "## $"+ dao.name +"\ndao 类型单行数据\n" + daoDoc, readonly };
-        mod["row"] = daoRow;
-        mod["row[]"] = { "[]": daoRow, doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + daoDoc, readonly };
+        _g["row"] = daoRow;
+        _g["row[]"] = { "[]": daoRow, doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + daoDoc, readonly };
     }
 
     function genNode(api: LuaApi) {
@@ -57,7 +58,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
                 p["."][k] = p["."][k] || {};
                 p = p["."][k];
             } else {
-                p = mod[k] = mod[k] || { readonly };
+                p = _g[k] = _g[k] || { readonly };
             }
         });
 
@@ -88,7 +89,9 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         if (!name) {return;}
         name = name.replace(/\s/g, "");
 
-        let m = mod[name];
+        const typeName = name;  // 原始名称
+
+        let m = _g[name];
         if (m) { return m; }
 
         let isArr = name.endsWith("[]");
@@ -96,11 +99,11 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
             name = name.substring(0, name.length-2);
         }
 
-        m = mod[name];
+        m = _g[name];
         if (m) {
             return isArr ? { "[]": m, doc: m.doc } : m;
         } else {
-            return getLuaType(name, isArr) as any;
+            return getLuaType(typeName, _g);
         }
 
     }
@@ -127,7 +130,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
         } else if (api.res) {
             if (!isNaN(Number(api.res))) {
-                const parent = mod[api.parent] as any;
+                const parent = _g[api.parent] as any;
                 if (parent && parent["."]) {
                     parent["."][api.child] = Number(api.res);
                     parent["."]["$" + api.child + "$"] = {
@@ -153,7 +156,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
     });
 
-    const t = name === "_G" ? { "." : mod } : mod[requireName];
+    const t = name === "_G" ? { "." : _g } : _g[requireName];
     if (!t) { return; }
 
     if (name === "table") {
