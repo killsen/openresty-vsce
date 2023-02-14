@@ -21,7 +21,7 @@ ngx.say(abc)
 abc = "abc"
 ngx.say(abc)
 
-abc = true      -- 不能将类型 “boolean” 分配给类型 “number”
+abc = true      -- 不能将类型 “boolean” 分配给类型 “string”
 ngx.say(abc)
 
 ```
