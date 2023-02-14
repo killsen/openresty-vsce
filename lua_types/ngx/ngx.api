@@ -52,7 +52,7 @@ cap.body            -> string
 cap.truncated       -> boolean
 
 ngx.status          -> number
-ngx.header          -> map<string>
+ngx.header          -> map<string | string[]>
 
 ngx.resp            -- ngx.resp.get_headers
 ngx.resp.get_headers(max_headers=100?, raw=false?)  -> map<string>
