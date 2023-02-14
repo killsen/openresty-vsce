@@ -157,12 +157,9 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
             k = k.replace("?", "").trim();
             t = t && t.trim() || "string";
             if (k) {
-                let v = loadType(t, _g, _loc, _map) || {};
+                let v = loadType(t, _g, _loc, _map) || LuaNever;
                 setChild(_g, T, ".", k, v, _loc);
-
-                if (t !== "string" && v.type) {
-                    n = n + ": " + v.type;
-                }
+                n = n + ": " + (v.type || t);
                 names.push(n);
             }
         });
@@ -263,18 +260,30 @@ function unionTypes(vtypes: any[]) {
     if (vtypes.length === 1) { return vtypes[0]; }
 
     let types = [] as any[];
+    let tBasic = new Map<string, boolean>();
 
     vtypes.forEach(vt => {
         if (!isObject(vt)) { return; }
         if (vt.type === "never") { return; }  // 忽略 never
+
         if (isArray(vt.types)) {
             (vt.types as any[]).forEach( t => {
                 if (!isObject(t)) { return; }
                 if (t.type === "never") { return; }  // 忽略 never
-                !types.includes(t) && types.push(t);
+
+                let name = t.type || "";
+                if (!types.includes(t) && !tBasic.has(name)) {
+                    isBasicType(name) && tBasic.set(name, true);
+                    types.push(t);
+                }
             });
+
         } else {
-            !types.includes(vt) && types.push(vt);
+            let name = vt.type || "";
+            if (!types.includes(vt) && !tBasic.has(name)) {
+                isBasicType(name) && tBasic.set(name, true);
+                types.push(vt);
+            }
         }
     });
 
@@ -294,7 +303,7 @@ function unionTypes(vtypes: any[]) {
 
         let ti = vt["."] || {};
 
-        vt.type  && tNames.push(vt.type);
+        vt.type && !tNames.includes(vt.type) && tNames.push(vt.type);
         vt["[]"] && tItems.push(vt["[]"]);
 
         if (i === 0) {
@@ -338,10 +347,36 @@ function unionTypes(vtypes: any[]) {
 }
 
 // T1 & T2 & T3
-function mergeTypes(vtypes: any[]) : any {
+function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
 
     if (vtypes.length === 0) { return LuaNever; }
     if (vtypes.length === 1) { return vtypes[0]; }
+
+    if (checkUnionTypes) {
+        // 联合类型的交叉类型
+        //    (string | number) & (string | boolean)
+        // => (string & string) | (string & boolean) | (number & string) | (number & boolean)
+        // => string | never | never | never
+        // => string
+        const utypes = vtypes.filter( vt => isObject(vt) && isArray(vt.types) );
+        if (utypes.length > 0) {
+            let arr = vtypes.filter( vt => isObject(vt) && !isArray(vt.types) );
+            let vt1 = arr.length > 0 ? mergeTypes(arr) : utypes.shift();
+            for (let vt2 of utypes) {
+                let types1 = isArray(vt1.types) ? vt1.types : [vt1];
+                let types2 = isArray(vt2.types) ? vt2.types : [vt2];
+                let types3 = [] as any[];
+                for (let t1 of types1) {
+                    for (let t2 of types2) {
+                        types3.push(mergeTypes([t1, t2], false));   // 先交叉
+                    }
+                }
+                vt1 = unionTypes(types3);  // 再联合
+                if (!isObject(vt1)) { break; }
+            }
+            return vt1;
+        }
+    }
 
     let types = [] as any[];
     let tBasic = new Map<string, boolean>();
@@ -350,11 +385,9 @@ function mergeTypes(vtypes: any[]) : any {
         if (!isObject(vt)) { return; }
         if (vt.type === "any") { return; }  // 忽略 any
 
-        let typeName = vt.type || "";
-        if (!types.includes(vt) && !tBasic.has(typeName)) {
-            if (isBasicType(typeName)) {
-                tBasic.set(typeName, true);
-            }
+        let name = vt.type || "";
+        if (!types.includes(vt) && !tBasic.has(name)) {
+            isBasicType(name) && tBasic.set(name, true);
             types.push(vt);
         }
     });
@@ -375,7 +408,7 @@ function mergeTypes(vtypes: any[]) : any {
 
         let ti = vt["."] || {};
 
-        vt.type  && tNames.push(vt.type);
+        vt.type && !tNames.includes(vt.type) && tNames.push(vt.type);
         vt["[]"] && tItems.push(vt["[]"]);
 
         if (i === 0) {
@@ -393,7 +426,7 @@ function mergeTypes(vtypes: any[]) : any {
         }
     });
 
-    const type  = tNames.join(" & ").replace(/\s*\}\s*&\s*\{\s*/g, ", ");
+    const type  = tNames.join(" & ");
     const T     = { type, readonly, doc, ".": tUnion } as any;
 
     if (tItems.length > 0) {
@@ -429,7 +462,7 @@ function arrType(name: string, T: any) {
 
 function newType(name: string, T: any) {
     T = isObject(T) ? T : {};
-    return (T.basic | T.readonly) && T.name ? T : {
+    return (T.basic | T.readonly) && T.type ? T : {
         ... T,
         "." : { ...T["."] },
         type: name,
