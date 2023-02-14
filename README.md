@@ -36,6 +36,23 @@ ngx.say(xyz)
 xyz = true  --> any
 ngx.say(xyz)
 
+--  联合类型及交叉类型 ----------------------------
+--- T1 : number | string     // 联合类型
+--- T2 : string | boolean    // 联合类型
+--- T3 : T1 & T2             // 交叉类型
+
+--- abc : T3
+local abc
+
+abc = 123       -- 不能将类型 “number” 分配给类型 “string”
+ngx.say(abc)
+
+abc = "abc"
+ngx.say(abc)
+
+abc = true      -- 不能将类型 “boolean” 分配给类型 “number”
+ngx.say(abc)
+
 --  复杂类型声明 ----------------------------
 --- HttpOption : { uri, method?, body?, query? }    //声明类型 HttpOption
 --- HttpOption & { headers?: map<string> }          //添加字段 headers
