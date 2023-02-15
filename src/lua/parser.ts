@@ -5,7 +5,7 @@ import { newScope, getType, getValue, setValue, setChild, LuaScope } from './sco
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
 import { addLint, check_vtype, get_vtype, get_vtype_inline, loadType, set_vtype } from './vtype';
-import { _getn } from './libs/TableLib';
+import { wrapArray, _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
 export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
@@ -532,7 +532,13 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 运行函数: func "abc"
         case "StringCallExpression": {
             let funt = loadNode(node.base, _g);
-            let argt = loadNode(node.argument, _g);
+
+            let n = node.argument;
+            set_vtype(funt, n, _g);  // 形参类型
+
+            let argt = loadNode(n, _g);
+            check_vtype(n.vtype, argt, n, _g);  // 比较实参与形参类型
+
             return callFunc(funt, argt);
         }
 
@@ -541,9 +547,11 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let funt = loadNode(node.base, _g);
             if (!funt) {return;}
 
-            set_vtype(funt, node.arguments, _g);  // 形参类型
+            let n = node.arguments;
+            set_vtype(funt, n, _g);  // 形参类型
 
-            let args = loadNode(node.arguments, _g);
+            let args = loadNode(n, _g);
+            check_vtype(n.vtype, args, n, _g);  // 比较实参与形参类型
 
             return callFunc(funt, args);
         }
@@ -673,13 +681,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             let ti = getItem(t, [node.indexer]);
             let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
+            let ta: any;
 
             // 找到光标所在的位置
             if ($$node === node.identifier) {
-                $$node.scope = {
-                    ... isObject(mt) ? mt : {},
-                    ... isObject(ti) ? ti : {},
-                };
+                if (node.indexer === ":") {
+                    ta = wrapArray(t);  // 封装数组接口
+                }
+                $$node.scope = { ...ta, ...mt, ...ti };
                 return;  // 退出
             }
 
@@ -701,7 +710,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             }
 
-            if (isObject(ti) || isObject(mt) || t.basic) {
+            if (node.indexer === ":") {
+                ta = wrapArray(t);  // 封装数组接口
+                if (isObject(ta)) {
+                    if (k in ta) { return ta[k]; }
+                }
+            }
+
+            if (isObject(ti) || isObject(mt) || isObject(ta) || t.basic) {
                 // 为 apicheck 提供成员字段检查
                 addLint(node.identifier, k, _g);
             }

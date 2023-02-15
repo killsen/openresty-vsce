@@ -1,5 +1,5 @@
 
-import { LuaString } from '../types';
+import { LuaFunction, LuaNumber, LuaString } from '../types';
 import { getItem, isObject } from "../utils";
 
 export const TableLib = {
@@ -19,6 +19,44 @@ export const TableLib = {
     foreach : [],
     foreachi : [],
 };
+
+/** 封装数组接口 */
+export function wrapArray(T: any) {
+
+    if (!isObject(T)) { return; }
+
+    const I = T["[]"];
+    if (!isObject(I)) { return; }
+
+    const S = LuaString;
+    const N = LuaNumber;
+    const F = LuaFunction;
+
+    let name: string = typeof I.type === "string" ? I.type : "";
+    name = name.replace(/:\s*\w+/g, "");
+    if (name && name.length < 25) {
+        name = `v: ${ name }`;
+    } else {
+        name = "v";
+    }
+
+    {return {
+        clear   : { doc: "清空数组", "()" : [   ], args: "()", },
+        clone   : { doc: "克隆数组", "()" : [ T ], args: "()",  },
+        concat  : { doc: "连接元素", "()" : [ S ], args: "(sep, start?, end?)", $args: [ S, N, N ] },
+        insert  : { doc: "插入元素", "()" : [   ], args: `(${ name })`, $args: [ I ] },
+
+        getn    : { doc: "连续数字索引最大值"   , "()" : [ N ], args: "()", },
+        maxn    : { doc: "所有数字索引最大值"   , "()" : [ N ], args: "()", },
+        nkeys   : { doc: "所有元素的个数"       , "()" : [ N ], args: "()", },
+
+        move    : { doc: "移动元素", "()" : [ I ], args: "(i, j, k, t2?)", $args: [ N, N, N, I ]  },
+        remove  : { doc: "删除元素", "()" : [ I ], args: "(i?)", $args: [ N ] },
+        sort    : { doc: "数组排序", "()" : [   ], args: "( function(t1, t2) ... end )", $args: [ F ] },
+        foreachi: { doc: "数组遍历", "()" : [   ], args: "( function(i, v) ... end )"  , $args: [ F ],  },
+    };}
+
+}
 
 // 创建表
 function _new () {

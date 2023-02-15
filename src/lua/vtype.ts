@@ -749,6 +749,10 @@ export function set_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [],
             };
         }
 
+    } else if (isArray(funt.$args)) {
+        let vt = funt.$args[i];
+        arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
+
     } else {
         // 自定义类型参数字段
         let func = getItem(funt, ["()"]);
