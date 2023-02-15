@@ -1,6 +1,7 @@
 
 import { CompletionItemKind } from "vscode";
 import { LuaScope } from "./scope";
+import { isObject } from "./utils";
 import { loadType } from "./vtype";
 
 export interface LuaLoc {
@@ -98,6 +99,17 @@ export interface LuaApiDoc {
     loc: LuaLoc;
 }
 
+export interface LuaType {
+    "."     ? : LuaTable;
+    "[]"    ? : LuaType;
+    type      : string;
+    types   ? : LuaType[];
+    vtype   ? : LuaType;
+    doc     ? : string;
+    basic   ? : boolean;
+    readonly  : boolean;
+}
+
 const basic = true;
 const readonly = true;
 
@@ -126,6 +138,10 @@ export const LuaNumberArray  = { type: "number[]", "[]": LuaNumber, readonly };
 export const LuaBoolean      = { type: "boolean", basic, readonly };
 export const LuaBooleanArray = { type: "boolean[]", "[]": LuaBoolean, basic, readonly };
 
+// 函数类型
+export const LuaFunction      = { type: "function", "()": [LuaAny], basic, readonly };
+export const LuaFunctionArray = { type: "function[]", "[]": LuaFunction, readonly };
+
 // 线程类型
 export const LuaThread      = { type: "thread", basic, readonly };
 export const LuaThreadArray = { type: "thread[]", "[]": LuaThread, readonly };
@@ -142,30 +158,44 @@ export const LuaCDataArray  = { type: "cdata[]", "[]": LuaCData, readonly };
 export const LuaCType       = { type: "ctype", "()": [LuaCData], basic, readonly };
 export const LuaCTypeArray  = { type: "ctype[]", "[]": LuaCType, readonly };
 
-const LuaTypes: any = {
-    "any"       : LuaAny        , "any[]"       : LuaAnyArray,
-    "never"     : LuaNever      , "never[]"     : LuaNeverArray,
-    "string"    : LuaString     , "string[]"    : LuaStringArray,
-    "number"    : LuaNumber     , "number[]"    : LuaNumberArray,
-    "boolean"   : LuaBoolean    , "boolean[]"   : LuaBooleanArray,
-    "thread"    : LuaThread     , "thread[]"    : LuaThreadArray,
-    "userdata"  : LuaUserData   , "userdata[]"  : LuaUserDataArray,
-    "ctype"     : LuaCType      , "ctype[]"     : LuaCTypeArray,
-    "cdata"     : LuaCData      , "cdata[]"     : LuaCDataArray,
+const LuaTypes: { [key: string] : LuaType } = {
+    "any"               : LuaAny                    , "any[]"           : LuaAnyArray,
+    "never"             : LuaNever                  , "never[]"         : LuaNeverArray,
+    "string"            : LuaString                 , "string[]"        : LuaStringArray,
+    "number"            : LuaNumber                 , "number[]"        : LuaNumberArray,
+    "boolean"           : LuaBoolean                , "boolean[]"       : LuaBooleanArray,
+    "function"          : LuaFunction               , "function[]"      : LuaFunctionArray,
+    "thread"            : LuaThread                 , "thread[]"        : LuaThreadArray,
+    "userdata"          : LuaUserData               , "userdata[]"      : LuaUserDataArray,
+    "ctype"             : LuaCType                  , "ctype[]"         : LuaCTypeArray,
+    "cdata"             : LuaCData                  , "cdata[]"         : LuaCDataArray,
 
-    "map<string>"   : { type: "map<string>"     , ".": { "*": LuaString      }, readonly },
-    "map<number>"   : { type: "map<number>"     , ".": { "*": LuaNumber      }, readonly },
-    "map<boolean>"  : { type: "map<boolean>"    , ".": { "*": LuaBoolean     }, readonly },
-    "map<any>"      : { type: "map<any>"        , ".": { "*": LuaAny         }, readonly },
+    "map<any>"          : { type: "map<any>"        , ".": { "*": LuaAny            }, readonly },
+    "map<never>"        : { type: "map<never>"      , ".": { "*": LuaNever          }, readonly },
+    "map<string>"       : { type: "map<string>"     , ".": { "*": LuaString         }, readonly },
+    "map<number>"       : { type: "map<number>"     , ".": { "*": LuaNumber         }, readonly },
+    "map<boolean>"      : { type: "map<boolean>"    , ".": { "*": LuaBoolean        }, readonly },
+    "map<function>"     : { type: "map<function>"   , ".": { "*": LuaFunction       }, readonly },
+    "map<thread>"       : { type: "map<thread>"     , ".": { "*": LuaThread         }, readonly },
+    "map<userdata>"     : { type: "map<userdata>"   , ".": { "*": LuaUserData       }, readonly },
+    "map<ctype>"        : { type: "map<ctype>"      , ".": { "*": LuaCType          }, readonly },
+    "map<cdata>"        : { type: "map<cdata>"      , ".": { "*": LuaCData          }, readonly },
 
-    "map<string[]>" : { type: "map<string[]>"   , ".": { "*": LuaStringArray  }, readonly },
-    "map<number[]>" : { type: "map<number[]>"   , ".": { "*": LuaNumberArray  }, readonly },
-    "map<boolean[]>": { type: "map<boolean[]>"  , ".": { "*": LuaBooleanArray }, readonly },
-    "map<any[]>"    : { type: "map<any[]>"      , ".": { "*": LuaAnyArray     }, readonly },
+    "map<any[]>"        : { type: "map<any[]>"      , ".": { "*": LuaAnyArray       }, readonly },
+    "map<string[]>"     : { type: "map<string[]>"   , ".": { "*": LuaStringArray    }, readonly },
+    "map<number[]>"     : { type: "map<number[]>"   , ".": { "*": LuaNumberArray    }, readonly },
+    "map<boolean[]>"    : { type: "map<boolean[]>"  , ".": { "*": LuaBooleanArray   }, readonly },
+    "map<function[]>"   : { type: "map<function[]>" , ".": { "*": LuaFunctionArray  }, readonly },
+    "map<thread[]>"     : { type: "map<thread[]>"   , ".": { "*": LuaThreadArray    }, readonly },
+    "map<userdata[]>"   : { type: "map<userdata[]>" , ".": { "*": LuaUserDataArray  }, readonly },
+    "map<ctype[]>"      : { type: "map<ctype[]>"    , ".": { "*": LuaCTypeArray     }, readonly },
+    "map<cdata[]>"      : { type: "map<cdata[]>"    , ".": { "*": LuaCDataArray     }, readonly },
 };
 
 /** 获取基本类型或复杂类型 */
 export function getLuaType(typeName: string, _g: LuaScope) {
+
+    if (typeof typeName !== "string") { return; }
 
     let t = getBasicType(typeName);
     if (t) { return t; }
@@ -180,17 +210,20 @@ export function getLuaType(typeName: string, _g: LuaScope) {
 /** 获取基本类型 */
 export function getBasicType(typeName: string) {
 
+    if (typeof typeName !== "string") { return; }
+
     typeName = typeName.replace(/\s/g, "");  // 清除空格
 
     if (typeName in LuaTypes) {
         return LuaTypes[typeName];
 
     } else if (typeName === "table" || typeName === "object") {
-        return { type: "table", ".": { "*": LuaAny } };
+        const t : LuaType = { type: "table", ".": { "*": LuaAny }, readonly: false };
+        return t;
 
     } else if (typeName === "table[]" || typeName === "object[]") {
-        const t = { type: "table", ".": { "*": LuaAny } };
-        return { type: "table[]", "[]": t };
+        const t : LuaType = { type: "table", ".": { "*": LuaAny }, readonly: false };
+        return { type: "table[]", "[]": t, readonly: false };
 
     } else if (typeName === "void") {
         return LuaNil;
@@ -199,5 +232,55 @@ export function getBasicType(typeName: string) {
         return LuaNil;
 
     }
+
+}
+
+/** 取得 lua 类型名称 */
+export function getLuaTypeName(v: any) {
+
+    if (!isObject(v)) {
+        let t = typeof v;
+        return t === "string"   ? "string"
+            :  t === "number"   ? "number"
+            :  t === "boolean"  ? "boolean"
+            :  t === "function" ? "function"
+            :  "any";
+    } else {
+        let t = v.type;
+        return t === "any"      ? "any"
+            :  t === "never"    ? "never"
+            :  t === "string"   ? "string"
+            :  t === "number"   ? "number"
+            :  t === "boolean"  ? "boolean"
+            :  t === "function" ? "function"
+            :  t === "thread"   ? "thread"
+            :  t === "thread"   ? "userdata"
+            :  t === "thread"   ? "cdata"
+            :  t === "ctype"    ? "ctype"
+            :  v["$$mt"]        ? "table"
+            :  v["()"]          ? "function"
+            :  v["."]           ? "table"
+            :  v[":"]           ? "table"
+            :  v["[]"]          ? "table"
+            :  "any";
+    }
+}
+
+
+// 是否基本类型
+export function isBasicType(typeName: string) {
+    let vt = getBasicType(typeName);
+    return !!vt?.basic;
+}
+
+// 类型是否一致
+export function isSameType(v1: LuaType, v2: LuaType) {
+
+    if (v1 === v2) { return true; }
+
+    let vt1 = getBasicType(v1?.type);
+    let vt2 = getBasicType(v2?.type);
+
+    return vt1?.type === vt2?.type;
 
 }

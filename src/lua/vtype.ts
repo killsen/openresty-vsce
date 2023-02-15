@@ -3,7 +3,7 @@ import { Diagnostic, Position, Range } from "vscode";
 import { callFunc, getFunc } from "./modFunc";
 import { loadNode } from "./parser";
 import { getValue, LuaScope, setChild } from "./scope";
-import { getBasicType, LuaAny, LuaModule, LuaNever } from "./types";
+import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaModule, LuaNever, LuaNumber, LuaString, LuaTable, LuaType } from "./types";
 import { getItem, isArray, isObject } from "./utils";
 
 const readonly = true;
@@ -107,9 +107,9 @@ function parseTypes(name: string, _map: Map<string, string>) {
 
 
 /** 通过类型名称取得类型 */
-export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: Map<string, string>): any {
+export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: Map<string, string>): LuaType {
 
-    if (typeof name !== "string") { return; }
+    if (typeof name !== "string") { return LuaNever; }
 
     let pos = name.indexOf("//");
     if (pos !== -1) {
@@ -127,7 +127,7 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
 
     name = _map.get(name) || name;
     name = name.trim();
-    if (!name) { return; }
+    if (!name) { return LuaNever; }
 
     // 基本类型
     T = getBasicType(name);
@@ -136,28 +136,26 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     // ( T )
     let m = name.match(/^\((.*)\)$/);
     if (m) {
-        T = loadType(m[1], _g, _loc, _map);
-        if (!isObject(T)) { return; }
-
-        if (typeof T.type === "string" && !T.type.includes(" ")) {
-            return T;
+        let T = loadType(m[1], _g, _loc, _map);
+        if (!T.type.includes(" ")) {
+            return T;  // 类型名称不含空格直接返回
         } else {
-            return { ...T, type: "(" + (T.type || m[2]) + ")" };
+            return { ...T, type: `(${ T.type })` };
         }
     }
 
     // { K1, K2 : T2 }
     m = name.match(/^\{(.*)\}$/);
     if (m) {
-        T = { type: name, doc: "", ".": {} } as any;
+        let T = { type: name, doc: "", ".": {} } as LuaType;
         let names = [] as string[];
         m[1].split(",").forEach(s => {
             let [k, t] = s.split(":");
             let n = k.trim();
             k = k.replace("?", "").trim();
-            t = t && t.trim() || "string";
+            t = t ? t.trim() : "string";
             if (k) {
-                let v = loadType(t, _g, _loc, _map) || LuaNever;
+                let v = loadType(t, _g, _loc, _map);
                 setChild(_g, T, ".", k, v, _loc);
                 n = n + ": " + (v.type || t);
                 names.push(n);
@@ -185,8 +183,7 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     // map<T> 或 arr<T>
     m = name.match(/^(map|arr)\s*<\s*(.+)\s*>$/);
     if (m) {
-        T = loadType(m[2], _g, _loc, _map);
-        if (!isObject(T)) { return; }
+        let T = loadType(m[2], _g, _loc, _map);
         return m[1] === "map"
             && mapType(name, T)   // map<T>
             || arrType(name, T);  // arr<T>
@@ -196,7 +193,6 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     m = name.match(/^(req|res)\s*<\s*(.+)\s*>$/);
     if (m) {
         let T = m[1] === "req" ? getReqOfFunc(m[2], _g) : getResOfFunc(m[2], _g);
-        if (!isObject(T)) { return; }
         return newType(name, T);
     }
 
@@ -204,8 +200,6 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     m = name.match(/(.+)\[(.*)\]$/);
     if (m) {
         let T = loadType(m[1], _g, _loc, _map);
-        if (!isObject(T)) { return; }
-
         let K = m[2].replace(/["']/g, "").trim();
         if (K) { // T[K]
             T = getItem(T, [".", K]) || getItem(T, [".", "*"]) || getItem(T, ["[]"]);
@@ -219,8 +213,6 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     if (name.includes(".")) {
         let K = name.split(".");
         let T = loadType(K[0].trim(), _g, _loc, _map);
-        if (!isObject(T)) { return; }
-
         for (let i=1; i<K.length; i++) {
             T = getItem(T, [".", K[i].trim()]);
         }
@@ -229,37 +221,17 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
 
     // @T
     let namex = name.replace("@", "").trim();
-    T = getBasicType(namex) || getUserType(namex, _g) || getValue(_g, namex);
-    if (!isObject(T)) { return; }
-
-    return newType(name, T);
-}
-
-// 是否基本类型
-function isBasicType(typeName: string) {
-    let vt: any = getBasicType(typeName);
-    return vt && vt.basic;
-}
-
-// 类型是否一致
-function isSameType(v1: any, v2: any) {
-
-    if (v1 === v2) { return true; }
-
-    let vt1: any = isObject(v1) && getBasicType(v1.type);
-    let vt2: any = isObject(v2) && getBasicType(v2.type);
-
-    return vt1 && vt2 && vt1.type === vt2.type;
-
+    let t = getBasicType(namex) || getUserType(namex, _g) || getValue(_g, namex);
+    return newType(name, t);
 }
 
 // T1 | T2 | T3
-function unionTypes(vtypes: any[]) {
+function unionTypes(vtypes: LuaType[]) : LuaType {
 
     if (vtypes.length === 0) { return LuaNever; }
     if (vtypes.length === 1) { return vtypes[0]; }
 
-    let types = [] as any[];
+    let types = [] as LuaType[];
     let tBasic = new Map<string, boolean>();
 
     vtypes.forEach(vt => {
@@ -267,7 +239,7 @@ function unionTypes(vtypes: any[]) {
         if (vt.type === "never") { return; }  // 忽略 never
 
         if (isArray(vt.types)) {
-            (vt.types as any[]).forEach( t => {
+            vt.types?.forEach( t => {
                 if (!isObject(t)) { return; }
                 if (t.type === "never") { return; }  // 忽略 never
 
@@ -293,9 +265,9 @@ function unionTypes(vtypes: any[]) {
     let tAny = types.find( vt => vt?.type === "any" );
     if (tAny) { return LuaAny; }
 
-    let tInter = {} as any;         // 交集
-    let tUnion = {} as any;         // 并集
-    let tItems = [] as any[];       // 数组
+    let tInter = {} as LuaTable;    // 交集
+    let tUnion = {} as LuaTable;    // 并集
+    let tItems = [] as LuaType[];   // 数组
     let tNames = [] as string[];    // 名称
 
     types.forEach((vt, i) => {
@@ -314,8 +286,10 @@ function unionTypes(vtypes: any[]) {
             tUnion = { ...ti, ...tUnion };
             for (let k in ti) {
                 if (!k.startsWith("$")) {
-                    if (!isSameType(tUnion[k], ti[k])) {  // 类型不一致
-                        tUnion[k] = unionTypes([tUnion[k], ti[k]]);
+                    let v1 = tUnion[k] as LuaType;
+                    let v2 = ti[k] as LuaType;
+                    if (!isSameType(v1, v2)) {  // 类型不一致
+                        tUnion[k] = unionTypes([v1, v2]);
                     }
                 }
             }
@@ -335,8 +309,8 @@ function unionTypes(vtypes: any[]) {
     });
 
     const type  = tNames.join(" | ");
-    const vtype = { type, types, readonly, doc, ".": tUnion } as any;
-    const T     = { type, types, vtype, readonly, doc, ".": tInter } as any;
+    const vtype: LuaType = { type, types, readonly, doc, ".": tUnion };
+    const T: LuaType   = { type, types, vtype, readonly, doc, ".": tInter };
 
     if (tItems.length > 0) {
         T["[]"] = vtype["[]"] = unionTypes(tItems);
@@ -347,7 +321,7 @@ function unionTypes(vtypes: any[]) {
 }
 
 // T1 & T2 & T3
-function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
+function mergeTypes(vtypes: LuaType[], checkUnionTypes = true) : LuaType {
 
     if (vtypes.length === 0) { return LuaNever; }
     if (vtypes.length === 1) { return vtypes[0]; }
@@ -361,11 +335,11 @@ function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
         const utypes = vtypes.filter( vt => isObject(vt) && isArray(vt.types) );
         if (utypes.length > 0) {
             let arr = vtypes.filter( vt => isObject(vt) && !isArray(vt.types) );
-            let vt1 = arr.length > 0 ? mergeTypes(arr) : utypes.shift();
+            let vt1 = arr.length > 0 ? mergeTypes(arr) : utypes.shift()!;
             for (let vt2 of utypes) {
-                let types1 = isArray(vt1.types) ? vt1.types : [vt1];
-                let types2 = isArray(vt2.types) ? vt2.types : [vt2];
-                let types3 = [] as any[];
+                let types1 = isArray(vt1.types) ? vt1.types! : [vt1];
+                let types2 = isArray(vt2.types) ? vt2.types! : [vt2];
+                let types3 = [] as LuaType[];
                 for (let t1 of types1) {
                     for (let t2 of types2) {
                         types3.push(mergeTypes([t1, t2], false));   // 先交叉
@@ -378,7 +352,7 @@ function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
         }
     }
 
-    let types = [] as any[];
+    let types  = [] as LuaType[];
     let tBasic = new Map<string, boolean>();
 
     vtypes.forEach(vt => {
@@ -399,7 +373,7 @@ function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
     let tNever = types.find( vt => vt.type === "never" || vt.basic );
     if (tNever) { return LuaNever; }
 
-    let tUnion = {} as any;         // 并集
+    let tUnion = {} as LuaTable;    // 并集
     let tItems = [] as any[];       // 数组
     let tNames = [] as string[];    // 名称
 
@@ -418,8 +392,10 @@ function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
             tUnion = { ...ti, ...tUnion };
             for (let k in ti) {
                 if (!k.startsWith("$")) {
-                    if (!isSameType(tUnion[k], ti[k])) {  // 类型不一致
-                        tUnion[k] = mergeTypes([tUnion[k], ti[k]]);
+                    let v1 = tUnion[k] as LuaType;
+                    let v2 = ti[k]     as LuaType;
+                    if (!isSameType(v1, v2)) {  // 类型不一致
+                        tUnion[k] = mergeTypes([v1, v2]);
                     }
                 }
             }
@@ -427,7 +403,7 @@ function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
     });
 
     const type  = tNames.join(" & ");
-    const T     = { type, readonly, doc, ".": tUnion } as any;
+    const T: LuaType = { type, readonly, doc, ".": tUnion };
 
     if (tItems.length > 0) {
         T["[]"] = mergeTypes(tItems);
@@ -437,21 +413,18 @@ function mergeTypes(vtypes: any[], checkUnionTypes = true) : any {
 
 }
 
-function mapType(name: string, T: any) {
-    T = isObject(T) ? T : { "." : {}, readonly };
+function mapType(name: string, T: LuaType) : LuaType {
+    T = isObject(T) ? T : { "." : {}, readonly } as LuaType;
     return {
         type: T.type ? `map<${ T.type }>` : name,
         readonly: true,
         doc: "",
-        ".": {
-            "*": T
-        },
-        "[]": T,
+        ".": { "*": T }
     };
 }
 
-function arrType(name: string, T: any) {
-    T = isObject(T) ? T : { "." : {}, readonly };
+function arrType(name: string, T: LuaType) : LuaType {
+    T = isObject(T) ? T : { "." : {}, readonly } as LuaType;
     return {
         type: T.type ? `${ T.type }[]` : name,
         readonly: true,
@@ -460,18 +433,54 @@ function arrType(name: string, T: any) {
     };
 }
 
-function newType(name: string, T: any) {
-    T = isObject(T) ? T : {};
-    return (T.basic | T.readonly) && T.type ? T : {
-        ... T,
-        "." : { ...T["."] },
-        type: name,
-        readonly: (name !== "table" && name !== "object"),
-        doc: "",
-    };
+function newType(name: string, T: any, level = 0) : LuaType {
+
+    if (level++ > 5) { return T; }
+
+    if (typeof T === "string") {
+        return LuaString;
+    } else if (typeof T === "number") {
+        return LuaNumber;
+    } else if (typeof T === "boolean") {
+        return LuaBoolean;
+
+    } else if (isObject(T)) {
+        if ((T.basic || T.readonly) && T.type) {
+            return T;
+        } else {
+            let ti = T["."];
+            let tNames = [] as string[];
+
+            T = {
+                ... T,
+                type: T["()"] ? "function" : name,
+                readonly: (name !== "table" && name !== "object"),
+                doc: "",
+            };
+
+            if (isObject(ti)) {
+                ti = { ...ti };
+                for (let k in ti) {
+                    if (!k.startsWith("$")) {
+                        let t = ti[k] = newType('', ti[k], level);
+                        if (t.type) {
+                            tNames.push(`${ k }: ${ t.type }`);
+                        }
+                    }
+                }
+                T["."] = ti;
+                T.type = "{ " + tNames.join(", ") + " }";
+            }
+
+            return T;
+        }
+    } else {
+        return LuaNever;
+    }
+
 }
 
-function getUserType(typeName: string, _g: LuaScope) {
+function getUserType(typeName: string, _g: LuaScope) : LuaType | undefined {
 
     let pos = typeName.indexOf("//");
     if (pos !== -1) {
@@ -534,36 +543,6 @@ export function loadTypes(node: Node, _g: LuaScope) {
 }
 
 
-export function getTypeName(v: any) {
-
-    if (!isObject(v)) {
-        let t = typeof v;
-        return t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "function" ? "function"
-            :  "any";
-    } else {
-        let t = v.type;
-        return t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "thread"   ? "thread"
-            :  t === "thread"   ? "userdata"
-            :  t === "thread"   ? "cdata"
-            :  t === "ctype"    ? "ctype"
-            :  t === "any"      ? "any"
-            :  t === "never"    ? "never"
-            :  v["$$mt"]        ? "table"
-            :  v["()"]          ? "function"
-            :  v["."]           ? "table"
-            :  v[":"]           ? "table"
-            :  v["[]"]          ? "table"
-            :  "any";
-    }
-}
-
-
 // 类型检查
 export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
 
@@ -576,10 +555,10 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
     if (!isObject(v1) || !v1.type) { return; }
     if (v1?.type === v2?.type) {return;}
 
-    let vt1 = getTypeName(v1);
+    let vt1 = getLuaTypeName(v1);
     if (vt1 === "any") {return;}
 
-    let vt2 = getTypeName(v2);
+    let vt2 = getLuaTypeName(v2);
     if (vt2 === "any") {return;}
 
     if (vt1 === "never" || vt2 === "never") {
@@ -588,8 +567,8 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
 
     // if (vt1 === vt2) {return;}
 
-    let at1 : string[] = isArray(v1.types) ? v1.types.map(getTypeName) : [vt1];
-    let at2 : string[] = isArray(v2.types) ? v2.types.map(getTypeName) : [vt2];
+    let at1 : string[] = isArray(v1.types) ? v1.types.map(getLuaTypeName) : [vt1];
+    let at2 : string[] = isArray(v2.types) ? v2.types.map(getLuaTypeName) : [vt2];
 
     if (at1.some(t => t === "any" || at2.includes(t) )) {
         return;
@@ -694,7 +673,7 @@ export function get_vtype(n: Node, _g: LuaScope) {
         if (!isObject(t) || t["type"] === "any") { return; }
 
         let k = loadNode(n.index, _g);
-        let vt = getTypeName(k);
+        let vt = getLuaTypeName(k);
 
         if (typeof k === "number") {
             vtype = getItem(t, [".", String(k)]) || getItem(t, ["[]"]) || getItem(t, [".", "*"]);

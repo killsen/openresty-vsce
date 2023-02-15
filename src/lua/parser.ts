@@ -1,10 +1,10 @@
 
 import { Node, Statement, Comment } from 'luaparse';
-import { getBasicType, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
+import { getBasicType, getLuaTypeName, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
-import { addLint, check_vtype, getTypeName, get_vtype, get_vtype_inline, loadType, set_vtype } from './vtype';
+import { addLint, check_vtype, get_vtype, get_vtype_inline, loadType, set_vtype } from './vtype';
 import { _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -266,10 +266,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                                     let vtype: any;
                                     let vtypes = v?.types as any[];
                                     if (isArray(vtypes)) {
-                                        vtype = vtypes.find(vt => type === getTypeName(vt));
+                                        vtype = vtypes.find(vt => type === getLuaTypeName(vt));
 
                                         elsG = newScope(newG);
-                                        vtypes = vtypes.filter(vt => type !== getTypeName(vt));
+                                        vtypes = vtypes.filter(vt => type !== getLuaTypeName(vt));
 
                                         v = vtypes.length === 1 ? vtypes[0] : { ...v, types: vtypes };
                                         setValue(elsG, "$type_" + k, v, true);
@@ -673,14 +673,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             let ti = getItem(t, [node.indexer]);
             let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
-            let ta = getItem(t, ["[]"]);
 
             // 找到光标所在的位置
             if ($$node === node.identifier) {
                 $$node.scope = {
                     ... isObject(mt) ? mt : {},
                     ... isObject(ti) ? ti : {},
-                    ... isObject(ta) ? { insert : () => {} } : {},
                 };
                 return;  // 退出
             }
