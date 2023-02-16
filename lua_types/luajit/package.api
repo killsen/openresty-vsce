@@ -1,9 +1,20 @@
 
 package
-package.cpath
-package.loaded
-package.loaders
-package.loadlib(libname,funcname)
-package.path
-package.preload
+
+------------------------------------------------------------
+path                    -> string           -- 模块路径
+err                     -> string?          -- 错误信息
+------------------------------------------------------------
+
+package.path            -> string           -- 模块加载路径
+package.cpath           -> string           -- C库加载路径
+
+package.loaded          -> map<any>         -- 已加载模块
+package.preload         -> map<function>    -- 预加载函数
+
+package.loaders         -> function[]       -- 模块加载器
+package.searchers       -> function[]       -- 模块查询器
+
+package.loadlib(libname, funcname)      -> function | boolean, err
+package.searchpath(libname, libpath)    -> path, err
 package.seeall(module)
