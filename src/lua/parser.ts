@@ -812,7 +812,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         if (v instanceof Array) {  // 返回是数组
                             if (index === node.fields.length - 1) {
                                 v.forEach(item => {
-                                    check_vtype(vtype, v, f.value, _g);  // 类型检查
+                                    check_vtype(vtype, item, f.value, _g);  // 类型检查
                                     setChild(_g, t, ".", i++, item, f.loc);
                                 });
                             } else {
