@@ -21,18 +21,24 @@ function getValueX(name: string, _g: LuaScope) {
 
 function getReqOfFunc(name: string, _g: LuaScope) {
     let t = getValueX(name, _g);
-    if (isObject(t) && t.$$req) {
+
+    if (isArray(t?.$args)) {
+        return t.$args[0];
+    } else if (isObject(t?.$$req)) {
         return t.$$req;
     }
+
     let f = getFunc(t);
     return f && f.$argTypes && f.$argTypes[0];
 }
 
 function getResOfFunc(name: string, _g: LuaScope) {
     let t = getValueX(name, _g);
-    if (isObject(t) && t.$$res) {
+
+    if (isObject(t?.$$res)) {
         return t.$$res;
     }
+
     let v = callFunc(t);
     return isArray(v) ? v[0] : v;
 }

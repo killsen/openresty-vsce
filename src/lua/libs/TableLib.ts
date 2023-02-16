@@ -40,7 +40,7 @@ export function wrapArray(T: any) {
         name = "v";
     }
 
-    {return {
+    return {
         clear   : { doc: "清空数组", "()" : [   ], args: "()", },
         clone   : { doc: "克隆数组", "()" : [ T ], args: "()",  },
         concat  : { doc: "连接元素", "()" : [ S ], args: "(sep, start?, end?)", $args: [ S, N, N ] },
@@ -54,7 +54,7 @@ export function wrapArray(T: any) {
         remove  : { doc: "删除元素", "()" : [ I ], args: "(i?)", $args: [ N ] },
         sort    : { doc: "数组排序", "()" : [   ], args: "( function(t1, t2) ... end )", $args: [ F ] },
         foreachi: { doc: "数组遍历", "()" : [   ], args: "( function(i, v) ... end )"  , $args: [ F ],  },
-    };}
+    };
 
 }
 
