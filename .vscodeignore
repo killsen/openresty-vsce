@@ -6,6 +6,7 @@ _bk/
 node_modules/
 src/
 
+.luacheckrc
 .editorconfig
 .eslintrc.json
 .gitignore
