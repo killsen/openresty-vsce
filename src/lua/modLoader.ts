@@ -4,10 +4,11 @@ import * as lua from './index';
 import { LuaModule } from './types';
 import { NgxPath, getModCode, getModFile } from './ngx';
 import { loadBody } from './parser';
-import { getItem, parseComments } from './utils';
+import { getItem, parseComments, setItem } from './utils';
 import { getValue, setValue } from './scope';
 import { loadApiTypes } from './modApiTypes';
 import { dirname, basename } from "path";
+import { DBLib } from './libs/DbLib';
 
 /** 通过名称加载模块 */
 export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
@@ -22,6 +23,13 @@ export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
 
     const mod = loadModuleByCode(ctx, code, fileName);
     if (!mod) {return;}
+
+    // 注入 DBLib 函数
+    if (name === "%db") {
+        for (let k in DBLib) {
+            setItem(mod, [".", k, "()"], (DBLib as any)[k]);
+        }
+    }
 
     // -- @@api : openresty-vsce
     if (name === "api" || code.match(/^\s*--\s*@@\s*api/)) {

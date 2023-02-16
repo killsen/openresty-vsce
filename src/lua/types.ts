@@ -108,6 +108,7 @@ export interface LuaType {
     doc     ? : string;
     basic   ? : boolean;
     readonly  : boolean;
+    nilable ? : boolean;
 }
 
 const basic = true;
@@ -129,6 +130,7 @@ export const LuaNeverArray  = { type: "never[]", "[]": LuaNever, readonly };
 // 字符串类型
 export const LuaString       = { type: "string", basic, readonly };
 export const LuaStringArray  = { type: "string[]", "[]": LuaString, readonly };
+export const LuaStringOrNil  = { type: "string", basic, readonly, nilable: true };
 
 // 数字类型
 export const LuaNumber       = { type: "number", basic, readonly };
@@ -162,6 +164,7 @@ const LuaTypes: { [key: string] : LuaType } = {
     "any"               : LuaAny                    , "any[]"           : LuaAnyArray,
     "never"             : LuaNever                  , "never[]"         : LuaNeverArray,
     "string"            : LuaString                 , "string[]"        : LuaStringArray,
+    "string?"           : LuaStringOrNil,
     "number"            : LuaNumber                 , "number[]"        : LuaNumberArray,
     "boolean"           : LuaBoolean                , "boolean[]"       : LuaBooleanArray,
     "function"          : LuaFunction               , "function[]"      : LuaFunctionArray,

@@ -2,7 +2,7 @@
 dao
 
 ------------------------------------------------------------
-err                     -> string               -- 错误信息
+err                     -> string?              -- 错误信息
 ------------------------------------------------------------
 
 dao.table_name          -> string               -- 表名
@@ -26,19 +26,19 @@ dao.set  (where{data})  -> res, err             -- 改
 dao.get  (where)        -> row, err             -- 查询一条数据
 dao.list (where)        -> row[], err           -- 查询多条数据
 
-dao:add  (data)         -> res, err             -- 增
-dao:del  (where)        -> res, err             -- 删
-dao:set  (where{data})  -> res, err             -- 改
-dao:get  (where)        -> row[], err           -- 查询一条数据
-dao:list (where)        -> row[], err           -- 查询多条数据
+dao:add  (data)         -> sql                  -- 增
+dao:del  (where)        -> sql                  -- 删
+dao:set  (where{data})  -> sql                  -- 改
+dao:get  (where)        -> sqls                 -- 查询一条数据
+dao:list (where)        -> sqls                 -- 查询多条数据
 
 dao.create()            -> res, err             -- 创建表
 dao.drop()              -> res, err             -- 删除表
 dao.clear()             -> res, err             -- 清空表
 
-dao:create()            -> res, err             -- 创建表
-dao:drop()              -> res, err             -- 删除表
-dao:clear()             -> res, err             -- 清空表
+dao:create()            -> sql                  -- 创建表
+dao:drop()              -> sql                  -- 删除表
+dao:clear()             -> sql                  -- 清空表
 
 res                                             -- 数据库操作返回信息
 res.affected_rows       -> number               -- 影响的记录行数

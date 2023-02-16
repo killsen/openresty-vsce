@@ -7,7 +7,9 @@ import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
 import { NgxThreadLib } from './libs/NgxLib';
 import { LuaScope } from './scope';
+
 const readonly = true;
+const basic = true;
 
 /** 通过API文件加载接口声明 */
 export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
@@ -24,10 +26,29 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
     let daoDoc = "";
     if (dao) {
+        // 注入 dao 类型
         daoDoc = dao.doc;
-        let daoRow = { ".": dao.row, doc: "## $"+ dao.name +"\ndao 类型单行数据\n" + daoDoc, readonly };
-        _g["row"] = daoRow;
-        _g["row[]"] = { "[]": daoRow, doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + daoDoc, readonly };
+        _g["row"] = {
+            type: "$"+ dao.name,
+            "." : dao.row, readonly,
+            doc : "## $"+ dao.name +"\ndao 类型单行数据\n" + daoDoc,
+        };
+        _g["row[]"] = {
+            type: "$"+ dao.name + "[]",
+            "[]": _g["row"], readonly,
+            doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + daoDoc,
+        };
+        _g["sql"] = {
+            type: "string",
+            readonly, basic,
+            doc: "sql操作语句",
+        };
+        _g["sqls"] = {
+            type: "string",
+            readonly, basic,
+            $result: _g["row[]"],
+            doc: "sql查询语句",
+        };
     }
 
     function genNode(api: LuaApi) {
