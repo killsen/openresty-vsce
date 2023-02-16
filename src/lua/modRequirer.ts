@@ -186,7 +186,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         }
     } else if (name === "ngx") {
         for (let k in NgxThreadLib) {
-            setItem(t, [".", "thread", k, "()"], (NgxThreadLib as any)[k]);
+            setItem(t, [".", "thread", ".", k, "()"], (NgxThreadLib as any)[k]);
         }
     }
 
