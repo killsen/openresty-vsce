@@ -1,23 +1,29 @@
 
 import { LuaScope } from "../scope";
-import { LuaStringOrNil } from "../types";
+import { LuaBoolean, LuaNumber, LuaString, LuaStringOrNil } from "../types";
 import { isObject } from "../utils";
 import { loadType } from "../vtype";
 
-const _g: LuaScope = { $file: "", $local: {}, $scope: undefined };
-
 export const DBLib = {
+    execute : _execute,
+    query   : _query,
     mquery  : _mquery,
     trans   : _trans,
     tranx   : _tranx,
 };
 
-_mquery["$argTypes"] = [ loadType("map<string>", _g) ];
-_trans ["$argTypes"] = [ loadType("string | string[]", _g) ];
-_tranx ["$argTypes"] = [ loadType("string | string[]", _g) ];
+const _g: LuaScope = { $file: "", $local: {}, $scope: undefined };
+const AnyRows   = loadType("(string | number | boolean)[][]", _g);
+const MapString = loadType("map<string>", _g);
+const ArrString = loadType("string | string[]", _g);
+const readonly  = true;
+const basic     = true;
 
-const readonly = true;
-const basic = true;
+_mquery  ["$argTypes"] = [ MapString ];
+_trans   ["$argTypes"] = [ ArrString ];
+_tranx   ["$argTypes"] = [ ArrString ];
+_execute ["$argTypes"] = [ LuaString, LuaBoolean ];
+_query   ["$argTypes"] = [ LuaString ];
 
 const DbQueryResult = {
     type : "DbQueryResult",
@@ -38,26 +44,34 @@ const DbTransResult = {
     readonly,
     "." : {
         res      : DbQueryResult,
-        err      : { type: "string", readonly, basic, doc: "错误消息" },
+        err      : { type: "string", readonly, basic, doc: "错误消息", nilable: true },
         errcode  : { type: "number", readonly, basic, doc: "错误编码" },
         sqlstate : { type: "number", readonly, basic, doc: "服务器状态" },
     }
 };
 
+/** 执行语句 */
+function _execute(t: any, nrows?: any) {
+    let res = nrows ? AnyRows : t?.$result || DbQueryResult;
+    return [ res, LuaStringOrNil, LuaNumber, LuaNumber ];
+}
+function _query(t: any) {
+    return _execute(t);
+}
+
 /** 并行查询 */
 function _mquery(t: any) {
 
-    let ti = isObject(t) && isObject(t["."]) ? { ...t["."] } : {};
+    let ti = isObject(t) ? { ...t["."] } : {};
 
     for (let k in ti) {
         if (!k.startsWith("$")) {
             let v = ti[k];
-            ti[k] = isObject(v) && v["$result"] || DbQueryResult;
+            ti[k] = v?.$result || DbQueryResult;
         }
     }
 
     const res = { ...t, ".": ti };
-
     return [ res, LuaStringOrNil ];
 
 }
@@ -65,27 +79,42 @@ function _mquery(t: any) {
 /** 事务处理 */
 function _trans(t: any) {
 
-    let ti = isObject(t) && isObject(t["."]) ? t["."] : {};
+    let ti = isObject(t) ? t["."] : {};
     let ta = {} as any;
+
+    let docs = [] as string[];
+    docs.push("## DbTransResult[]");
+    docs.push("数据库事务处理结果");
+    docs.push("* [1] `{ res: DbQueryResult, err, errcode, sqlstate }` “begin;”");
+
+    ta[1] = DbTransResult;
 
     for (let k in ti) {
         let kn = Number(k);
         if (!isNaN(kn) && kn > 0) {
             let v = ti[k];
+            v = v?.$result || DbQueryResult;
+
+            let name = v?.type || "DbQueryResult";
+            docs.push("* [" + (kn+1) + "] `{ res: " + name + ", err, errcode, sqlstate }`");
+
             ta[kn+1] = {
                 ...DbTransResult,
                 "." : {
                     ...DbTransResult["."],
-                    res: isObject(v) && v["$result"] || DbQueryResult,
+                    res: v,
                 }
             };
 
         }
     }
 
+    docs.push("### DbQueryResult");
+    docs.push("{ affected_rows, insert_id, server_status, warning_count, message }");
+
     const res = {
-        type: "map<DbTransResult>",
-        doc: "## 数据库事务处理结果",
+        type: "DbTransResult[]",
+        doc: docs.join("\n\n"),
         readonly,
         ".": ta
     };
@@ -97,20 +126,35 @@ function _trans(t: any) {
 /** 事务处理 */
 function _tranx(t: any) {
 
-    let ti = isObject(t) && isObject(t["."]) ? t["."] : {};
+    let ti = isObject(t) ? t["."] : {};
     let ta = {} as any;
+
+    let docs = [] as string[];
+    docs.push("## DbQueryResult[]");
+    docs.push("数据库事务处理结果");
+    docs.push("* [1] `DbQueryResult` “begin;”");
+
+    ta[1] = DbQueryResult;
 
     for (let k in ti) {
         let kn = Number(k);
         if (!isNaN(kn) && kn > 0) {
             let v = ti[k];
-            ta[kn+1] = isObject(v) && v["$result"] || DbQueryResult;
+            v = v?.$result || DbQueryResult;
+
+            let name = v?.type || "DbQueryResult";
+            docs.push("* [" + (kn+1) + "] `" + name + "`");
+
+            ta[kn+1] = v;
         }
     }
 
+    docs.push("### DbQueryResult");
+    docs.push("{ affected_rows, insert_id, server_status, warning_count, message }");
+
     const res = {
-        type: "map<DbTransResult>",
-        doc: "## 数据库事务处理结果",
+        type: "DbQueryResult[]",
+        doc: docs.join("\n\n"),
         readonly,
         ".": ta
     };
