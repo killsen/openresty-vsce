@@ -1,5 +1,30 @@
 # 升级日志
 
+## v1.9.1
+
+* 新增 package 接口文档
+* 新增支持 ngx.thread.spaw, ngx.thread.wait 类型推导，演示代码如下：
+```lua
+
+local function test(ccc)
+    return {
+        aaa = 111,
+        bbb = 222,
+        ccc = ccc
+    }
+end
+
+local co = ngx.thread.spawn(test, 333)
+local ok, res = ngx.thread.wait(co)
+
+ngx.say(ok)
+ngx.say(res.aaa)  -- 输出 111
+ngx.say(res.bbb)  -- 输出 222
+ngx.say(res.ccc)  -- 输出 333
+ngx.say(res.ddd)  -- 成员字段 “ddd” 不存在或属性未定义
+
+```
+
 ## v1.8.9
 
 ### 类型声明新增支持联合类型及交叉类型, 演示代码如下:
