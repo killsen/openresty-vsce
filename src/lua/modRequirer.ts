@@ -1,15 +1,32 @@
 
 import { NgxPath, getApiFile } from './ngx';
 import { loadApiDoc } from './apiDoc';
-import { LuaModule, LuaDao, LuaApi, getLuaType } from './types';
+import { LuaModule, LuaDao, LuaApi, getBasicType } from './types';
 import { setDepend } from "./modCache";
 import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
-import { NgxThreadLib } from './libs/NgxLib';
+import { NgxThreadLib, NgxTimerLib } from './libs/NgxLib';
 import { LuaScope } from './scope';
+import { loadType } from './vtype';
 
 const readonly = true;
 const basic = true;
+
+/** 获取基本类型或复杂类型 */
+function getLuaType(typeName: string, _g: LuaScope) {
+
+    if (typeof typeName !== "string") { return; }
+
+    let t = getBasicType(typeName);
+    if (t) { return t; }
+
+    if (typeName.match(/(<.+>|{.+}|.+&.+|.+\|.+)/)) {
+        t = loadType(typeName, _g);
+        return t;
+    }
+
+}
+
 
 /** 通过API文件加载接口声明 */
 export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModule | undefined {
@@ -187,6 +204,9 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     } else if (name === "ngx") {
         for (let k in NgxThreadLib) {
             setItem(t, [".", "thread", ".", k, "()"], (NgxThreadLib as any)[k]);
+        }
+        for (let k in NgxTimerLib) {
+            setItem(t, [".", "timer", ".", k, "()"], (NgxTimerLib as any)[k]);
         }
     }
 

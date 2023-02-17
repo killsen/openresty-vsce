@@ -1,9 +1,20 @@
 
 import { Node } from 'luaparse';
 import { LuaScope } from '../scope';
-import { LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaString } from '../types';
+import { LuaAny, LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaObject, LuaString } from '../types';
 import { getItem, isObject } from "../utils";
 import { get_node_vtype } from '../vtype';
+
+_new    ["$args"] = [ LuaNumber, LuaNumber ];
+_clear  ["$args"] = [ LuaObject ];
+_clone  ["$args"] = [ LuaObject ];
+_concat ["$args"] = [ LuaAnyArray, LuaString, LuaNumber, LuaNumber ];
+_getn   ["$args"] = [ LuaObject ];
+_maxn   ["$args"] = [ LuaObject ];
+_nkeys  ["$args"] = [ LuaObject ];
+_move   ["$args"] = [ LuaObject, LuaNumber, LuaNumber, LuaNumber, LuaAny ];
+_remove ["$args"] = [ LuaObject, LuaNumber ];
+_unpack ["$args"] = [ LuaAnyArray, LuaNumber, LuaNumber ];
 
 export const TableLib = {
     new  : _new,

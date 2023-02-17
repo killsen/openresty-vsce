@@ -1,8 +1,20 @@
 
+import { Node } from 'luaparse';
 import { callFunc } from '../modFunc';
-import { LuaAny, LuaBoolean, LuaNil, LuaNumber, LuaString, LuaTable } from '../types';
+import { loadNode } from '../parser';
+import { LuaScope } from '../scope';
+import { LuaAny, LuaAnyArray, LuaBoolean, LuaFunction, LuaNil, LuaNumber, LuaObject, LuaString, LuaTable } from '../types';
 import { getItem, isArray, isObject, setItem } from "../utils";
+import { get_arg_vtype } from '../vtype';
 import { _unpack } from "./TableLib";
+
+_ipairs         ["$args"] = [ LuaAnyArray               ];
+_pairs          ["$args"] = [ LuaObject                 ];
+_xpcall         ["$args"] = [ LuaFunction               ];
+_setmetatable   ["$args"] = [ LuaObject, LuaObject      ];
+_getmetatable   ["$args"] = [ LuaObject                 ];
+_rawget         ["$args"] = [ LuaObject, LuaAny         ];
+_rawset         ["$args"] = [ LuaObject, LuaAny, LuaAny ];
 
 export const GlobalLib = {
     tonumber: _tonumber,
@@ -176,6 +188,19 @@ function _pcall(fun: any, ...args: any) {
     }
 
 }
+
+_pcall.$args = function (i: number, args: Node[] = [], _g: LuaScope) {
+
+    if (i === 0) {
+        return LuaFunction;
+    } else if (i > 0) {
+        let funt = loadNode(args[0], _g);   // 第 1 个参数为函数
+        let argt = args.slice(1);           // 去掉前 1 个参数
+        return get_arg_vtype(funt, i-1, argt, _g);
+    }
+
+};
+
 
 /** 执行函数 */
 function _xpcall(fun: any) {

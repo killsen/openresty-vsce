@@ -1,8 +1,6 @@
 
 import { CompletionItemKind } from "vscode";
-import { LuaScope } from "./scope";
 import { isObject } from "./utils";
-import { loadType } from "./vtype";
 
 export interface LuaLoc {
     start: {
@@ -123,6 +121,9 @@ export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
 LuaAny["."  ] = { "*": LuaAny };
 LuaAny["$mt"] = { __call : { "()" : [LuaAny] } };
 
+// 对象类型
+export const LuaObject      = { type: "table", ".": { "*": LuaAny }, basic, readonly };
+
 // 不存在类型
 export const LuaNever       = { type: "never", basic, readonly };
 export const LuaNeverArray  = { type: "never[]", "[]": LuaNever, readonly };
@@ -194,21 +195,6 @@ const LuaTypes: { [key: string] : LuaType } = {
     "map<ctype[]>"      : { type: "map<ctype[]>"    , ".": { "*": LuaCTypeArray     }, readonly },
     "map<cdata[]>"      : { type: "map<cdata[]>"    , ".": { "*": LuaCDataArray     }, readonly },
 };
-
-/** 获取基本类型或复杂类型 */
-export function getLuaType(typeName: string, _g: LuaScope) {
-
-    if (typeof typeName !== "string") { return; }
-
-    let t = getBasicType(typeName);
-    if (t) { return t; }
-
-    if (typeName.match(/(<.+>|{.+}|.+&.+|.+\|.+)/)) {
-        t = loadType(typeName, _g);
-        return t;
-    }
-
-}
 
 /** 获取基本类型 */
 export function getBasicType(typeName: string) {
