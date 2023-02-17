@@ -29,7 +29,7 @@ ngx_thread_spawn.$args = function(i: number, args: Node[] = [], _g: LuaScope) {
         let funt = loadNode(args[0], _g);
         args = [...args];
         args.shift();
-        return get_arg_vtype(funt, args, i-1, _g);
+        return get_arg_vtype(funt, i-1, args, _g);
     }
 
 };
