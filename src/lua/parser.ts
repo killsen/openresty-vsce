@@ -4,7 +4,7 @@ import { getBasicType, getLuaTypeName, LuaAny, LuaModule, LuaNumber, LuaString }
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
-import { addLint, check_vtype, get_vtype, get_vtype_inline, loadType, set_vtype } from './vtype';
+import { addLint, check_vtype, get_node_vtype, get_vtype_inline, loadType, set_arg_vtype } from './vtype';
 import { wrapArray, _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -103,7 +103,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // -- @t : @MyType  //自定义类型
         // local t = { k=v, { k=v } }
-        const vtypes = node.variables.map(n => get_vtype(n, _g));
+        const vtypes = node.variables.map(n => get_node_vtype(n, _g));
         node.init.forEach((n, i) => {
             if (n.type === "TableConstructorExpression") {
                 n.vtype = i === 0 && vtypeInLine || vtypes[i];  //关联类型
@@ -509,7 +509,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     setArgsCall(funt, i, _g);
                 }
 
-                set_vtype(funt, arg, _g, node.arguments, i);  // 形参类型
+                set_arg_vtype(funt, arg, _g, node.arguments, i);  // 形参类型
 
                 let t = loadNode(arg, _g);
                 if (t instanceof Array) {
@@ -534,7 +534,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let funt = loadNode(node.base, _g);
 
             let n = node.argument;
-            set_vtype(funt, n, _g);  // 形参类型
+            set_arg_vtype(funt, n, _g);  // 形参类型
 
             let argt = loadNode(n, _g);
             check_vtype(n.vtype, argt, n, _g);  // 比较实参与形参类型
@@ -548,7 +548,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             if (!funt) {return;}
 
             let n = node.arguments;
-            set_vtype(funt, n, _g);  // 形参类型
+            set_arg_vtype(funt, n, _g);  // 形参类型
 
             let args = loadNode(n, _g);
             check_vtype(n.vtype, args, n, _g);  // 比较实参与形参类型

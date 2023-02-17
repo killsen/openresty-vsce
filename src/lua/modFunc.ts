@@ -170,18 +170,15 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     }
 
     // 参数类型定义
-    myFunc.$argTypes = new Proxy({}, {
-        get(target, prop) {
-            let i = Number(prop) as number;
-            let p = node.parameters[i];
-            if (p?.type === "Identifier") {
-                let typeName = types && types[p.name];
-                if (typeName) {
-                    return loadType(typeName, _g);
-                }
+    myFunc.$args = function (i: number) {
+        let p = node.parameters[i];
+        if (p?.type === "Identifier") {
+            let typeName = types && types[p.name];
+            if (typeName) {
+                return loadType(typeName, _g);
             }
         }
-    });
+    };
 
     return myFunc;
 

@@ -1,6 +1,9 @@
 
-import { LuaFunction, LuaNumber, LuaString } from '../types';
+import { Node } from 'luaparse';
+import { LuaScope } from '../scope';
+import { LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaString } from '../types';
 import { getItem, isObject } from "../utils";
+import { get_node_vtype } from '../vtype';
 
 export const TableLib = {
     new  : _new,
@@ -245,6 +248,26 @@ function _insert (t: any, pos?: number, value?: any) {
     delete ti['$'+pos+'$'];
 
 }
+
+_insert.$args = function (i: number, args: Node[] = [], _g: LuaScope) {
+
+    if (i === 0) {
+        return LuaAnyArray;
+
+    } else if (args.length > 2 && i === 1) {
+        return LuaNumber;
+
+    } else if ((args.length === 2 && i === 1) || (args.length > 2 && i === 2)) {
+        let vtype = get_node_vtype(args[0], _g);
+        if (vtype && vtype["[]"]) {
+            return vtype["[]"];
+        }
+
+    } else {
+        return LuaNever;
+    }
+
+};
 
 // 返回元素
 export function _unpack(t: any, i?: number, j?: number) {

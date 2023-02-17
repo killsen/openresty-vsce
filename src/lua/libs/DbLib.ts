@@ -19,11 +19,11 @@ const ArrString = loadType("string | string[]", _g);
 const readonly  = true;
 const basic     = true;
 
-_mquery  ["$argTypes"] = [ MapString ];
-_trans   ["$argTypes"] = [ ArrString ];
-_tranx   ["$argTypes"] = [ ArrString ];
-_execute ["$argTypes"] = [ LuaString, LuaBoolean ];
-_query   ["$argTypes"] = [ LuaString ];
+_mquery  ["$args"] = [ MapString ];
+_trans   ["$args"] = [ ArrString ];
+_tranx   ["$args"] = [ ArrString ];
+_execute ["$args"] = [ LuaString, LuaBoolean ];
+_query   ["$args"] = [ LuaString ];
 
 const DbQueryResult = {
     type : "DbQueryResult",

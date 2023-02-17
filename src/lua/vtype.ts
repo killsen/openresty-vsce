@@ -20,16 +20,8 @@ function getValueX(name: string, _g: LuaScope) {
 }
 
 function getReqOfFunc(name: string, _g: LuaScope) {
-    let t = getValueX(name, _g);
-
-    if (isArray(t?.$args)) {
-        return t.$args[0];
-    } else if (isObject(t?.$$req)) {
-        return t.$$req;
-    }
-
-    let f = getFunc(t);
-    return f && f.$argTypes && f.$argTypes[0];
+    const funt = getValueX(name, _g);
+    return get_arg_vtype(funt, 0, [], _g);
 }
 
 function getResOfFunc(name: string, _g: LuaScope) {
@@ -650,7 +642,7 @@ export function get_vtype_inline(n: Node, _g: LuaScope): any {
 }
 
 // 获取参数类型
-export function get_vtype(n: Node, _g: LuaScope) {
+export function get_node_vtype(n: Node, _g: LuaScope) {
 
     let vtype : any;
 
@@ -711,72 +703,67 @@ const $dao_ext = {
 };
 
 // 设置形参类型
-export function set_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [], i = 0) {
+export function set_arg_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [], i = 0) {
+
+    if (typeof funt !== "object") { return; }
+
+    const isTable = arg.type === "TableConstructorExpression";
+
+    let vt = get_arg_vtype(funt, i, args, _g);
+    arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
+
+}
+
+// 获取形参类型
+export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope) : any {
 
     if (typeof funt !== "object") {return;}
 
-    const isTable = arg.type === "TableConstructorExpression";
-    // if (arg.type !== "TableConstructorExpression") {return;}
+    if (isObject(funt.$$req)) {
+        if (i !== 0) {return;}
+        return funt.$$req;
 
-    // table.insert( arr, {} )  根据第一个参数 arr 的类型推导最后一个参数的类型
-    if (funt.doc?.startsWith("table.insert") && args.length >= 2 && i === args.length-1) {
-        let vtype = get_vtype(args[0], _g);
-        if (vtype && vtype["[]"]) {
-            let vt = vtype["[]"];
-            arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
-            return;
-        }
-    }
+    } else if (isObject(funt.$dao?.row)) {
+        if (i !== 0) {return;}
 
-    if (i===0 && isObject(funt.$$req)) {
-        // api 请求参数字段
-        let vt = funt.$$req;
-        arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
-
-    } else if (i===0 && isObject(funt.$dao) && isObject(funt.$dao.row)) {
         // dao 对象参数字段
         const row = funt.$dao.row;
-        const doc = funt.doc || "" as string;
+        const doc: string = typeof funt.doc === "string" ? funt.doc : "";
 
         if (/dao[:.](get|list)/g.test(doc)) {
-            arg.vtype = {
+            return {
                 ["." ] : { ...row, ...$dao_ext },
                 ["[]"] : { ".": {} },
             };
         }else if (/dao[:.](add|set)/g.test(doc)) {
-            arg.vtype = {
+            return {
                 ["." ] : row,
                 ["[]"] : { ".": row },
             };
         } else {
-            arg.vtype = {
+            return {
                 ["." ] : row,
                 ["[]"] : { ".": {} },
             };
         }
 
-    } else if (isArray(funt.$args)) {
-        let vt = funt.$args[i];
-        arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
+    }
 
-    } else {
-        // 自定义类型参数字段
-        let func = getItem(funt, ["()"]);
-        if (func) {
-            if (func.$argTypes) {
-                let vt = func.$argTypes[i];
-                arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
-            }
-            return;
-        }
+    const func  = funt["()"];
+    const $args = func?.$args || funt.$args;
 
+    if (typeof $args === "function") {
+        return $args(i, args, _g);
+    } else if (typeof $args === "object") {
+        return $args[i];
+    }
+
+    if (!func) {
         // 元表 __call 方法
-        func = getItem(funt, ["$$mt", ".", "__call", "()"]);
-        if (func) {
-            if (func.$argTypes) {
-                let vt = func.$argTypes[i+1];  //参数向后位移一位哦！！
-                arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
-            }
+        const _call = getItem(funt, ["$$mt", ".", "__call"]);
+        if (_call) {
+            //参数向后位移一位哦！！
+            return get_arg_vtype(_call, i+1, args, _g);
         }
     }
 
