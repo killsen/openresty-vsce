@@ -1,11 +1,32 @@
 
-import { LuaBoolean, LuaFunction } from '../types';
+import { LuaBoolean, LuaFunction, LuaNumber, LuaStringOrNil } from '../types';
 import { isArray, isObject } from "../utils";
 import { callFunc } from '../modFunc';
 import { LuaScope } from '../scope';
 import { Node } from 'luaparse';
 import { loadNode } from '../parser';
 import { get_arg_vtype } from '../vtype';
+
+const NgxTimerRes = [ LuaNumber, LuaStringOrNil ] as any;
+
+NgxTimerRes.$args = function(i: number, args: Node[] = [], _g: LuaScope) {
+
+    if (i === 0) {
+        return LuaNumber;
+    } else if (i === 1) {
+        return LuaFunction;
+    } else if (i > 1) {
+        let funt = loadNode(args[1], _g);   // 第 2 个参数为函数
+        let argx = args.slice(2);           // 去掉前 2 个参数
+        return get_arg_vtype(funt, i-2, argx, _g);
+    }
+
+};
+
+export const NgxTimerLib = {
+    at      : NgxTimerRes,
+    every   : NgxTimerRes,
+};
 
 export const NgxThreadLib = {
     spawn  : ngx_thread_spawn,
@@ -21,15 +42,15 @@ function ngx_thread_spawn(funt: any, ...args: any[]) {
         result: isArray(res) ? res : [res]
     };
 }
+
 ngx_thread_spawn.$args = function(i: number, args: Node[] = [], _g: LuaScope) {
 
     if (i === 0) {
         return LuaFunction;
     } else if (i > 0) {
-        let funt = loadNode(args[0], _g);
-        args = [...args];
-        args.shift();
-        return get_arg_vtype(funt, i-1, args, _g);
+        let funt = loadNode(args[0], _g);   // 第 1 个参数为函数
+        let argx = args.slice(1);           // 去掉前 1 个参数
+        return get_arg_vtype(funt, i-1, argx, _g);
     }
 
 };
