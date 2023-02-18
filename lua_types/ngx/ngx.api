@@ -72,6 +72,8 @@ ngx.header          -> map<string | string[]>
 ngx.resp            -- ngx.resp.get_headers
 ngx.resp.get_headers(max_headers=100?, raw=false?)  -> map<string>
 
+UriArgs -> (map<string | boolean | number | (string | boolean | number)[]>) & never[]
+
 ngx.req
 ngx.req.is_internal()                               -> boolean
 ngx.req.start_time()                                -> number
@@ -80,11 +82,11 @@ ngx.req.raw_header(no_request_line=false?)          -> string
 ngx.req.get_method()                                -> string
 ngx.req.set_method(method_id: number)
 ngx.req.set_uri(uri: string, jump=false?)
-ngx.req.set_uri_args(args: string | map<string>)
-ngx.req.get_uri_args(max_args=100?)                 -> map<string>
-ngx.req.get_post_args(max_args=100?)                -> map<string>
-ngx.req.get_headers(max_headers=100?, raw=false?)   -> map<string>
-ngx.req.set_header(name: string, value: string)
+ngx.req.set_uri_args(args: string | UriArgs)
+ngx.req.get_uri_args(max_args=100?)                 -> DecodeArgs
+ngx.req.get_post_args(max_args=100?)                -> DecodeArgs
+ngx.req.get_headers(max_headers=100?, raw=false?)   -> map<string | string[]>
+ngx.req.set_header(name: string, value: string | string[])
 ngx.req.clear_header(name: string)
 ngx.req.read_body()
 ngx.req.discard_body()
