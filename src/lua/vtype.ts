@@ -43,7 +43,7 @@ const PairMap : { [key: string]: string} = {
 };
 
 // 预解析: (小括号) {花括号}
-function parseTypes(name: string, _map: Map<string, string>) {
+export function parseTypes(name: string, _map: Map<string, string>) {
 
     name = name.trim();
 

@@ -7,40 +7,41 @@ import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
 import { NgxThreadLib, NgxTimerLib } from './libs/NgxLib';
 import { LuaScope } from './scope';
-import { loadType } from './vtype';
+import { loadType, parseTypes } from './vtype';
 
 const readonly = true;
 const basic = true;
 
-/** 获取基本类型或复杂类型 */
-function genValue(name: string, _g: LuaScope): any {
+/** 获取单个返回值类型 */
+function genValue(args: string, _g: LuaScope, loc: LuaApi["loc"]): any {
 
-    name = name.replace(/\s/g, "");
-    if (!name) { return; }
-
-    let vt = getBasicType(name);
+    let vt = getBasicType(args) || _g[args];
     if (vt) { return vt; }
 
-    vt = _g[name];
-    if (vt) { return vt; }
+    let arr = genArgs(args, _g, loc, true);
+    vt = arr[0];
 
-    if (name.match(/(<.+>|{.+}|.+&.+|.+\|.+|.+\[.*\])/)) {
-        vt = loadType(name, _g);
+    if (isObject(vt) && vt.type !== "never") {
         return vt;
     }
 
 }
 
-function genArgs(args: string, _g: LuaScope): any[] {
+/** 获取参数类型或者返回值类型 */
+function genArgs(args: string, _g: LuaScope, loc: LuaApi["loc"], isRes = false): any[] {
 
+    // 去除空格及左右两边的小括号()
     args = args.replace(/\s/g, "");
-    if (!args || args === "()") { return []; }
+    if (args.startsWith("(") && args.endsWith(")")) {
+        args = args.substring(1, args.length-1);
+    }
+    if (!args) { return []; }
 
-    if (!args.startsWith("(") || !args.endsWith(")")) { return []; }
-    args = args.substring(1, args.length-1);
+    const _map = new Map<string, string>();
+    args = parseTypes(args, _map);
 
     return args.split(",").map(arg => {
-        let type = "any";
+        let type = "";
 
         let vt = getBasicType(arg) ||
                  getBasicType(arg.replace("?", ""));
@@ -50,19 +51,28 @@ function genArgs(args: string, _g: LuaScope): any[] {
             type = "...";
         } else if (arg.includes(":")) {
             let idx = arg.indexOf(":");
-            type = arg.substring(idx+1, arg.length) || "any";
+            type = arg.substring(idx+1, arg.length);
         } else if (arg.includes("=")) {
             let arr = arg.split("=");
-            type = arr[1] || "any";
+            type = arr[1].replace("?", "");
+        } else if (isRes) {
+            type = arg;  // 返回值类型
         }
 
-        if (type === "true" || type === "fasle") {
+        if (type === "true" || type === "false") {
             type = "boolean";
         } else if (type && !isNaN(Number(type))) {
             type = "number";
         }
 
-        return type && genValue(type, _g) || LuaAny;
+        if (!type) { return LuaAny; }
+
+        vt = getBasicType(type) || _g[type];
+        if (vt) { return vt; }
+
+        vt = loadType(type, _g, loc, _map);
+        return vt || LuaAny;
+
     });
 }
 
@@ -171,13 +181,12 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         p.readonly = true;
 
         if (api.args) {
-            let arr = api.res.split(",");
-            p["()"] = arr.map( s => genValue(s, _g) );
-            p.args = api.args;
-            p.$args = genArgs(p.args, _g);
-            p.doc = api.doc + daoDoc;
+            p["()"] = genArgs(api.res , _g, p.$loc, true );  // 返回值类型
+            p.$args = genArgs(api.args, _g, p.$loc, false);  // 参数类型
+            p.args  = api.args;
+            p.doc   = api.doc + daoDoc;
             p.$file = api.file;
-            p.$loc = api.loc;
+            p.$loc  = api.loc;
 
             if (p.args && p.args !== "()" && dao) {
                 p.$dao = dao; // 用于 dao 补全
@@ -196,7 +205,8 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
                 }
             }
 
-            const t1 = genValue(api.res, _g);
+            // 获取单个返回值类型
+            const t1 = genValue(api.res, _g, api.loc);
             if (isObject(t1)) {
                 const t2 = p as any;
                 for (let k in t1) {
