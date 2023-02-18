@@ -18,7 +18,7 @@ NgxTimerRes.$args = function(i: number, args: Node[] = [], _g: LuaScope) {
     } else if (i > 1) {
         let funt = loadNode(args[1], _g);   // 第 2 个参数为函数
         let argx = args.slice(2);           // 去掉前 2 个参数
-        return get_arg_vtype(funt, i-2, argx, _g);
+        return get_arg_vtype(funt, i-2+1, argx, _g);
     }
 
 };
