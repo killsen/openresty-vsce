@@ -1,5 +1,29 @@
 # 升级日志
 
+## v1.9.2
+
+* ngx, ndk, table, string, math, package 内置库接口新增参数类型声明
+* 新增支持 ngx.timer.at, ngx.timer.every 参数类型推导，演示代码如下：
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+local function test(premature, user_arg1, user_arg2)
+-- @premature : boolean
+-- @user_arg1 : number
+-- @user_arg2 : string
+    ngx.log(ngx.ERR, "premature", premature)
+    ngx.log(ngx.ERR, "user_arg1", user_arg1)
+    ngx.log(ngx.ERR, "user_arg2", user_arg2)
+end
+
+local user_arg1 = 123
+local user_arg2 = 456
+
+ngx.timer.at(0, test, user_arg1, user_arg2)
+-- user_arg2 参数类型错误: 不能将类型 “number” 分配给类型 “string”
+
+```
+
 ## v1.9.1
 
 * 新增 package 接口文档
