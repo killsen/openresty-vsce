@@ -3,19 +3,19 @@ ndk
 
 ndk.set_var
 
-ndk.set_var.set_quote_sql_str(str)          -> string
-ndk.set_var.set_quote_pgsql_str(str)        -> string
-ndk.set_var.set_quote_json_str(str)         -> string
-ndk.set_var.set_unescape_uri(str)           -> string
-ndk.set_var.set_escape_uri(str)             -> string
-ndk.set_var.set_encode_base32(str)          -> string
-ndk.set_var.set_decode_base32(str)          -> string
-ndk.set_var.set_encode_base64(str)          -> string
-ndk.set_var.set_decode_base64(str)          -> string
-ndk.set_var.set_encode_hex(str)             -> string
-ndk.set_var.set_decode_hex(str)             -> string
-ndk.set_var.set_sha1(str)                   -> string
-ndk.set_var.set_md5(str)                    -> string
+ndk.set_var.set_quote_sql_str(str: string)          -> string
+ndk.set_var.set_quote_pgsql_str(str: string)        -> string
+ndk.set_var.set_quote_json_str(str: string)         -> string
+ndk.set_var.set_unescape_uri(str: string)           -> string
+ndk.set_var.set_escape_uri(str: string)             -> string
+ndk.set_var.set_encode_base32(str: string)          -> string
+ndk.set_var.set_decode_base32(str: string)          -> string
+ndk.set_var.set_encode_base64(str: string)          -> string
+ndk.set_var.set_decode_base64(str: string)          -> string
+ndk.set_var.set_encode_hex(str: string)             -> string
+ndk.set_var.set_decode_hex(str: string)             -> string
+ndk.set_var.set_sha1(str: string)                   -> string
+ndk.set_var.set_md5(str: string)                    -> string
 
-ndk.set_var.set_encrypt_session(str)        -> string
-ndk.set_var.set_decrypt_session(str)        -> string
+ndk.set_var.set_encrypt_session(str: string)        -> string
+ndk.set_var.set_decrypt_session(str: string)        -> string
