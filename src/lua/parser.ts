@@ -640,42 +640,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
         case "IndexExpression": {
             let k = loadNode(node.index, _g);
             let t = loadNode(node.base, _g);
-
-            // 返回的可能是数组
-            if (isArray(k)) { k = k[0]; }
-            if (isArray(t)) { t = t[0]; }
-
-            if (!isObject(t)) {return;}
-
-            if ("[]" in t) {
-                return t["[]"];  // 数组元素
-            }
-
-            if (typeof k === "number") {
-                k = String(k);
-            }
-
-            let ti = getItem(t, ["."]);
-            if (isObject(ti)) {
-                if (typeof k === "string" && k in ti) {return ti[k];}
-                if ("*" in ti) {return ti["*"];}
-            }
-
-            let mt = getItem(t, ["$$mt", ".", "__index", "."]);
-            if (isObject(mt)) {
-                if (typeof k === "string" && k in mt) {return mt[k];}
-                if ("*" in mt) {return mt["*"];}
-            } else {
-                // __index 元方法
-                let __index = getItem(t, ["$$mt", ".", "__index", "()"]);
-                if (typeof __index === "function") {
-                    let r = __index(t, k);
-                    if (r instanceof Array) { r = r[0]; }
-                    return r;
-                }
-            }
-
-        } break;
+            return getIndex(t, k, _g);
+        }
 
         // 成员变量表达式 table.key | table:key
         case "MemberExpression": {
@@ -848,6 +814,51 @@ export function loadNode(node: Node, _g: LuaScope): any {
         default: // 默认返回
             return;
     }
+
+}
+
+function getIndex(t: any, k: any, _g: LuaScope) {
+
+    // 返回的可能是数组
+    if (isArray(k)) { k = k[0]; }
+    if (isArray(t)) { t = t[0]; }
+
+    if (!isObject(t)) {return;}
+
+    let vkey = getItem(t, [".", String(k)]);
+    if (vkey !== undefined) { return vkey; }
+
+    let varr = getItem(t, ["[]"]);        // 数组元素
+    let vmap = getItem(t, [".", "*"]);
+    let type = getLuaTypeName(k);
+
+    if (type === "number" && varr) {
+        return varr;
+    } else if (type === "string" && vmap) {
+        return vmap;
+    } else if (varr || vmap) {
+        return varr || vmap;
+    }
+
+    let mt = getItem(t, ["$$mt", ".", "__index"]);
+    if (isObject(mt)) {
+        varr = getItem(mt, ["[]"]);        // 数组元素
+        vmap = getItem(mt, [".", "*"]);
+
+        if (type === "number" && varr) {
+            return varr;
+        } else if (type === "string" && vmap) {
+            return vmap;
+        } else if (varr || vmap) {
+            return varr || vmap;
+        }
+
+        // __index 元方法
+        let r = callFunc(mt, t, k);
+        if (r instanceof Array) { r = r[0]; }
+        return r;
+    }
+
 
 }
 
