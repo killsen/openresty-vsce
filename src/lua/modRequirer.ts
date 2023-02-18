@@ -1,7 +1,7 @@
 
 import { NgxPath, getApiFile } from './ngx';
 import { loadApiDoc } from './apiDoc';
-import { LuaModule, LuaDao, LuaApi, getBasicType } from './types';
+import { LuaModule, LuaDao, LuaApi, getBasicType, LuaAny } from './types';
 import { setDepend } from "./modCache";
 import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
@@ -13,18 +13,57 @@ const readonly = true;
 const basic = true;
 
 /** 获取基本类型或复杂类型 */
-function getLuaType(typeName: string, _g: LuaScope) {
+function genValue(name: string, _g: LuaScope): any {
 
-    if (typeof typeName !== "string") { return; }
+    name = name.replace(/\s/g, "");
+    if (!name) { return; }
 
-    let t = getBasicType(typeName);
-    if (t) { return t; }
+    let vt = getBasicType(name);
+    if (vt) { return vt; }
 
-    if (typeName.match(/(<.+>|{.+}|.+&.+|.+\|.+)/)) {
-        t = loadType(typeName, _g);
-        return t;
+    vt = _g[name];
+    if (vt) { return vt; }
+
+    if (name.match(/(<.+>|{.+}|.+&.+|.+\|.+|.+\[.*\])/)) {
+        vt = loadType(name, _g);
+        return vt;
     }
 
+}
+
+function genArgs(args: string, _g: LuaScope): any[] {
+
+    args = args.replace(/\s/g, "");
+    if (!args || args === "()") { return []; }
+
+    if (!args.startsWith("(") || !args.endsWith(")")) { return []; }
+    args = args.substring(1, args.length-1);
+
+    return args.split(",").map(arg => {
+        let type = "any";
+
+        let vt = getBasicType(arg) ||
+                 getBasicType(arg.replace("?", ""));
+        if (vt) {return vt;}
+
+        if (arg === "...") {
+            type = "...";
+        } else if (arg.includes(":")) {
+            let idx = arg.indexOf(":");
+            type = arg.substring(idx+1, arg.length) || "any";
+        } else if (arg.includes("=")) {
+            let arr = arg.split("=");
+            type = arr[1] || "any";
+        }
+
+        if (type === "true" || type === "fasle") {
+            type = "boolean";
+        } else if (type && !isNaN(Number(type))) {
+            type = "number";
+        }
+
+        return type && genValue(type, _g) || LuaAny;
+    });
 }
 
 
@@ -123,29 +162,6 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         genNode(api);
     });
 
-    function genValue(name: string) {
-        if (!name) {return;}
-        name = name.replace(/\s/g, "");
-
-        const typeName = name;  // 原始名称
-
-        let m = _g[name];
-        if (m) { return m; }
-
-        let isArr = name.endsWith("[]");
-        if (isArr) {
-            name = name.substring(0, name.length-2);
-        }
-
-        m = _g[name];
-        if (m) {
-            return isArr ? { "[]": m, doc: m.doc } : m;
-        } else {
-            return getLuaType(typeName, _g);
-        }
-
-    }
-
     apis.forEach(api => {
         if (api.name === "require") { return; }
 
@@ -156,8 +172,9 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
         if (api.args) {
             let arr = api.res.split(",");
-            p["()"] = arr.map(genValue);
+            p["()"] = arr.map( s => genValue(s, _g) );
             p.args = api.args;
+            p.$args = genArgs(p.args, _g);
             p.doc = api.doc + daoDoc;
             p.$file = api.file;
             p.$loc = api.loc;
@@ -179,7 +196,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
                 }
             }
 
-            const t1 = genValue(api.res);
+            const t1 = genValue(api.res, _g);
             if (isObject(t1)) {
                 const t2 = p as any;
                 for (let k in t1) {
@@ -197,7 +214,10 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     const t = name === "_G" ? { "." : _g } : _g[requireName];
     if (!t) { return; }
 
-    if (name === "table") {
+    if (name === "string") {
+        setItem(t, [".", "$string"], _g["str"]);
+
+    } else if (name === "table") {
         for (let k in TableLib) {
             setItem(t, [".", k, "()"], (TableLib as any)[k]);
         }

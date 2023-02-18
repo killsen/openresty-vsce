@@ -25,6 +25,7 @@ export interface LuaModule {
     "()"?: LuaValue[] | Function;
     "[]"?: LuaModule;
     args?: string;
+    $args?: any;
     doc?: string;
     type?: string;
     text?: string;
@@ -115,6 +116,8 @@ const readonly = true;
 export const LuaNil  = null;
 export const LuaNull = null;
 
+export const LuaVarArgs = { type: "...", basic, readonly, nilable: true };
+
 // 任意类型
 export const LuaAny       = { type: "any", basic, readonly, ".": {}, "$mt": {} };
 export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
@@ -162,6 +165,7 @@ export const LuaCType       = { type: "ctype", "()": [LuaCData], basic, readonly
 export const LuaCTypeArray  = { type: "ctype[]", "[]": LuaCType, readonly };
 
 const LuaTypes: { [key: string] : LuaType } = {
+    "..."               : LuaVarArgs,
     "any"               : LuaAny                    , "any[]"           : LuaAnyArray,
     "never"             : LuaNever                  , "never[]"         : LuaNeverArray,
     "string"            : LuaString                 , "string[]"        : LuaStringArray,

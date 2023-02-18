@@ -1,6 +1,6 @@
 import { Comment, Node } from "luaparse";
 import { Diagnostic, Position, Range } from "vscode";
-import { callFunc, getFunc } from "./modFunc";
+import { callFunc } from "./modFunc";
 import { loadNode } from "./parser";
 import { getValue, LuaScope, setChild } from "./scope";
 import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaModule, LuaNever, LuaNumber, LuaString, LuaTable, LuaType } from "./types";
@@ -550,8 +550,8 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
     let lints = getValue(_g, "$$lints");
     if(!lints) {return;}
 
-    if (!isObject(v1) || !v1.type) { return; }
-    if (v1?.type === v2?.type) {return;}
+    if (!isObject(v1) || (!v1.readonly && !v1.type)) { return; }
+    if (v1?.type && v2?.type && v1?.type === v2?.type) {return;}
 
     let vt1 = getLuaTypeName(v1);
     if (vt1 === "any") {return;}
@@ -755,7 +755,17 @@ export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope)
     if (typeof $args === "function") {
         return $args(i, args, _g);
     } else if (typeof $args === "object") {
-        return $args[i];
+        let vt = $args[i];
+        if (vt && vt.type !== "...") { return vt; }
+
+        let size = $args.length;
+        if (typeof size === "number") {
+            vt = $args[size - 1];
+            if (vt && vt.type === "...") {
+                vt = $args[size - 2];
+                if (vt && vt.type !== "...") { return vt; }
+            }
+        }
     }
 
     if (!func) {

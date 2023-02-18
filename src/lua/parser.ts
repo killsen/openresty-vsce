@@ -125,6 +125,16 @@ export function loadNode(node: Node, _g: LuaScope): any {
             }
         });
 
+        let lastV = res[res.length - 1];
+        if (lastV && lastV.type === "...") {
+            let v = res[res.length - 2];
+            if (v && v.type !== "...") {
+                for (let i = res.length - 1; i < node.variables.length; i++) {
+                    res[i] = v;
+                }
+            }
+        }
+
         // 待赋值的变量名（可能多个）
         node.variables.forEach((n, i) => {
             const v = i === 0 && vtypeInLine || res[i];
@@ -748,13 +758,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                 } else if (f.type === "TableValue") {
                     vtype = vtypeInLine ||
+                            getItem(node.vtype, [".", String(i)]) ||
                             getItem(node.vtype, ["[]"]) ||
                             getItem(node.vtype, [".", "*"]);
                 }
 
                 // 传递成员类型
-                if (f.value.type === "TableConstructorExpression") {
-                    f.value.vtype = vtype;
+                if (vtype && f.value.type === "TableConstructorExpression") {
+                    f.value.vtype = vtype.vtype ? vtype.vtype : vtype;
                 }
 
                 switch (f.type) {

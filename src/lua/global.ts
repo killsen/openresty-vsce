@@ -2,7 +2,7 @@
 import * as lua from './index';
 import { NgxPath } from "./ngx";
 import { LuaScope, newScope, setValue } from "./scope";
-import { getItem, isArray, isObject, setItem } from "./utils";
+import { getItem, isObject, setItem } from "./utils";
 import { LuaTable } from "./types";
 import { _unpack } from "./libs/TableLib";
 import { GlobalLib } from "./libs/GlobalLib";
@@ -71,12 +71,13 @@ function loadGlobal(ctx: NgxPath) {
     });
 
     // 注入字符串类型
-    let res = getItem(_G, ["string", ".", "upper", "()"]);
-    if (isArray(res) && isObject(res[0])) {
-        res[0]["type"] = "string";
-        res[0]["readonly"] = true;
-        res[0]["."] = {};
-        _G["@string"] = res[0];
+    let str = getItem(_G, ["string", ".", "$string"]);
+    if (isObject(str)) {
+        str["type"] = "string";
+        str["readonly"] = true;
+        str["basic"] = true;
+        str["."] = {};
+        _G["@string"] = str;
     }
 
     return _G;
