@@ -3,7 +3,7 @@ ngx
 
 ------------------------------------------------------------
 ok                          -> boolean
-err                         -> string
+err                         -> string?
 ------------------------------------------------------------
 
 ngx.null
@@ -42,14 +42,29 @@ ngx.var.request_method      -> string
 ngx.var.request_filename    -> string
 ngx.var.cookie_openid       -> string
 
-ngx.location
-ngx.location.capture(url)                   -> cap
-ngx.location.capture_multi({url}, {url})    -> cap, cap, cap, ...
+CaptureOpt                      -- Nginx子请求选项
+CaptureOpt.method               -> number                   -- 指定子请求的请求方法, 只接受类似 ngx.HTTP_POST 的常量。
+CaptureOpt.body                 -> string                   -- 指定子请求的请求体 (仅接受字符串值)。
+CaptureOpt.args                 -> string | map<string>     -- 指定子请求的 URI 请求参数 (可以是字符串或者 Lua 表)。
+CaptureOpt.ctx                  -> map<any>                 -- 指定一个 Lua 表作为子请求的 ngx.ctx 表，可以是当前请求的 ngx.ctx 表。这种方式可以让父请求和子请求共享完全相同的上下文环境。此选项最早出现在版本 v0.3.1rc25 中。
+CaptureOpt.vars                 -> map<string>              -- 用一个 Lua 表设置子请求中的 Nginx 变量值。此选项最早出现在版本 v0.3.1rc31 中。
+CaptureOpt.copy_all_vars        -> boolean                  -- 设置是否复制所有当前请求的 Nginx 变量值到子请求中，修改子请求的 nginx 变量值不影响当前 (父) 请求。此选项最早出现在版本 v0.3.1rc31 中。
+CaptureOpt.share_all_vars       -> boolean                  -- 设置是否共享所有当前 (父) 请求的 Nginx 变量值到子请求中，修改子请求的 nginx 变量值将影响当前 (父) 请求。应用此选项将可能导致非常难以发现的错误，这种副作用是非常有害的。所以只有当完全明确知道自己在做什么时才打开此选项。
+CaptureOpt.always_forward_body  -> boolean                  -- 当设置为 true 时，如果没有设置 body 选项，当前 (父) 请求的请求体将被转发给子请求。被 ngx.req.read_body() 或 lua_need_request_body on 指令读取的请求体将直接转发给子请求，而不是在创建子请求时再复制整个请求体 (无论此请求体是缓存在内存中还是临时文件中)。默认情况下，此选项值为 false，当 body 选项没有设置，且当子请求的请求方法是 PUT 和 POST 时，当前 (父) 请求的请求体才被转发。
 
-cap.status          -> number
-cap.header          -> map<string>
-cap.body            -> string
-cap.truncated       -> boolean
+CaptureUri                      -- Nginx子请求Uri及选项
+CaptureUri.1                    -> string
+CaptureUri.2                    -> CaptureOpt
+
+CaptureRes                      -- Nginx子请求返回值
+CaptureRes.status               -> number
+CaptureRes.header               -> map<string>
+CaptureRes.body                 -> string
+CaptureRes.truncated            -> boolean
+
+ngx.location
+ngx.location.capture(uri: string, opt?: CaptureOpt)     -> CaptureRes
+ngx.location.capture_multi(uri: CaptureUri, ...)        -> CaptureRes, ...
 
 ngx.status          -> number
 ngx.header          -> map<string | string[]>
@@ -63,28 +78,28 @@ ngx.req.start_time()                                -> number
 ngx.req.http_version()                              -> number
 ngx.req.raw_header(no_request_line=false?)          -> string
 ngx.req.get_method()                                -> string
-ngx.req.set_method(method_id)
-ngx.req.set_uri(uri, jump=false?)
-ngx.req.set_uri_args(args)
+ngx.req.set_method(method_id: number)
+ngx.req.set_uri(uri: string, jump=false?)
+ngx.req.set_uri_args(args: string | map<string>)
 ngx.req.get_uri_args(max_args=100?)                 -> map<string>
 ngx.req.get_post_args(max_args=100?)                -> map<string>
 ngx.req.get_headers(max_headers=100?, raw=false?)   -> map<string>
-ngx.req.set_header(name, value)
-ngx.req.clear_header(name)
+ngx.req.set_header(name: string, value: string)
+ngx.req.clear_header(name: string)
 ngx.req.read_body()
 ngx.req.discard_body()
 ngx.req.get_body_data()                             -> string
 ngx.req.get_body_file()                             -> string
-ngx.req.set_body_data(data)
-ngx.req.set_body_file(file_name, auto_clean=false?)
-ngx.req.init_body(buffer_size?)
-ngx.req.append_body(data_chunk)
+ngx.req.set_body_data(data: string)
+ngx.req.set_body_file(file_name: string, auto_clean=false?)
+ngx.req.init_body(buffer_size?: number)
+ngx.req.append_body(data_chunk: string)
 ngx.req.finish_body()
 
 ngx.req.socket() -> tcpsock
 
-ngx.exec(uri, args?)
-ngx.redirect(uri, status=302?)
+ngx.exec(uri: string, args?: string | map<string>)
+ngx.redirect(uri: string, status=302?)
 ngx.send_headers()                 -> ok, err
 ngx.headers_sent                   -> boolean
 
@@ -100,7 +115,7 @@ ngx.log(ngx.WARN  , ...)
 ngx.log(ngx.NOTICE, ...)
 ngx.log(ngx.INFO  , ...)
 ngx.log(ngx.DEBUG , ...)
-ngx.log(log_level , ...)
+ngx.log(log_level: number, log: string | number | boolean, ...)
 
 ngx.flush(wait=false?)                  -> ok, err
 
@@ -109,40 +124,45 @@ ngx.exit(ngx.ERROR)
 ngx.exit(ngx.DECLINED)
 ngx.exit(ngx.HTTP_OK)
 ngx.exit(ngx.HTTP_NOT_FOUND)
-ngx.exit(status)
+ngx.exit(status: number)
 
-ngx.eof()                               -> ok, err
-ngx.sleep(seconds)
-ngx.escape_uri(str)                     -> string
-ngx.unescape_uri(str)                   -> string
-ngx.encode_args(table)                  -> string
-ngx.decode_args(str)                    -> any
-ngx.encode_base64(str)                  -> string
-ngx.decode_base64(str)                  -> string
-ngx.crc32_short(str)                    -> number
-ngx.crc32_long(str)                     -> number
-ngx.hmac_sha1(secret_key, str)          -> string
-ngx.md5(str)                            -> string
-ngx.md5_bin(str)                        -> string
-ngx.sha1_bin(str)                       -> string
-ngx.quote_sql_str(raw_value)            -> string
-ngx.today()                             -> string
-ngx.time()                              -> number
-ngx.now()                               -> number
+ngx.eof()                                           -> ok, err
+ngx.sleep(seconds: number)
+ngx.escape_uri(str: string)                         -> string
+ngx.unescape_uri(str: string)                       -> string
+
+EncodeArgs -> (map<string | boolean | number | (string | boolean | number)[]>) & never[]
+DecodeArgs -> (map<string | boolean | (string | boolean)[]>) & never[]
+
+ngx.encode_args(args: EncodeArgs)                   -> string
+ngx.decode_args(str: string)                        -> DecodeArgs
+
+ngx.encode_base64(str: string)                      -> string
+ngx.decode_base64(str: string)                      -> string
+ngx.crc32_short(str: string)                        -> number
+ngx.crc32_long(str: string)                         -> number
+ngx.hmac_sha1(secret_key: string, str: string)      -> string
+ngx.md5(str: string)                                -> string
+ngx.md5_bin(str: string)                            -> string
+ngx.sha1_bin(str: string)                           -> string
+ngx.quote_sql_str(str: string)                      -> string
+ngx.today()                                         -> string
+ngx.time()                                          -> number
+ngx.now()                                           -> number
 ngx.update_time()
-ngx.localtime()                         -> string
-ngx.utctime()                           -> string
-ngx.cookie_time(sec)                    -> string
-ngx.http_time(sec)                      -> string
-ngx.parse_http_time(sec)                -> string
-ngx.is_subrequest()                     -> boolean
+ngx.localtime()                                     -> string
+ngx.utctime()                                       -> string
+ngx.cookie_time(sec: number)                        -> string
+ngx.http_time(sec: number)                          -> string
+ngx.parse_http_time(sec: number)                    -> string
+ngx.is_subrequest()                                 -> boolean
 
 ngx.re -- 正则表达式库
-ngx.re.match(subject, regex, options?, ctx?, res_table?)    -> map<string>, err
-ngx.re.find(subject, regex, options?, ctx?, nth?)           -> number, number, err
-ngx.re.gmatch(subject, regex, options?)                     -> iterator, err
-ngx.re.sub(subject, regex, replace, options?)               -> string, number, err
-ngx.re.gsub(subject, regex, replace, options?)              -> string, number, err
+ngx.re.match(subject: string, regex: string, options?: string, ctx?: { pos: number }, res_table?: table)    -> map<string | boolean>, err
+ngx.re.find(subject: string, regex: string, options?: string, ctx?: { pos: number }, nth?: number)          -> number, number, err
+ngx.re.gmatch(subject: string, regex: string, options?: string)                                             -> iterator, err
+ngx.re.sub(subject: string, regex: string, replace: string, options?: string)                               -> string, number, err
+ngx.re.gsub(subject: string, regex: string, replace: string, options?: string)                              -> string, number, err
 
 iterator()  -> map<string>, err
 
@@ -155,73 +175,75 @@ ngx.shared.my_ipc                                   -> DICT
 ngx.shared.my_index                                 -> DICT
 ngx.shared.my_dns                                   -> DICT
 
-    DICT                                            -- ngx.shared.DICT
-    DICT:get(key)                                   -- ngx.shared.DICT.get
-    DICT:get_stale(key)                             -- ngx.shared.DICT.get_stale
-    DICT:set(key, val, exptime?, flags?)            -- ngx.shared.DICT.set
-    DICT:safe_set(key, val, exptime?, flags?)       -- ngx.shared.DICT.safe_set
-    DICT:add(key, val, exptime?, flags?)            -- ngx.shared.DICT.add
-    DICT:safe_add(key, val, exptime?, flags?)       -- ngx.shared.DICT.safe_add
-    DICT:replace(key, val, exptime?, flags?)        -- ngx.shared.DICT.replace
-    DICT:delete(key)                                -- ngx.shared.DICT.delete
-    DICT:incr(key, val, init?)                      -- ngx.shared.DICT.incr
-    DICT:lpush(key, val)                            -- ngx.shared.DICT.lpush
-    DICT:rpush(key, val)                            -- ngx.shared.DICT.rpush
-    DICT:lpop(key)                                  -- ngx.shared.DICT.lpop
-    DICT:rpop(key)                                  -- ngx.shared.DICT.rpop
-    DICT:llen(key)                                  -- ngx.shared.DICT.llen
-    DICT:ttl(key)                                   -- ngx.shared.DICT.ttl
-    DICT:expire(key, exptime)                       -- ngx.shared.DICT.expire
-    DICT:flush_all()                                -- ngx.shared.DICT.flush_all
-    DICT:flush_expired(max_count?)                  -- ngx.shared.DICT.flush_expired
-    DICT:get_keys(max_count?)                       -- ngx.shared.DICT.get_keys
-    DICT:capacity()                                 -- ngx.shared.DICT.capacity
-    DICT:free_space()                               -- ngx.shared.DICT.free_space
+    DictValue -> string | number | boolean   -- 共享内存数据
+
+    DICT                                                                -- ngx.shared.DICT
+    DICT:get(key: string)                       -> DictValue            -- ngx.shared.DICT.get
+    DICT:get_stale(key: string)                 -> DictValue            -- ngx.shared.DICT.get_stale
+    DICT:set(key: string, val: DictValue, exptime?: number, flags?: number)         -> ok, err, boolean     -- ngx.shared.DICT.set
+    DICT:safe_set(key: string, val: DictValue, exptime?: number, flags?: number)    -> ok, err, boolean     -- ngx.shared.DICT.safe_set
+    DICT:add(key: string, val: DictValue, exptime?: number, flags?: number)         -> ok, err, boolean     -- ngx.shared.DICT.add
+    DICT:safe_add(key: string, val: DictValue, exptime?: number, flags?: number)    -> ok, err, boolean     -- ngx.shared.DICT.safe_add
+    DICT:replace(key: string, val: DictValue, exptime?: number, flags?: number)     -> ok, err, boolean     -- ngx.shared.DICT.replace
+    DICT:delete(key: string)                                            -- ngx.shared.DICT.delete
+    DICT:incr(key: string, val: number, init?: number) -> number, err   -- ngx.shared.DICT.incr
+    DICT:lpush(key: string, val: DictValue)     -> number, err          -- ngx.shared.DICT.lpush
+    DICT:rpush(key: string, val: DictValue)     -> number, err          -- ngx.shared.DICT.rpush
+    DICT:lpop(key: string)                      -> DictValue, err       -- ngx.shared.DICT.lpop
+    DICT:rpop(key: string)                      -> DictValue, err       -- ngx.shared.DICT.rpop
+    DICT:llen(key: string)                      -> number, err          -- ngx.shared.DICT.llen
+    DICT:ttl(key: string)                       -> number, err          -- ngx.shared.DICT.ttl
+    DICT:expire(key: string, exptime: number)   -> ok, err              -- ngx.shared.DICT.expire
+    DICT:flush_all()                                                    -- ngx.shared.DICT.flush_all
+    DICT:flush_expired(max_count?: number)      -> number               -- ngx.shared.DICT.flush_expired
+    DICT:get_keys(max_count?: number)           -> string[]             -- ngx.shared.DICT.get_keys
+    DICT:capacity()                             -> number               -- ngx.shared.DICT.capacity
+    DICT:free_space()                           -> number               -- ngx.shared.DICT.free_space
 
 ngx.socket
 ngx.socket.udp() -> udpsock
 
     udpsock
-    udpsock:setpeername(host, port)
-    udpsock:send(data)
-    udpsock:receive(size?)
+    udpsock:setpeername(host: string, port: number)
+    udpsock:send(data: string)
+    udpsock:receive(size?: number)
     udpsock:close()
-    udpsock:settimeout(time)
+    udpsock:settimeout(time: number)
 
-ngx.socket.tcp()                -> tcpsock
-ngx.socket.stream()             -> tcpsock
-ngx.socket.connect(host, port)  -> tcpsock
+ngx.socket.tcp()                                -> tcpsock
+ngx.socket.stream()                             -> tcpsock
+ngx.socket.connect(host: string, port: number)  -> tcpsock
 
     tcpsock
-    tcpsock:bind(address)
-    tcpsock:connect(host, port, options_table?)
-    tcpsock:setclientcert(cert, pkey)
-    tcpsock:sslhandshake(reused_session?, server_name?, ssl_verify?)
-    tcpsock:send(data)
-    tcpsock:receive(size_or_pattern?)
-    tcpsock:receiveany(max)
-    tcpsock:receiveuntil(pattern, options?)
+    tcpsock:bind(address: string)
+    tcpsock:connect(host: string, port?: number | table, options_table?: table)
+    tcpsock:setclientcert(cert: string, pkey: string)
+    tcpsock:sslhandshake(reused_session?: boolean, server_name?: string, ssl_verify?: boolean)
+    tcpsock:send(data: string)
+    tcpsock:receive(size_or_pattern?: number)
+    tcpsock:receiveany(max: number)
+    tcpsock:receiveuntil(pattern: string, options?: table)
     tcpsock:close()
-    tcpsock:settimeout(time)
-    tcpsock:settimeouts(connect_timeout, send_timeout, read_timeout)
+    tcpsock:settimeout(time: number)
+    tcpsock:settimeouts(connect_timeout: number, send_timeout: number, read_timeout: number)
     tcpsock:setoption(option, value?)
-    tcpsock:setkeepalive(timeout?, size?)
+    tcpsock:setkeepalive(timeout?: number, size?: number)
     tcpsock:getreusedtimes()
 
 ngx.get_phase()                             -> string
 
 ngx.thread
 ngx.thread.spawn(fun, ...)                  -> thread
-ngx.thread.wait(thread1, ...)               -> ok, res1, res2, ...
-ngx.thread.kill(thread)                     -> ok, err
+ngx.thread.wait(co: thread, ...)            -> ok, res, ...
+ngx.thread.kill(co: thread)                 -> ok, err
 
-ngx.on_abort(callback)                      -> ok, err
+ngx.on_abort(cb: function)                  -> ok, err
 
 ngx.timer
-ngx.timer.at(delay, callback, ....)         -> number, err
-ngx.timer.every(delay, callback, ....)      -> number, err
-ngx.timer.running_count()                   -> number
-ngx.timer.pending_count()                   -> number
+ngx.timer.at(delay: number, cb: function, ....)         -> number, err
+ngx.timer.every(delay: number, cb: function, ....)      -> number, err
+ngx.timer.running_count()                               -> number
+ngx.timer.pending_count()                               -> number
 
 ngx.config
 ngx.config.subsystem            -> string

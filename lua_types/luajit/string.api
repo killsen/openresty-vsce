@@ -3,31 +3,33 @@
 -- https://www.w3schools.cn/lua/lua_strings.asp
 
 string
-string.byte (s, i?, j?)                 -> number
-string.char (...)                       -> str
-string.dump (func)                      -> str
-string.find (s, pattern, i?, j?)        -> number, number
-string.format (s, ...)                  -> str
-string.gmatch (s, pattern)              -> iter
-string.gsub (s, pattern, replace, n?)   -> str
-string.len (s)                          -> number
-string.lower (s)                        -> str
-string.match (s, pattern, i?)           -> str
-string.rep (s, n)                       -> str
-string.reverse (s)                      -> str
-string.sub (s, i?, j?)                  -> str
-string.upper (s)                        -> str
+string.byte (s: string, i?: number, j?: number)                         -> number
+string.char (...)                                                       -> string
+string.dump (func: function)                                            -> string
+string.find (s: string, pattern: string, i?: number, j?: number)        -> number, number
+string.format (s: string, ...)                                          -> string
+string.gmatch (s: string, pattern: string)                              -> iterator
+string.gsub (s: string, pattern: string, replace: string, n?: number)   -> string
+string.len (s: string)                                                  -> number
+string.lower (s: string)                                                -> string
+string.match (s: string, pattern: string, i?: number)                   -> string
+string.rep (s: string, n: number)                                       -> string
+string.reverse (s: string)                                              -> string
+string.sub (s: string, i?: number, j?: number)                          -> string
+string.upper (s: string)                                                -> string
+
+iterator()  -> string
 
 str
-str:byte (i?, j?)                       -> number
-str:find (pattern, i?, j?)              -> number, number
-str:format (...)                        -> str
-str:gmatch (pattern)                    -> iter
-str:gsub (pattern, replace, n?)         -> str
-str:len ()                              -> number
-str:lower ()                            -> str
-str:match (pattern, i?)                 -> str
-str:rep (n)                             -> str
-str:reverse ()                          -> str
-str:sub (i?, j?)                        -> str
-str:upper ()                            -> str
+str:byte (i?: number, j?: number)                                       -> number
+str:find (pattern: string, i?: number, j?: number)                      -> number, number
+str:format (...)                                                        -> string
+str:gmatch (pattern: string)                                            -> iterator
+str:gsub (pattern: string, replace: string, n?: number)                 -> string
+str:len ()                                                              -> number
+str:lower ()                                                            -> string
+str:match (pattern: string, i?: number)                                 -> string
+str:rep (n: number)                                                     -> string
+str:reverse ()                                                          -> string
+str:sub (i?: number, j?: number)                                        -> string
+str:upper ()                                                            -> string
