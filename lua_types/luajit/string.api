@@ -4,12 +4,12 @@
 
 string
 string.byte (s: string, i?: number, j?: number)                         -> number
-string.char (...)                                                       -> string
-string.dump (func: function)                                            -> string
+string.char (c: number, ...)                                            -> string
+string.dump (f: function)                                               -> string
 string.find (s: string, pattern: string, i?: number, j?: number)        -> number, number
-string.format (s: string, ...)                                          -> string
+string.format (s: string, v?: any, ...)                                 -> string
 string.gmatch (s: string, pattern: string)                              -> iterator
-string.gsub (s: string, pattern: string, replace: string, n?: number)   -> string
+string.gsub (s: string, pattern: string, replace: string | function, n?: number)   -> string
 string.len (s: string)                                                  -> number
 string.lower (s: string)                                                -> string
 string.match (s: string, pattern: string, i?: number)                   -> string
@@ -23,9 +23,9 @@ iterator()  -> string
 str
 str:byte (i?: number, j?: number)                                       -> number
 str:find (pattern: string, i?: number, j?: number)                      -> number, number
-str:format (...)                                                        -> string
+str:format (v?: any, ...)                                               -> string
 str:gmatch (pattern: string)                                            -> iterator
-str:gsub (pattern: string, replace: string, n?: number)                 -> string
+str:gsub (pattern: string, replace: string  | function, n?: number)     -> string
 str:len ()                                                              -> number
 str:lower ()                                                            -> string
 str:match (pattern: string, i?: number)                                 -> string

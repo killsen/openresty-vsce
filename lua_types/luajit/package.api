@@ -15,6 +15,6 @@ package.preload         -> map<function>    -- 预加载函数
 package.loaders         -> function[]       -- 模块加载器
 package.searchers       -> function[]       -- 模块查询器
 
-package.loadlib(libname, funcname)      -> function | boolean, err
-package.searchpath(libname, libpath)    -> path, err
+package.loadlib(libname: string, funcname: string)      -> function | boolean, err
+package.searchpath(libname: string, libpath: string)    -> path, err
 package.seeall(module)

@@ -2,22 +2,23 @@
 table
 
 table.new(narray: number, nhash: number)                -- 用来预分配 table 空间
-table.clear(table)                                      -- 用来高效的释放 table 空间
-table.clone(table)                                      -- 克隆 table 对象
 
-table.concat(table, sep: string, start?: number, end?: number)  -- 连接 table 元素, 以指定的分隔符(sep)隔开
-table.insert(table, pos_or_value: number | any, value: any)     -- 插入 table 元素
+table.clear(t: table)                                   -- 用来高效的释放 table 空间
+table.clone(t: table)                                   -- 克隆 table 对象
 
-table.getn(table)                                       -- 返回 table 连续的数字索引最大值, 等价于 #table
-table.maxn(table)                                       -- 取得 table 数字索引最大值
-table.nkeys(table)                                      -- 返回 table 所有元素个数
+table.concat(t: table, sep: string, start?: number, end?: number)   -- 连接 table 元素, 以指定的分隔符(sep)隔开
+table.insert(t: table, pos_or_val: number | any, val: any)          -- 插入 table 元素
 
-table.move(table, i: number, j: number, k: number, t2?: any) -- 移动 table 元素
-table.remove(table, pos?)                               -- 删除 table 元素
+table.getn(t: table)                                    -- 返回 table 连续的数字索引最大值, 等价于 #table
+table.maxn(t: table)                                    -- 取得 table 数字索引最大值
+table.nkeys(t: table)                                   -- 返回 table 所有元素个数
+
+table.move(t: table, i: number, j: number, k: number, t2?: any)     -- 移动 table 元素
+table.remove(t: table, pos?: number)                                -- 删除 table 元素
 
 table.pack(v: any, ...)                                 -- 传入多个元素创建 table
-table.unpack(table, i?: number, j?: number)             -- 返回 table 所有元素
+table.unpack(t: table, i?: number, j?: number)          -- 返回 table 所有元素
 
-table.sort(table, function?)                            -- 排序 table 元素
-table.foreach(table, function)                          -- 遍历 table 所有元素
-table.foreachi(table, function)                         -- 遍历 table 数组元素
+table.sort(t: table, cb?: function)                     -- 排序 table 元素
+table.foreach(t: table, cb: function)                   -- 遍历 table 所有元素
+table.foreachi(t: table, cb: function)                  -- 遍历 table 数组元素
