@@ -105,19 +105,11 @@ ngx.redirect(uri: string, status=302?)
 ngx.send_headers()                 -> ok, err
 ngx.headers_sent                   -> boolean
 
-ngx.print(log: string | number | boolean, ...)
-ngx.say(log: string | number | boolean, ...)
+Printable -> string | number | boolean | (string | number | boolean)[]
 
-ngx.log(ngx.STDERR, log: string | number | boolean, ...)
-ngx.log(ngx.EMERG , log: string | number | boolean, ...)
-ngx.log(ngx.ALERT , log: string | number | boolean, ...)
-ngx.log(ngx.CRIT  , log: string | number | boolean, ...)
-ngx.log(ngx.ERR   , log: string | number | boolean, ...)
-ngx.log(ngx.WARN  , log: string | number | boolean, ...)
-ngx.log(ngx.NOTICE, log: string | number | boolean, ...)
-ngx.log(ngx.INFO  , log: string | number | boolean, ...)
-ngx.log(ngx.DEBUG , log: string | number | boolean, ...)
-ngx.log(log_level: number, log: string | number | boolean, ...)
+ngx.print(log: string | number | boolean | any[], ...)
+ngx.say(log: string | number | boolean | any[], ...)
+ngx.log(log_level: number, log: string | number | boolean | any[], ...)
 
 ngx.flush(wait=false?)                  -> ok, err
 
