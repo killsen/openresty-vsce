@@ -1,13 +1,25 @@
 
 os
-os.clock()
-os.date([format[,time]])
-os.difftime(t2,t1)
-os.execute([command])
-os.exit([code])
-os.getenv(varname)
-os.remove(filename)
-os.rename(oldname,newname)
-os.setlocale(locale[,category])
-os.time([table])
-os.tmpname()
+
+DateTime                            -- 日期对象 { year, month, day, hour, min, sec, isdst, wday, yday }
+DateTime.year       -> number       -- 年(四位数字)
+DateTime.month      -> number       -- 月(1–12)
+DateTime.day        -> number       -- 日(1–31)
+DateTime.hour       -> number       -- 时(0–23)
+DateTime.min        -> number       -- 分(0–59)
+DateTime.sec        -> number       -- 秒(0–61)
+DateTime.isdst      -> boolean      -- 是否是夏令时
+DateTime.wday       -> number       -- 星期几，星期天为 1
+DateTime.yday       -> number       -- 当年的第几天
+
+os.clock()                                          -> number
+os.date(format?: string, time?: number | DateTime)  -> string | DateTime
+os.difftime(t2: number, t1: number)                 -> number
+os.execute(command?: string)                        -> boolean, string?, number?
+os.exit(code?: boolean | number, close?: boolean)   -> number
+os.getenv(varname: string)                          -> string
+os.remove(filename: string)                         -> boolean?, string?, number?
+os.rename(oldname: string, newname: string)         -> boolean?, string?, number?
+os.setlocale(locale?: string, category?: string)    -> string?
+os.time(time?: DateTime)                            -> number
+os.tmpname()                                        -> string

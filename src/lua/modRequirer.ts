@@ -1,7 +1,7 @@
 
 import { NgxPath, getApiFile } from './ngx';
 import { loadApiDoc } from './apiDoc';
-import { LuaModule, LuaDao, LuaApi, getBasicType, LuaAny } from './types';
+import { LuaModule, LuaDao, LuaApi, getBasicType, LuaAny, LuaString } from './types';
 import { setDepend } from "./modCache";
 import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
@@ -226,6 +226,15 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
 
     if (name === "string") {
         setItem(t, [".", "$string"], _g["str"]);
+
+    } else if (name === "os") {
+        // 日期对象 { year, month, day, hour, min, sec, isdst, wday, yday }
+        const DateTime = _g["DateTime"];
+        if (DateTime) {
+            setItem(t, [".", "date", "()"], (format: string) => {
+                return format === "*t" ? DateTime : LuaString;
+            });
+        }
 
     } else if (name === "table") {
         for (let k in TableLib) {
