@@ -225,27 +225,48 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     if (!t) { return; }
 
     if (name === "string") {
-        setItem(t, [".", "$string"], _g["str"]);
+        const T = _g["str"];
+        if (isObject(T)) {
+            T["type"] = "string";
+            T["readonly"] = true;
+            T["basic"] = true;
+            T["."] = {};
+            setItem(t, [".", "$type<@string>"], T);
+        }
+
+    } else if (name === "io") {
+        const T = _g["file"];
+        if (isObject(T)) {
+            T["type"] = "file";
+            T["readonly"] = true;
+            T["basic"] = true;
+            T["."] = {};
+            setItem(t, [".", "$type<@file>"], T);
+        }
 
     } else if (name === "os") {
         // 日期对象 { year, month, day, hour, min, sec, isdst, wday, yday }
-        const DateTime = _g["DateTime"];
-        if (DateTime) {
+        const T = _g["DateTime"];
+        if (isObject(T)) {
+            T["type"] = "datetime";
+            T["readonly"] = true;
+            T["basic"] = true;
+            T[":"] = {};
             setItem(t, [".", "date", "()"], (format: string) => {
-                return format === "*t" ? DateTime : LuaString;
+                return format === "*t" ? T : LuaString;
             });
         }
 
     } else if (name === "table") {
         for (let k in TableLib) {
-            setItem(t, [".", k, "()"], (TableLib as any)[k]);
+            setItem(t, [".", k, "()"], TableLib[k]);
         }
     } else if (name === "ngx") {
         for (let k in NgxThreadLib) {
-            setItem(t, [".", "thread", ".", k, "()"], (NgxThreadLib as any)[k]);
+            setItem(t, [".", "thread", ".", k, "()"], NgxThreadLib[k]);
         }
         for (let k in NgxTimerLib) {
-            setItem(t, [".", "timer", ".", k, "()"], (NgxTimerLib as any)[k]);
+            setItem(t, [".", "timer", ".", k, "()"], NgxTimerLib[k]);
         }
     }
 

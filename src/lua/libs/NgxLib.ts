@@ -1,5 +1,5 @@
 
-import { LuaBoolean, LuaFunction, LuaNumber, LuaStringOrNil } from '../types';
+import { LuaBoolean, LuaFunction, LuaNumber, LuaStringOrNil, LuaType } from '../types';
 import { isArray, isObject } from "../utils";
 import { callFunc } from '../modFunc';
 import { LuaScope } from '../scope';
@@ -7,9 +7,9 @@ import { Node } from 'luaparse';
 import { loadNode } from '../parser';
 import { get_arg_vtype } from '../vtype';
 
-const NgxTimerRes = [ LuaNumber, LuaStringOrNil ] as any;
+const NgxTimerRes = [ LuaNumber, LuaStringOrNil ] as LuaType[];
 
-NgxTimerRes.$args = function(i: number, args: Node[] = [], _g: LuaScope) {
+(NgxTimerRes as any).$args = function(i: number, args: Node[] = [], _g: LuaScope) {
 
     if (i === 0) {
         return LuaNumber;
@@ -23,12 +23,12 @@ NgxTimerRes.$args = function(i: number, args: Node[] = [], _g: LuaScope) {
 
 };
 
-export const NgxTimerLib = {
+export const NgxTimerLib : { [key: string] : LuaType[] }  = {
     at      : NgxTimerRes,
     every   : NgxTimerRes,
 };
 
-export const NgxThreadLib = {
+export const NgxThreadLib : { [key: string] : Function } = {
     spawn  : ngx_thread_spawn,
     wait   : ngx_thread_wait,
 };

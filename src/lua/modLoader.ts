@@ -7,7 +7,7 @@ import { loadBody } from './parser';
 import { getItem, parseComments, setItem } from './utils';
 import { getValue, setValue } from './scope';
 import { loadApiTypes } from './modApiTypes';
-import { dirname, basename } from "path";
+import { dirname } from "path";
 import { DbLib } from './libs/DbLib';
 
 /** 通过名称加载模块 */
@@ -27,7 +27,7 @@ export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
     // 注入 DbLib 函数
     if (name === "%db") {
         for (let k in DbLib) {
-            setItem(mod, [".", k, "()"], (DbLib as any)[k]);
+            setItem(mod, [".", k, "()"], DbLib[k]);
         }
     }
 

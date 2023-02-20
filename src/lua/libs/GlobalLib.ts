@@ -16,7 +16,7 @@ _getmetatable   ["$args"] = [ LuaObject                 ];
 _rawget         ["$args"] = [ LuaObject, LuaAny         ];
 _rawset         ["$args"] = [ LuaObject, LuaAny, LuaAny ];
 
-export const GlobalLib = {
+export const GlobalLib : { [key: string] : Function } = {
     tonumber: _tonumber,
     tostring: _tostring,
     unpack  : _unpack,

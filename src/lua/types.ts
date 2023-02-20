@@ -164,6 +164,10 @@ export const LuaCDataArray  = { type: "cdata[]", "[]": LuaCData, readonly };
 export const LuaCType       = { type: "ctype", "()": [LuaCData], basic, readonly };
 export const LuaCTypeArray  = { type: "ctype[]", "[]": LuaCType, readonly };
 
+// 文件类型
+export const LuaFile       = { type: "file", basic, readonly };
+export const LuaFileArray  = { type: "file[]", "[]": LuaFile, readonly };
+
 const LuaTypes: { [key: string] : LuaType } = {
     "..."               : LuaVarArgs,
     "any"               : LuaAny                    , "any[]"           : LuaAnyArray,
@@ -177,6 +181,7 @@ const LuaTypes: { [key: string] : LuaType } = {
     "userdata"          : LuaUserData               , "userdata[]"      : LuaUserDataArray,
     "ctype"             : LuaCType                  , "ctype[]"         : LuaCTypeArray,
     "cdata"             : LuaCData                  , "cdata[]"         : LuaCDataArray,
+    "file"              : LuaFile                   , "file[]"          : LuaFileArray,
 
     "map<any>"          : { type: "map<any>"        , ".": { "*": LuaAny            }, readonly },
     "map<never>"        : { type: "map<never>"      , ".": { "*": LuaNever          }, readonly },
@@ -188,6 +193,7 @@ const LuaTypes: { [key: string] : LuaType } = {
     "map<userdata>"     : { type: "map<userdata>"   , ".": { "*": LuaUserData       }, readonly },
     "map<ctype>"        : { type: "map<ctype>"      , ".": { "*": LuaCType          }, readonly },
     "map<cdata>"        : { type: "map<cdata>"      , ".": { "*": LuaCData          }, readonly },
+    "map<file>"        : { type: "map<file>"        , ".": { "*": LuaFile           }, readonly },
 
     "map<any[]>"        : { type: "map<any[]>"      , ".": { "*": LuaAnyArray       }, readonly },
     "map<string[]>"     : { type: "map<string[]>"   , ".": { "*": LuaStringArray    }, readonly },
@@ -198,6 +204,7 @@ const LuaTypes: { [key: string] : LuaType } = {
     "map<userdata[]>"   : { type: "map<userdata[]>" , ".": { "*": LuaUserDataArray  }, readonly },
     "map<ctype[]>"      : { type: "map<ctype[]>"    , ".": { "*": LuaCTypeArray     }, readonly },
     "map<cdata[]>"      : { type: "map<cdata[]>"    , ".": { "*": LuaCDataArray     }, readonly },
+    "map<file[]>"       : { type: "map<file[]>"     , ".": { "*": LuaFileArray      }, readonly },
 };
 
 /** 获取基本类型 */

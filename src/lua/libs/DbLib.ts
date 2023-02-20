@@ -4,7 +4,7 @@ import { LuaBoolean, LuaNumber, LuaString, LuaStringOrNil } from "../types";
 import { isObject } from "../utils";
 import { loadType } from "../vtype";
 
-export const DbLib = {
+export const DbLib : { [key: string] : Function } = {
     execute : _execute,
     query   : _query,
     mquery  : _mquery,

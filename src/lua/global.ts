@@ -2,8 +2,8 @@
 import * as lua from './index';
 import { NgxPath } from "./ngx";
 import { LuaScope, newScope, setValue } from "./scope";
-import { getItem, isObject, setItem } from "./utils";
-import { LuaTable } from "./types";
+import { getItem, setItem } from "./utils";
+import { LuaString, LuaTable } from "./types";
 import { _unpack } from "./libs/TableLib";
 import { GlobalLib } from "./libs/GlobalLib";
 import { CompletionItemKind } from 'vscode';
@@ -62,23 +62,13 @@ function loadGlobal(ctx: NgxPath) {
 
     // 注入全局函数
     for (let k in GlobalLib) {
-        setItem(_G, [k, "()"], (GlobalLib as any)[k]);
+        setItem(_G, [k, "()"], GlobalLib[k]);
     }
 
     // 注入全局库
     BuildInLibs.forEach(name => {
         _G[name] = _g[name] = lua.load(ctx, name);
     });
-
-    // 注入字符串类型
-    let str = getItem(_G, ["string", ".", "$string"]);
-    if (isObject(str)) {
-        str["type"] = "string";
-        str["readonly"] = true;
-        str["basic"] = true;
-        str["."] = {};
-        _G["@string"] = str;
-    }
 
     return _G;
 
@@ -90,15 +80,23 @@ export function genGlobal(ctx: NgxPath) {
     const _G = loadGlobal(ctx);
     const _g = newScope(_G, ctx.fileName);
 
+    // 注入字符串类型
+    _G["$type<@string>"] = getItem(_G, [ "string", ".", "$type<@string>" ]);
+
+    // 注入文件类型
+    _G["$type<@file>"] = getItem(_G, [ "io", ".", "$type<@file>" ]);
+
     setValue(_g, "_load", {
         "()": _require,
-        args: '(modname)',
+        args: '(modname: string)',
+        $args: [ LuaString ],
         doc: "## _load(modname)\n加载模块"
     }, true);
 
     setValue(_g, "require", {
         "()": _require,
-        args: '(modname)',
+        args: '(modname: string)',
+        $args: [ LuaString ],
         doc: "## require(modname)\n加载模块"
     }, true);
 

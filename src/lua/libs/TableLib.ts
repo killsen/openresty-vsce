@@ -1,7 +1,7 @@
 
 import { Node } from 'luaparse';
 import { LuaScope } from '../scope';
-import { LuaAny, LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaObject, LuaString } from '../types';
+import { LuaAny, LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaObject, LuaString, LuaType } from '../types';
 import { getItem, isObject } from "../utils";
 import { get_node_vtype } from '../vtype';
 
@@ -16,7 +16,7 @@ _move   ["$args"] = [ LuaObject, LuaNumber, LuaNumber, LuaNumber, LuaAny ];
 _remove ["$args"] = [ LuaObject, LuaNumber ];
 _unpack ["$args"] = [ LuaAnyArray, LuaNumber, LuaNumber ];
 
-export const TableLib = {
+export const TableLib : { [key: string] : Function | LuaType[] } = {
     new  : _new,
     clear : _clear,
     clone : _clone,

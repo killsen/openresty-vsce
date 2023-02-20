@@ -650,9 +650,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             if (isArray(t)) { t = t[0]; } // 返回的可能是数组
 
-            // 字符串类型
             if (typeof t === "string" || t?.type === "string") {
-                t = getValue(_g, "@string");
+                t = getValue(_g, "$type<@string>");  // 字符串类型
+            } else if (t?.type === "file") {
+                t = getValue(_g, "$type<@file>");  // 文件类型
+            } else if (t?.type === "any") {
+                return LuaAny;  // 任意类型
             }
 
             let ti = getItem(t, [node.indexer]);
