@@ -4,18 +4,18 @@
 
 jit
 
-jit.on()
-jit.off()
-jit.flush()
+jit.on(func?: function | boolean, opt?: boolean)
+jit.off(func?: function | boolean, opt?: boolean)
+jit.flush(func?: function | boolean | number, opt?: boolean)
 
-jit.status()
+jit.attach(func: function)
 
-jit.attach(func)
+jit.status()            -> boolean, string, ...
 
-jit.version
-jit.version_num
-jit.os
-jit.arch
+jit.version             -> string
+jit.version_num         -> number
+jit.os                  -> string
+jit.arch                -> string
 
 jit.opt
-jit.opt.start()
+jit.opt.start(opt?: string | number, ...)
