@@ -137,7 +137,7 @@ ngx.hmac_sha1(secret_key: string, str: string)      -> string
 ngx.md5(str: string)                                -> string
 ngx.md5_bin(str: string)                            -> string
 ngx.sha1_bin(str: string)                           -> string
-ngx.quote_sql_str(str: string)                      -> string
+ngx.quote_sql_str(str: string | number)             -> string
 ngx.today()                                         -> string
 ngx.time()                                          -> number
 ngx.now()                                           -> number
