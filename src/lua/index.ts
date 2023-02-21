@@ -48,6 +48,8 @@ function load(ctx: NgxPath, name: string): LuaModule | undefined {
     obj = new Proxy({} as LuaModule, {
         // 读
         get(target, prop) {
+            if (prop === "selfCall") {return false; }
+            if (prop === "$proxy")   { return true; }
 
             if (isLib) {
                 if (prop === "type") {return "lib";}
@@ -132,6 +134,8 @@ function loadApiMod(ctx: NgxPath, apiName: string, apiPath: string, apiMod?: Lua
     return new Proxy(obj, {
         // 读
         get(target, prop) {
+            if (prop === "selfCall") {return false; }
+            if (prop === "$proxy")   { return true; }
 
             if (prop === "type") {return "api";}
             if (prop === "doc") {return "## " + apiName + " 接口";}

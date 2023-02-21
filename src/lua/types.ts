@@ -257,6 +257,7 @@ export function getLuaTypeName(v: any) {
             :  t === "thread"   ? "userdata"
             :  t === "thread"   ? "cdata"
             :  t === "ctype"    ? "ctype"
+            :  v["$proxy"]      ? "table"  // 通过 Proxy 加载的模块
             :  v["$$mt"]        ? "table"
             :  v["()"]          ? "function"
             :  v["."]           ? "table"
