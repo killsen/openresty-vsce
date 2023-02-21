@@ -1,10 +1,10 @@
 
-import { Node, Statement, Comment } from 'luaparse';
-import { getBasicType, getLuaTypeName, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
+import { Node, Statement, Comment, Expression } from 'luaparse';
+import { getBasicType, getLuaTypeName, LuaAny, LuaModule, LuaNever, LuaNumber, LuaString, LuaType } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
-import { addLint, check_vtype, get_node_vtype, get_vtype_inline, loadType, set_arg_vtype } from './vtype';
+import { addLint, check_vtype, get_node_vtype, get_vtype_inline, loadType, mergeTypes, set_arg_vtype, unionTypes } from './vtype';
 import { wrapArray, _getn } from './libs/TableLib';
 
 /** 执行代码块：并返回最后一个返回值 */
@@ -249,7 +249,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             for (let n of node.clauses) {
 
-                const newG = newScope(elsG);
+                let newG = newScope(elsG);
+                elsG = newScope(elsG);
 
                 switch (n.type) {
                     case "IfClause":
@@ -258,42 +259,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         let ok = loadNode(n.condition, elsG);
 
                         // TODO: 【未完成】条件判断 type 类型推导
-                        if (n.condition.type === "BinaryExpression") {
-                            let { left, right, operator } = n.condition;
-                            if (operator === "==" &&
-                                left.type === "CallExpression" &&
-                                left.base.type === "Identifier" &&
-                                left.base.name === "type" &&
-                                left.arguments.length === 1 &&
-                                left.arguments[0].type === "Identifier" &&
-                                right.type === "StringLiteral") {
-
-                                let type = loadNode(right, newG);
-                                if (typeof type === "string") {
-                                    let k = left.arguments[0].name;
-                                    let v = getValue(newG, k);
-
-                                    let vtype: any;
-                                    let vtypes = v?.types as any[];
-                                    if (isArray(vtypes)) {
-                                        vtype = vtypes.find(vt => type === getLuaTypeName(vt));
-
-                                        elsG = newScope(newG);
-                                        vtypes = vtypes.filter(vt => type !== getLuaTypeName(vt));
-
-                                        v = vtypes.length === 1 ? vtypes[0] : { ...v, types: vtypes };
-                                        setValue(elsG, "$type_" + k, v, true);
-                                        setValue(elsG, k, v, true);
-                                    }
-
-                                    vtype = vtype || getBasicType(type);
-                                    if (vtype?.readonly) {
-                                        setValue(newG, "$type_" + k, vtype, true);
-                                        setValue(newG, k, vtype, true);
-                                    }
-                                }
-                            }
-                        }
+                        maybeTypes(n.condition, newG, elsG);
 
                         setValue(newG, "$$return", [], true);
                         let res = loadBody(n.body, newG, n.loc);
@@ -862,6 +828,156 @@ function getIndex(t: any, k: any, _g: LuaScope) {
         return r;
     }
 
+
+}
+
+function getTypeNameToCheck(exp: Expression) {
+    if (exp.type !== "StringLiteral") { return ""; }
+    let raw = exp.raw;
+    if (raw.startsWith("'") || raw.startsWith('"')) {
+        return raw.substring(1, raw.length-1);
+    } else {
+        let index = raw.indexOf("[", 1) + 1;
+        return raw.substring(index, raw.length-index);
+    }
+}
+
+function getVarNameToCheck(exp: Expression) {
+    return exp.type === "CallExpression"
+        && exp.base.type === "Identifier"
+        && exp.base.name === "type"
+        && exp.arguments.length === 1
+        && exp.arguments[0].type === "Identifier"
+        && exp.arguments[0].name
+        || "";
+}
+
+const AllTypes = [
+    "table",
+    "string",
+    "number",
+    "boolean",
+    "function",
+    "thread",
+    "userdata",
+    "ctype",
+    "cdata",
+];
+
+type MaybeTypes = { [key: string] : string[] };
+
+function andTypes(map1?: MaybeTypes, map2?: MaybeTypes) {
+
+    if (map1 && map2) {
+        for (let k in map1) {
+            let t1 = map1[k];
+            let t2 = map2[k];
+            if (t1 && t2) {
+                let t = t2.filter(name => t1.includes(name));  // 取交集
+                map1[k] = map2[k] = t;
+            }
+        }
+        return { ...map1, ...map2 };
+
+    } else if (map1) {
+        return map1;
+    } else if (map2) {
+        return map2;
+    }
+
+}
+
+function orTypes(map1?: MaybeTypes, map2?: MaybeTypes) {
+    map1 = notTypes(map1);
+    map2 = notTypes(map2);
+    return notTypes(andTypes(map1, map2));
+}
+
+function notTypes(map?: MaybeTypes) {
+    if (!map) {return;}
+    for (let k in map) {
+        let t = map[k];
+        map[k] = AllTypes.filter(name => ! t.includes(name));  // 取差集
+    }
+    return map;
+}
+
+function loadMaybeTypes(exp: Expression) : MaybeTypes | undefined {
+
+    // if type(t) == "string" then ... else ... end
+    // if type(t) ~= "string" then ... else ... end
+
+    if (exp.type === "BinaryExpression") {
+        let { left, right, operator } = exp;
+
+        if (operator !== "==" && operator !== "~=") { return; }
+
+        let varName = getVarNameToCheck(left) || getVarNameToCheck(right);
+        if (!varName) { return; }
+
+        let typeName = getTypeNameToCheck(left) || getTypeNameToCheck(right);
+        if (!typeName) { return; }
+
+        if (operator === "==") {
+            return { [ varName ] : [ typeName ] };
+        } else if (operator === "~=") {
+            return { [ varName ] : AllTypes.filter( name => name !== typeName ) };
+        }
+
+    } else if (exp.type === "LogicalExpression") {
+        let map1 = loadMaybeTypes(exp.left);
+        let map2 = loadMaybeTypes(exp.right);
+        return exp.operator === "and"
+             ? andTypes(map1, map2)
+             : orTypes (map1, map2);
+
+    }  else if (exp.type === "UnaryExpression" && exp.operator === "not") {
+        let map = loadMaybeTypes(exp.argument);
+        return notTypes(map);
+    }
+
+}
+
+
+function maybeTypes(exp: Expression, newG: LuaScope, elsG: LuaScope) {
+
+    // if type(t) == "string" then ... else ... end
+    // if type(t) ~= "string" then ... else ... end
+
+    const map =  loadMaybeTypes(exp);
+    if (!map) { return; }
+
+    for (let varName in map) {
+        let typeNames = map[varName];
+
+        let vt = getType(newG, varName);
+        let isAny = vt?.type === "any";
+        if (!vt || isAny) {
+            if (typeNames.length === 1) {
+                vt = getBasicType(typeNames[0]);
+                if (vt) {
+                    setValue(newG, "$type_" + varName, null, true);
+                    setValue(newG, varName, vt, true);
+                }
+            }
+            return;
+        }
+
+        let vtypes: LuaType[] = isArray(vt?.types) ? vt.types : [ vt ];
+
+        let vtypesNew = vtypes.filter( vt =>   typeNames.includes(getLuaTypeName(vt)) );
+        let vtypesEls = vtypes.filter( vt => ! typeNames.includes(getLuaTypeName(vt)) );
+
+        let vtNew = unionTypes(vtypesNew);
+        let vtEls = unionTypes(vtypesEls);
+
+        setValue(newG, "$type_" + varName, vtNew, true);
+        setValue(newG, varName, vtNew, true);
+
+        setValue(elsG, "$type_" + varName, vtEls, true);
+        setValue(elsG, varName, vtEls, true);
+
+    }
 
 }
 

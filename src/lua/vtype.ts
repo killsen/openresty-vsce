@@ -224,7 +224,7 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
 }
 
 // T1 | T2 | T3
-function unionTypes(vtypes: LuaType[]) : LuaType {
+export function unionTypes(vtypes: LuaType[]) : LuaType {
 
     if (vtypes.length === 0) { return LuaNever; }
     if (vtypes.length === 1) { return vtypes[0]; }
@@ -319,7 +319,7 @@ function unionTypes(vtypes: LuaType[]) : LuaType {
 }
 
 // T1 & T2 & T3
-function mergeTypes(vtypes: LuaType[], checkUnionTypes = true) : LuaType {
+export function mergeTypes(vtypes: LuaType[], checkUnionTypes = true) : LuaType {
 
     if (vtypes.length === 0) { return LuaNever; }
     if (vtypes.length === 1) { return vtypes[0]; }

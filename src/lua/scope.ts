@@ -69,10 +69,9 @@ export function getValue(_g: LuaScope, key: string) {
     // 优先使用类型声明 v22.03.25
     let keyT = "$type_" + key;
     let _GT = getScope(_g, keyT);
-
     let _G = getScope(_g, key);
 
-    return keyT in _GT ? _GT[keyT] : _G[key];
+    return _GT[keyT] || _G[key];
 
 }
 
