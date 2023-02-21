@@ -360,42 +360,28 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
             userType = API_TYPES[name];
         }
 
+        let type    = name;             // 类型名称
+        let typeArr = name + "[]";      // 数组类型名称
+        let vtype;
+
         if (userType) {
             // userType 使用 proxy 创建可解决自引用问题
             // userType 加载完成后才能解构 (即访问相关属性)
-            let userObj = userType;
-
-            if (userType.loaded) {
-                doc = doc + "\n---\n" + userType.doc;   // 补上 userType 文档
-                userObj = { ... userObj, doc, readonly };
-            }
-
-            if (isArray) {
-                return { "[]": userType, doc, readonly };         // userType 数组引用
-            } else {
-                return userObj;                         // userType 对象引用
+            vtype = userType;
+            if (vtype.loaded) {
+                doc = doc + "\n---\n" + vtype.doc;  // 补上 userType 文档
+                vtype = { ... vtype, doc, readonly, type };
             }
 
         } else if (daoType) {
-
-            doc = doc + "\n---\n" + daoType.doc;        // 补上 dao 文档
-            let row = daoType.row;
-
-            if (isArray) {
-                return { "[]": { ".": row, readonly }, doc, readonly };     // dao 数组引用
-            } else {
-                return { ".": row, doc, readonly };               // dao 对象引用
-            }
+            doc = doc + "\n---\n" + daoType.doc;  // 补上 dao 文档
+            vtype = { ".": daoType.row, doc, readonly, type };
 
         } else {
-
-            if (isArray) {
-                return { "[]": { type: name, readonly }, doc, readonly };
-            } else {
-                return { type: name, doc, readonly };
-            }
-
+            vtype = { ".": {}, doc, readonly, type };
         }
+
+        return !isArray ? vtype : { "[]": vtype, doc, readonly, type: typeArr };
 
     }
 
