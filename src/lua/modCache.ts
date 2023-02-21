@@ -1,7 +1,8 @@
 
 import { LuaModule } from './types';
 import { window, workspace } from 'vscode';
-import { watch as _watch } from 'fs';
+import { watch as _watch,  readdirSync, statSync } from 'fs';
+import { dirname, join } from 'path';
 
 // 模块缓存
 const MOD_LOADED = new Map<string, LuaModule>();
@@ -79,6 +80,48 @@ export function watchFile(fileName : string) {
     _watch(fileName, ()=>{
         // console.log("监听文件: ", fileName);
         cleanUp(fileName);  // 清理模块缓存
+        cleanPath(fileName);
     });
+
+}
+
+const pathMap = new Map<string, string[]>();
+
+function cleanPath(fileName: string) {
+    let pPath = dirname(fileName);
+    pathMap.delete(fileName);
+    pathMap.delete(pPath);
+}
+
+export function loadNames (pPath: string) {
+
+    let cache = pathMap.get(pPath);
+    if (cache) { return cache; }
+
+    let names = [] as string[];
+    pathMap.set(pPath, names);
+
+    watchFile(pPath);
+
+    try {
+        const files = readdirSync(pPath);
+        files.forEach(name => {
+            if (name === "_bk" || name === "init.lua" || name.startsWith(".")) {return;}
+
+            let fPath = join(pPath, name);
+            let fStat = statSync(fPath);
+
+            if (fStat.isDirectory()) {
+                names.push(name);
+            } else if (fStat.isFile() && name.endsWith(".lua")) {
+                name = name.substring(0, name.length - 4);
+                names.push(name);
+            }
+        });
+    } catch (e) {
+        // console.log(e);
+    }
+
+    return names;
 
 }

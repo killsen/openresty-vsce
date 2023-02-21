@@ -7,8 +7,7 @@ import { loadDao } from './daoLoader';
 import { loadApiDoc } from './apiDoc';
 import { genGlobal } from './global';
 import { newScope } from './scope';
-import { setDepend, getModCache, setModCache } from './modCache';
-import * as fs from 'fs';
+import { setDepend, getModCache, setModCache, loadNames } from './modCache';
 import { join } from 'path';
 import { window } from 'vscode';
 
@@ -164,32 +163,5 @@ function loadApiMod(ctx: NgxPath, apiName: string, apiPath: string, apiMod?: Lua
             return true;  // 返回 true 避免修改属性时抛出错误
         }
     });
-
-}
-
-function loadNames (pPath: string) {
-
-    let names: string[] = [];
-
-    try {
-        const files = fs.readdirSync(pPath);
-        files.forEach(name => {
-            if (name === "_bk" || name === "init.lua" || name.startsWith(".")) {return;}
-
-            let fPath = join(pPath, name);
-            let fStat = fs.statSync(fPath);
-
-            if (fStat.isDirectory()) {
-                names.push(name);
-            } else if (fStat.isFile() && name.endsWith(".lua")) {
-                name = name.substring(0, name.length - 4);
-                names.push(name);
-            }
-        });
-    } catch (e) {
-        // console.log(e);
-    }
-
-    return names;
 
 }
