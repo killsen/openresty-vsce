@@ -1,5 +1,5 @@
 
-import { LuaModule } from './types';
+import { getBasicType, LuaModule } from './types';
 import { NgxPath } from "./ngx";
 import { isObject, getItem, setItem, delItem, toTable } from './utils';
 import * as lua from './index';
@@ -8,7 +8,6 @@ const readonly = true;
 export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefined {
 
     const API_MOD  = mod;
-    const API_PATH = ctx;
     const API_TABLE = toTable(mod);
     const API_TYPES: any = {};  // 自定义类型
     const REQ_TYPES: any = {};  // 请求参数类型
@@ -18,7 +17,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
 
     let modName = ctx.modName || "__";
     let modFile = mod.$file || "";
-        modFile = modFile.replace(".editing", "");
+        modFile = modFile.replace(".editing", "").replace(" ", "");
         modFile = "(file:"+ modFile +")";
     let modDocs : string[] = [];
     if (mod.doc) {modDocs.push(mod.doc);}
@@ -325,63 +324,59 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
     // 生成引用类型
     function genRefType(key: string, name: string, typeName: string = "") {
 
-        // 自定义类型命名: 兼容处理
-        name = name.replace("@", "");
-
-        if (typeName && modName) {
-            typeName = "### [" + modName + "]" + modFile + "." + typeName;
-        }
-
-        let daoType, userType;
-        let isArray = false;
-        let isRequired = true;
-        let doc = "## " + key + "\n\n`< " + name + " >`\n\n" + typeName;
+        let desc = "";
 
         if (name.indexOf("//") !== -1) {
             let arr = name.split("//");
-            name = arr[0].replace(/[\r\n\s]/g, "") || "string";
-            doc = "## " + key + "\n\n`< " + name + " >`\n\n" + arr[1].trim() + "\n\n" + typeName;
+            name = arr[0].trim();
+            desc = arr[1].trim() + "\n\n";
         }
 
-        if (name.indexOf("?") !== -1) {
-            isRequired = false;
-            name = name.replace("?", "");
+        // 自定义类型命名: 兼容处理
+        name = name.replace(/[@?\r\n\s]/g, "") || "string";
+
+        let doc = "## " + key + "\n\n`< " + name + " >`\n\n" + desc;
+
+        if (typeName && modName) {
+            doc += "### [" + modName + "]" + modFile + "." + typeName;
         }
 
-        if (name.indexOf("[]") !== -1) {
-            isArray = true;
+        // 是否数组
+        let isArr = name.indexOf("[]") !== -1;
+        if (isArr) {
             name = name.replace("[]", "");
         }
 
+        let vt, daoType, userType;
+
         if (name.startsWith("$")) {
-            let daoMod = lua.load(API_PATH, name);
+            let daoMod = lua.load(ctx, name);
             if (daoMod) {daoType = daoMod["$dao"];}
         } else {
             userType = API_TYPES[name];
         }
 
-        let type    = name;             // 类型名称
-        let typeArr = name + "[]";      // 数组类型名称
-        let vtype;
-
         if (userType) {
             // userType 使用 proxy 创建可解决自引用问题
             // userType 加载完成后才能解构 (即访问相关属性)
-            vtype = userType;
-            if (vtype.loaded) {
-                doc = doc + "\n---\n" + vtype.doc;  // 补上 userType 文档
-                vtype = { ... vtype, doc, readonly, type };
+            vt = userType;
+            if (vt.loaded) {
+                doc = doc + "\n---\n" + vt.doc;  // 补上 userType 文档
+                let docx = "## "+ name +"\n自定义类型对象\n" + vt.doc;
+                vt = { ... vt, readonly, type: name, doc: isArr ? docx : doc };
             }
 
         } else if (daoType) {
             doc = doc + "\n---\n" + daoType.doc;  // 补上 dao 文档
-            vtype = { ".": daoType.row, doc, readonly, type };
+            let daox = "## "+ name +"\ndao 类型单行数据\n" + daoType.doc;
+            vt = { ".": daoType.row, readonly, type: name, doc: isArr ? daox : doc };
 
         } else {
-            vtype = { ".": {}, doc, readonly, type };
+            vt = getBasicType(name) || {};
+            vt = { ...vt, readonly, type: name, doc: isArr ? "" : doc };
         }
 
-        return !isArray ? vtype : { "[]": vtype, doc, readonly, type: typeArr };
+        return isArr ? { "[]": vt, doc, readonly, type: name + "[]" } : vt;
 
     }
 

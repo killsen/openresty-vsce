@@ -719,38 +719,38 @@ export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope)
 
     if (typeof funt !== "object") {return;}
 
-    if (isObject(funt.$$req)) {
-        if (i !== 0) {return;}
-        return funt.$$req;
+    const func  = funt["()"];
+    const $args = func?.$args || funt.$args;
+    const $$req = func?.$$req || funt.$$req;
+    const $$row = funt.$dao?.row;   // dao 对象参数字段
 
-    } else if (isObject(funt.$dao?.row)) {
+    if (isObject($$req)) {
+        if (i !== 0) {return;}
+        return $$req;
+
+    } else if (isObject($$row)) {
         if (i !== 0) {return;}
 
-        // dao 对象参数字段
-        const row = funt.$dao.row;
         const doc: string = typeof funt.doc === "string" ? funt.doc : "";
 
         if (/dao[:.](get|list)/g.test(doc)) {
             return {
-                ["." ] : { ...row, ...$dao_ext },
+                ["." ] : { ...$$row, ...$dao_ext },
                 ["[]"] : { ".": {} },
             };
         }else if (/dao[:.](add|set)/g.test(doc)) {
             return {
-                ["." ] : row,
-                ["[]"] : { ".": row },
+                ["." ] : $$row,
+                ["[]"] : { ".": $$row },
             };
         } else {
             return {
-                ["." ] : row,
+                ["." ] : $$row,
                 ["[]"] : { ".": {} },
             };
         }
 
     }
-
-    const func  = funt["()"];
-    const $args = func?.$args || funt.$args;
 
     if (typeof $args === "function") {
         return $args(i, args, _g);
