@@ -126,7 +126,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
         });
 
         let lastV = res[res.length - 1];
-        if (lastV && lastV.type === "...") {
+        if (lastV && !lastV.$proxy && lastV.type === "...") {
             let v = res[res.length - 2];
             if (v && v.type !== "...") {
                 for (let i = res.length - 1; i < node.variables.length; i++) {
