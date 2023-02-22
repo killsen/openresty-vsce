@@ -258,8 +258,11 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         // 返回条件是否成立
                         let ok = loadNode(n.condition, elsG);
 
+                        // 是否含有 return 语句
+                        let withReturn = -1 !== n.body.findIndex(d => d.type === "ReturnStatement");
+
                         // TODO: 【未完成】条件判断 type 类型推导
-                        maybeTypes(n.condition, newG, elsG);
+                        maybeTypes(n.condition, _g, newG, elsG, withReturn);
 
                         setValue(newG, "$$return", [], true);
                         let res = loadBody(n.body, newG, n.loc);
@@ -902,6 +905,10 @@ function notTypes(map?: MaybeTypes) {
     return map;
 }
 
+function notType(types: string[]) {
+    return AllTypes.filter(name => ! types.includes(name));
+}
+
 function loadMaybeTypes(exp: Expression) : MaybeTypes | undefined {
 
     // if type(t) == "string" then ... else ... end
@@ -939,7 +946,7 @@ function loadMaybeTypes(exp: Expression) : MaybeTypes | undefined {
 }
 
 
-function maybeTypes(exp: Expression, newG: LuaScope, elsG: LuaScope) {
+function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScope, withReturn: boolean) {
 
     // if type(t) == "string" then ... else ... end
     // if type(t) ~= "string" then ... else ... end
@@ -950,17 +957,27 @@ function maybeTypes(exp: Expression, newG: LuaScope, elsG: LuaScope) {
     for (let varName in map) {
         let typeNames = map[varName];
 
-        let vt = getType(newG, varName);
-        let isAny = vt?.type === "any";
-        if (!vt || isAny) {
-            if (typeNames.length === 1) {
-                vt = getBasicType(typeNames[0]);
-                if (vt) {
-                    setValue(newG, "$type_" + varName, null, true);
-                    setValue(newG, varName, vt, true);
+        let vt = getValue(newG, varName);
+        let vtName = getLuaTypeName(vt);
+
+        if (!isObject(vt) || vtName === "any") {
+            let name = typeNames.length === 1 ? typeNames[0] : "";
+            if (name && name !== vtName) {
+                vt = getBasicType(name);
+                setValue(newG, "$type_" + varName, null, true);
+                setValue(newG, varName, vt, true);
+                continue;
+            }
+            // if type(t) ~= "string" then return end
+            if (withReturn && typeNames.length >= AllTypes.length - 1) {
+                typeNames = notType(typeNames);
+                name = typeNames.length === 1 ? typeNames[0] : "";
+                if (name && name !== vtName) {
+                    vt = getBasicType(typeNames[0]);
+                    setValue(_g, varName, vt, true);
                 }
             }
-            return;
+            continue;
         }
 
         let vtypes: LuaType[] = isArray(vt?.types) ? vt.types : [ vt ];
@@ -971,11 +988,17 @@ function maybeTypes(exp: Expression, newG: LuaScope, elsG: LuaScope) {
         let vtNew = unionTypes(vtypesNew);
         let vtEls = unionTypes(vtypesEls);
 
-        setValue(newG, "$type_" + varName, vtNew, true);
+        setValue(newG, "$type_" + varName, null, true);
         setValue(newG, varName, vtNew, true);
 
-        setValue(elsG, "$type_" + varName, vtEls, true);
+        setValue(elsG, "$type_" + varName, null, true);
         setValue(elsG, varName, vtEls, true);
+
+        // if type(t) ~= "string" then return end
+        if (withReturn) {
+            setValue(_g, "$type_" + varName, vtEls, true);
+            setValue(_g, varName, vtEls, true);
+        }
 
     }
 
