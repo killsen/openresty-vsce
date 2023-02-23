@@ -1,5 +1,43 @@
 # 升级日志
 
+## v1.9.3
+
+* 新增支持 if type 类型推导，演示代码如下：
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+local _M = {}
+
+function _M.test1(arg)
+
+    if type(arg) ~= "string" then
+        ngx.say("arg 类型不是 string : ", tostring(arg))
+        return  -- 这里退出了
+    end
+
+    ngx.say("arg 类型是 string :", arg:upper())
+
+end
+
+function _M.test2(arg)
+-- @arg : number | string | boolean
+
+    if type(arg) == "number" then
+        ngx.say("arg 类型是 number : ", arg + 100)
+
+    elseif type(arg) == "boolean" then
+        ngx.say("arg 类型是 boolean : ", not not arg)
+
+    else
+        ngx.say("arg 类型是 string : ", arg:upper())
+    end
+
+end
+
+return _M
+
+```
+
 ## v1.9.2
 
 * ngx, ndk, table, string, math, package 内置库接口新增参数类型声明
