@@ -554,10 +554,10 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
     if (v1?.type && v2?.type && v1?.type === v2?.type) {return;}
 
     let vt1 = getLuaTypeName(v1);
-    if (vt1 === "any") {return;}
+    if (vt1 === "any" || vt1 === "nil") {return;}
 
     let vt2 = getLuaTypeName(v2);
-    if (vt2 === "any") {return;}
+    if (vt2 === "any" || vt2 === "nil") {return;}
 
     if (vt1 === "never" || vt2 === "never") {
         addLint(n, "", _g, `不能将类型 “${ vt2 }” 分配给类型 “${ vt1 }”`);
@@ -565,8 +565,8 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
 
     // if (vt1 === vt2) {return;}
 
-    let at1 : string[] = isArray(v1.types) ? v1.types.map(getLuaTypeName) : [vt1];
-    let at2 : string[] = isArray(v2.types) ? v2.types.map(getLuaTypeName) : [vt2];
+    let at1 : string[] = isArray(v1?.types) ? v1.types.map(getLuaTypeName) : [vt1];
+    let at2 : string[] = isArray(v2?.types) ? v2.types.map(getLuaTypeName) : [vt2];
 
     if (at1.some(t => t === "any" || at2.includes(t) )) {
         return;

@@ -100,6 +100,7 @@ export interface LuaApiDoc {
 
 export interface LuaType {
     "."     ? : LuaTable;
+    ":"     ? : LuaTable;
     "[]"    ? : LuaType;
     type      : string;
     types   ? : LuaType[];
@@ -123,9 +124,6 @@ export const LuaAny       = { type: "any", basic, readonly, ".": {}, "$mt": {} }
 export const LuaAnyArray  = { type: "any[]", "[]": LuaAny, readonly };
 LuaAny["."  ] = { "*": LuaAny };
 LuaAny["$mt"] = { __call : { "()" : [LuaAny] } };
-
-// 对象类型
-export const LuaObject      = { type: "table", ".": { "*": LuaAny }, basic, readonly };
 
 // 不存在类型
 export const LuaNever       = { type: "never", basic, readonly };
@@ -167,6 +165,9 @@ export const LuaCTypeArray  = { type: "ctype[]", "[]": LuaCType, readonly };
 // 文件类型
 export const LuaFile       = { type: "file", basic, readonly };
 export const LuaFileArray  = { type: "file[]", "[]": LuaFile, readonly };
+
+// 对象类型
+export const LuaObject  = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly };
 
 const LuaTypes: { [key: string] : LuaType } = {
     "..."               : LuaVarArgs,
@@ -218,11 +219,11 @@ export function getBasicType(typeName: string) {
         return LuaTypes[typeName];
 
     } else if (typeName === "table" || typeName === "object") {
-        const t : LuaType = { type: "table", ".": { "*": LuaAny }, readonly: false };
+        const t : LuaType = { ...LuaObject, readonly: false };
         return t;
 
     } else if (typeName === "table[]" || typeName === "object[]") {
-        const t : LuaType = { type: "table", ".": { "*": LuaAny }, readonly: false };
+        const t : LuaType = { ...LuaObject, readonly: false };
         return { type: "table[]", "[]": t, readonly: false };
 
     } else if (typeName === "void") {
