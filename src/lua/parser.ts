@@ -949,19 +949,20 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
     const map =  loadMaybeTypes(exp);
     if (!map) { return; }
 
-    for (let varName in map) {
+    Object.keys(map).forEach(varName => {
+
         let typeNames = map[varName];
 
         let vt = getValue(newG, varName);
         let vtName = getLuaTypeName(vt);
 
-        if (!isObject(vt) || vtName === "any") {
+        if (!isObject(vt) || vtName === "any" || vtName === "nil") {
             let name = typeNames.length === 1 ? typeNames[0] : "";
             if (name && name !== vtName) {
                 vt = getBasicType(name);
                 setValue(newG, "$type_" + varName, null, true);
                 setValue(newG, varName, vt, true);
-                continue;
+                return;
             }
             // if type(t) ~= "string" then return end
             if (withReturn && typeNames.length >= AllTypes.length - 1) {
@@ -976,7 +977,11 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
                     setValue(_g, varName, vt, true);
                 }
             }
-            continue;
+            return;
+        }
+
+        if (!vt.type || !vt.readonly) {
+            return;  // 非类型声明不处理
         }
 
         let vtypes: LuaType[] = isArray(vt?.types) ? vt.types : [ vt ];
@@ -998,8 +1003,7 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
             setValue(_g, "$type_" + varName, vtEls, true);
             setValue(_g, varName, vtEls, true);
         }
-
-    }
+    });
 
 }
 
