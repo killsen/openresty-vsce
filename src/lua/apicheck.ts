@@ -7,7 +7,7 @@ import { callFunc } from './modFunc';
 // 类型检查缓存
 const CACHE = new Map<string, vscode.Diagnostic[]>();
 
-/** 清除缓存 */
+/** 清除类型检查缓存 */
 export function cleanLints(fileName: string) {
     CACHE.delete(fileName);
 }

@@ -23,8 +23,12 @@ export function setModCache(fileName: string, mod: LuaModule) {
 
 /** 设置模块引用关系 */
 export function setDepend(fileName: string, dependFile: string){
+
+    // 去除 .editing 后缀名
+    fileName = fileName.replace(/\.editing$/, "");
+    dependFile = dependFile.replace(/\.editing$/, "");
+
     if (fileName === dependFile) {return;}
-    if (fileName.endsWith(".editing")) {return;}
 
     let arr = MOD_DEPENDS.get(fileName);
     if (arr?.includes(dependFile)) {
@@ -46,6 +50,9 @@ let count = 1;  // 清理次数
 
 /** 清理模块缓存 */
 export function cleanUp(fileName: string){
+
+    cleanLints(fileName);   // 清除类型检查缓存
+    cleanPath(fileName);    // 清除文件列表缓存
 
     let mod = MOD_LOADED.get(fileName);
     if (mod) {
@@ -81,8 +88,6 @@ export function watchFile(fileName : string) {
         _watch(fileName, ()=>{
             // console.log("监听文件: ", fileName);
             cleanUp(fileName);  // 清理模块缓存
-            cleanPath(fileName);
-            cleanLints(fileName);
         });
 
         WATCH_FILES.set(fileName, true);
@@ -95,12 +100,14 @@ export function watchFile(fileName : string) {
 
 const pathMap = new Map<string, string[]>();
 
+/** 清除文件列表缓存 */
 function cleanPath(fileName: string) {
     let pPath = dirname(fileName);
     pathMap.delete(fileName);
     pathMap.delete(pPath);
 }
 
+/** 加载文件列表 */
 export function loadNames (pPath: string) {
 
     let cache = pathMap.get(pPath);
