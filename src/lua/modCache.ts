@@ -3,6 +3,7 @@ import { LuaModule } from './types';
 import { window, workspace } from 'vscode';
 import { watch as _watch,  readdirSync, statSync } from 'fs';
 import { dirname, join } from 'path';
+import { cleanLints } from './apicheck';
 
 // 模块缓存
 const MOD_LOADED = new Map<string, LuaModule>();
@@ -73,15 +74,22 @@ const WATCH_FILES = new Map<string, true>();
 /** 监听文件变化 */
 export function watchFile(fileName : string) {
 
-    if (WATCH_FILES.has(fileName)) { return; }
+    try {
+        if (WATCH_FILES.has(fileName)) { return; }
 
-    WATCH_FILES.set(fileName, true);
+        // 文件或目录不存在会抛错
+        _watch(fileName, ()=>{
+            // console.log("监听文件: ", fileName);
+            cleanUp(fileName);  // 清理模块缓存
+            cleanPath(fileName);
+            cleanLints(fileName);
+        });
 
-    _watch(fileName, ()=>{
-        // console.log("监听文件: ", fileName);
-        cleanUp(fileName);  // 清理模块缓存
-        cleanPath(fileName);
-    });
+        WATCH_FILES.set(fileName, true);
+
+    } catch (e) {
+        // console.log(e);
+    }
 
 }
 
