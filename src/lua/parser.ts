@@ -183,8 +183,14 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         if ($$res && $$res[k]) {v["()"]["$$res"] = $$res[k];}
                     }
 
-                    check_vtype(vtypes[i], v, n, _g);  // 类型检查
-                    setChild(_g, t, n.indexer, k, v, n.identifier.loc);
+                    let typeName = getLuaTypeName(t);
+                    if (typeName === "string" || typeName === "number" || typeName === "boolean") {
+                        addLint(n.identifier, "", _g, `类型“${ typeName }”上不存在属性“${ k }”`);
+                    } else {
+                        check_vtype(vtypes[i], v, n, _g);  // 类型检查
+                        setChild(_g, t, n.indexer, k, v, n.identifier.loc);
+                    }
+
                     break;
                 }
 
@@ -654,7 +660,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             }
 
-            if (isObject(ti) || isObject(mt) || t.basic) {
+            if (t?.basic || getLuaTypeName(t) !== "any" ) {
                 // 为 apicheck 提供成员字段检查
                 addLint(node.identifier, k, _g);
             }

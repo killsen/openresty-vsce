@@ -153,7 +153,7 @@ export const LuaThread      = { type: "thread", basic, readonly };
 export const LuaThreadArray = { type: "thread[]", "[]": LuaThread, readonly };
 
 // 自定义类型
-export const LuaUserData      = { type: "userdata", basic, readonly };
+export const LuaUserData      = { type: "userdata", ".": { "*": LuaAny }, basic, readonly };
 export const LuaUserDataArray = { type: "userdata[]", "[]": LuaUserData, readonly };
 
 // C数据
@@ -240,7 +240,8 @@ export function getLuaTypeName(v: any) {
 
     if (!isObject(v)) {
         let t = typeof v;
-        return t === "string"   ? "string"
+        return v === null       ? "nil"
+            :  t === "string"   ? "string"
             :  t === "number"   ? "number"
             :  t === "boolean"  ? "boolean"
             :  t === "function" ? "function"
@@ -254,8 +255,9 @@ export function getLuaTypeName(v: any) {
             :  t === "boolean"  ? "boolean"
             :  t === "function" ? "function"
             :  t === "thread"   ? "thread"
-            :  t === "thread"   ? "userdata"
-            :  t === "thread"   ? "cdata"
+            :  t === "userdata" ? "userdata"
+            :  t === "file"     ? "userdata"
+            :  t === "cdata"    ? "cdata"
             :  t === "ctype"    ? "ctype"
             :  v["$proxy"]      ? "table"  // 通过 Proxy 加载的模块
             :  v["$$mt"]        ? "table"

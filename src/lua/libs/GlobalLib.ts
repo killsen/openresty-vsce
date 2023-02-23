@@ -3,7 +3,7 @@ import { Node } from 'luaparse';
 import { callFunc } from '../modFunc';
 import { loadNode } from '../parser';
 import { LuaScope } from '../scope';
-import { LuaAny, LuaAnyArray, LuaBoolean, LuaFunction, LuaNil, LuaNumber, LuaObject, LuaString, LuaTable } from '../types';
+import { getLuaTypeName, LuaAny, LuaAnyArray, LuaBoolean, LuaFunction, LuaNil, LuaNumber, LuaObject, LuaString, LuaTable } from '../types';
 import { getItem, isArray, isObject, setItem } from "../utils";
 import { get_arg_vtype } from '../vtype';
 import { _unpack } from "./TableLib";
@@ -61,27 +61,11 @@ function _print(...args: any[]) {
 // 返回变量类型
 function _type(v: any) {
 
-    if (!isObject(v)) {
-        let t = typeof v;
-        return v === null       ? "nil"
-            :  v === undefined  ? LuaString
-            :  t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "function" ? "function"
-            :  LuaString;
+    let t = getLuaTypeName(v);
+    if (t === "any" || t === "never") {
+        return LuaString;
     } else {
-        let t = v.type;
-        return t === "string"   ? "string"
-            :  t === "number"   ? "number"
-            :  t === "boolean"  ? "boolean"
-            :  t === "thread"   ? "thread"
-            :  v["$$mt"]        ? "table"
-            :  v["()"]          ? "function"
-            :  v["."]           ? "table"
-            :  v[":"]           ? "table"
-            :  v["[]"]          ? "table"
-            :  LuaString;
+        return t;
     }
 
 }
