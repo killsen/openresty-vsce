@@ -962,7 +962,11 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
                 typeNames = notType(typeNames);
                 name = typeNames.length === 1 ? typeNames[0] : "";
                 if (name && name !== vtName) {
-                    vt = getBasicType(typeNames[0]);
+                    setValue(newG, "$type_" + varName, null, true);
+                    setValue(newG, varName, vt, true);  // 保留原值
+
+                    vt = getBasicType(name);
+                    setValue(_g, "$type_" + varName, null, true);
                     setValue(_g, varName, vt, true);
                 }
             }
