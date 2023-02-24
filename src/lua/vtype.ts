@@ -107,6 +107,11 @@ export function parseTypes(name: string, _map: Map<string, string>) {
 /** 获取参数类型或者返回值类型 */
 export function loadReturnTypes(args: string, _g: LuaScope, loc?: Node["loc"], isRes = true): LuaType[] {
 
+    let pos = args.indexOf("//");
+    if (pos !== -1) {
+        args = args.substring(0, pos);  // 去掉注释
+    }
+
     // 去除空格及左右两边的小括号()
     args = args.replace(/\s/g, "");
     if (!isRes && args.startsWith("(") && args.endsWith(")")) {

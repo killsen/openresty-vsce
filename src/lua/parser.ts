@@ -1056,7 +1056,7 @@ function getReturn(_g: LuaScope) {
     // 对多个 return 语句的返回值进行排序: 优先选用复杂类型
     arr.sort((a: any, b: any) => {
         a = isArray(a) ? a[0]: a;
-        b = isArray(a) ? b[0]: b;
+        b = isArray(b) ? b[0]: b;
 
         if (isObject(a) && !isObject(b)) {
             return 1;

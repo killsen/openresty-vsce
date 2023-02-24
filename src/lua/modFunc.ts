@@ -96,16 +96,13 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
         if (isRunning) {
             // console.log("函数递归回调");
-            if (resValue) {
-                return resValue;
-
-            } else if (txRes) {
+            if (!resValue && txRes) {
                 resValue = loadReturnTypes(txRes.type, _g, txRes.loc);
                 if (isArray(resValue) && resValue.length === 1) {
                     resValue = resValue[1];  // 只有一个返回值
                 }
-                return resValue;
             }
+            return resValue;
 
         } else if (callOnce && !$$self) {
             // console.log("只执行一次");
