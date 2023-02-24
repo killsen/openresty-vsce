@@ -1,5 +1,33 @@
 # 升级日志
 
+## v1.9.4
+
+* 新增支持多返回值类型声明及检查，演示代码如下：
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+local function str_to_num(str)
+-- @str    : string
+-- @return : boolean, number
+
+    local num = tonumber(str)
+
+    if type(num) == "number" then
+        return true, num
+    else
+        return "not ok",        -- 不能将类型 “string” 分配给类型 “boolean”
+               "not number"     -- 不能将类型 “string” 分配给类型 “number”
+    end
+
+end
+
+local ok, num = str_to_num("123")
+
+ngx.say(ok)   -- 返回值 ok  类型为 “boolean”
+ngx.say(num)  -- 返回值 num 类型为 “number”
+
+```
+
 ## v1.9.3
 
 * 新增支持 if type 类型推导，演示代码如下：
