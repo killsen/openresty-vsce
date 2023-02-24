@@ -104,6 +104,55 @@ export function parseTypes(name: string, _map: Map<string, string>) {
 }
 
 
+/** 获取参数类型或者返回值类型 */
+export function loadReturnTypes(args: string, _g: LuaScope, loc?: Node["loc"], isRes = true): LuaType[] {
+
+    // 去除空格及左右两边的小括号()
+    args = args.replace(/\s/g, "");
+    if (!isRes && args.startsWith("(") && args.endsWith(")")) {
+        args = args.substring(1, args.length-1);
+    }
+    if (!args || args === "void") { return []; }
+
+    const _map = new Map<string, string>();
+    args = parseTypes(args, _map);
+
+    return args.split(",").map(arg => {
+        let type = "";
+
+        let vt = getBasicType(arg) ||
+                 getBasicType(arg.replace("?", ""));
+        if (vt) {return vt;}
+
+        if (arg === "...") {
+            type = "...";
+        } else if (arg.includes(":")) {
+            let idx = arg.indexOf(":");
+            type = arg.substring(idx+1, arg.length);
+        } else if (arg.includes("=")) {
+            let arr = arg.split("=");
+            type = arr[1].replace("?", "");
+        } else if (isRes) {
+            type = arg;  // 返回值类型
+        }
+
+        if (type === "true" || type === "false") {
+            type = "boolean";
+        } else if (type && !isNaN(Number(type))) {
+            type = "number";
+        }
+
+        if (!type) { return LuaAny; }
+
+        vt = getBasicType(type) || _g[type];
+        if (vt) { return vt; }
+
+        vt = loadType(type, _g, loc, _map);
+        return vt || LuaAny;
+
+    });
+}
+
 /** 通过类型名称取得类型 */
 export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: Map<string, string>): LuaType {
 
@@ -537,6 +586,78 @@ export function loadTypes(node: Node, _g: LuaScope) {
     }
 
     return types;
+
+}
+
+/** 通过注释加载类型 */
+export function loadTypex(n: Node, _g: LuaScope) {
+
+    const typex = {} as { [key: string]: { name: string, type: string, desc: string, loc: Node["loc"] } };
+
+    const comments = getValue(_g, "$$comments") as Comment[];
+    if (!isArray(comments)) { return typex; }
+
+    const nloc = n.loc;
+    if (!nloc) { return typex; }
+
+    const nline1 = nloc.start.line;
+    const nline2 = nloc.end.line;
+
+    comments.forEach(c => {
+        const loc = c.loc;
+        if (!loc) { return; }
+        const line1 = loc.start.line;
+        const line2 = loc.end.line;
+        if (line1 !== line2 || line1 < nline1 || line2 > nline2) {
+            return;  // 单行注释且在函数体内
+        }
+
+        const text = c.raw.trim();
+
+        // -- @@@ : %wx -- 外部构造函数
+        let m = text.match(/^--\s*(?<name>@@@)\s*:\s*(?<type>\S+)\s*(--\s*(?<desc>.*))?/);
+        if (m && m.groups) {
+            typex[m.groups.name] = {
+                name : m.groups.name,
+                type : m.groups.type,
+                desc : m.groups.desc || "",
+                loc,
+            };
+            return;
+        }
+
+        // -- @@ <Constructor> -- 内部构造器
+        m = text.match(/^--\s*(?<name>@@)\s*/);
+        if (m && m.groups) {
+            typex[m.groups.name] = {
+                name : m.groups.name,
+                type : "<Constructor>",
+                desc : "",
+                loc,
+            };
+            return;
+        }
+
+        // -- @req : $pos_dd_store  // 参数类型声明
+        m = text.match(/^--\s*@(?<name>\w+)\s*:\s*(?<type>.+)/);
+        if (m && m.groups) {
+            let name = m.groups.name;
+            let type = m.groups.type.trim();
+            let desc = "";
+
+            let pos = type.indexOf("//");
+            if (pos !== -1) {
+                desc = type.substring(pos+2).trim();
+                type = type.substring(0, pos).trim();
+            }
+
+            typex[name] = { name, type, desc, loc };
+            return;
+        }
+
+    });
+
+    return typex;
 
 }
 

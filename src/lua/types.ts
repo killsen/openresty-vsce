@@ -260,7 +260,9 @@ export function getLuaTypeName(v: any) {
             :  t === "file"     ? "userdata"
             :  t === "cdata"    ? "cdata"
             :  t === "ctype"    ? "ctype"
-            :  v["$proxy"]      ? "table"  // 通过 Proxy 加载的模块
+            :  t === "table"    ? "table"
+            :  t === "lib"      ? "table"
+            :  t === "api"      ? "table"
             :  v["$$mt"]        ? "table"
             :  v["()"]          ? "function"
             :  v["."]           ? "table"

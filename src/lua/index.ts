@@ -135,6 +135,7 @@ function loadApiMod(ctx: NgxPath, apiName: string, apiPath: string, apiMod?: Lua
         get(target, prop) {
             if (prop === "selfCall") {return false; }
             if (prop === "$proxy")   { return true; }
+            if (prop === "readonly") { return true; }
 
             if (prop === "type") {return "api";}
             if (prop === "doc") {return "## " + apiName + " 接口";}

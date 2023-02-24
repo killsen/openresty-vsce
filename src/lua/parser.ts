@@ -232,20 +232,46 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 返回语句:  return ...
         case "ReturnStatement": {
-            const argt = node.arguments[0];
-            if (argt && argt.type === "TableConstructorExpression") {
-                argt.vtype = getType(_g, "return");  // 返回值类型
+
+            const args = node.arguments;
+            if (args.length === 0) { return; }  // 没有返回值
+
+            const resx = [] as any[];
+
+            args.forEach((n, i) => {
+                let vt = getType(_g, "return" + (i+1));
+
+                // 注入返回值类型
+                if (n.type === "TableConstructorExpression") { n.vtype = vt; }
+
+                let v = loadNode(n, _g);
+                if (isArray(v)) {
+                    if (i === args.length - 1) {
+                        resx.push(...v);
+                        for (let j=i; j<resx.length; j++) {
+                            vt = getType(_g, "return" + (j+1));
+                            check_vtype(vt, resx[j], n, _g);  // 检查返回值类型
+                        }
+                    } else {
+                        resx.push(v[0]);
+                        check_vtype(vt, v[0], n, _g);  // 检查返回值类型
+                    }
+                } else {
+                    resx.push(v);
+                    check_vtype(vt, v, n, _g);  // 检查返回值类型
+                }
+            });
+
+            if (resx.length === 1) {
+                setReturn(resx[0], _g);     // 只有一个返回值
+                return resx[0];
+            } else if (resx.length > 1) {
+                setReturn(resx, _g);        // 有多个返回值
+                return resx;
+            } else {
+                return;                     // 没有返回值
             }
 
-            let $res;
-            if (node.arguments.length > 1) {
-                $res = node.arguments.map(n => loadNode(n, _g));
-            } else if (node.arguments.length === 1) {
-                $res = loadNode(argt, _g);
-            }
-
-            setReturn($res, _g);  // 设置返回值
-            return $res;
         }
 
         // 条件判断语句:  if (condition) then ... elseif (condition) then ... else ... end
@@ -557,6 +583,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 ["()"]: makeFunc(node, _g),  // 生成函数
                 doc: parseFuncDoc(node, _g),  // 生成文档
                 args: "(" + args.join(", ") + ")",
+                type: "function",
                 "$file": $file,
                 "$loc": node.loc,
             };
@@ -670,7 +697,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 对象或数组表达式 { a, b, c, k = v, [index] = value }
         case "TableConstructorExpression": {
 
-            let t: LuaModule = { ".": {}, $file, $loc: node.loc };
+            let t: LuaModule = { ".": {}, type: "table", $file, $loc: node.loc };
             let i = 1; // 下标从1开始：跟Lua保持一致
 
             node.fields.forEach((f, index) => {
@@ -980,7 +1007,7 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
             return;
         }
 
-        if (!vt.type || !vt.readonly) {
+        if (vt.$proxy || !vt.type) {
             return;  // 非类型声明不处理
         }
 

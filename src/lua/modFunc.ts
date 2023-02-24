@@ -4,8 +4,8 @@ import { newScope, getValue, setValue, LuaScope } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule } from './types';
-import { getItem, isObject } from './utils';
-import { loadType, loadTypes } from './vtype';
+import { getItem, isArray, isObject } from './utils';
+import { loadReturnTypes, loadType, loadTypex } from './vtype';
 
 /** 调用函数 */
 export function callFunc(t: any, ...args: any) {
@@ -52,35 +52,71 @@ export function getFunc(t: any) {
 /** 生成函数 */
 export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
-    let isRunning = false;
-    let callOnce = false;
-    let resValue: any;
+    const isEdit = !!getValue(_g, "$$node");    // 编辑模式
+    const isLint = !!getValue(_g, "$$lints");   // 检查模式
 
-    let types = loadTypes(node, _g);  // 通过注释加载类型
-    let returnType = types && types["return"];  // 返回值类型
+    const typex = loadTypex(node, _g);  // 通过注释加载类型
+    const txRes = typex["return"];      // 返回值类型
 
-    const myFunc = function (...params: any) {
+    // 构造器 @@ <Constructor>
+    if (typex["@@"]) {
+        setValue(_g, "@@", myFunc, true);
+        delete typex["@@"];
+    }
 
-        let myfunc : any = myFunc;
-        let $$req  : any = myfunc["$$req"];  // 请求参数类型
-        let $$res  : any = myfunc["$$res"];  // 返回值类型 v21.11.25
-        let $$self : any = myfunc["$$self"]; // self:func()
+    myFunc.$$req  = undefined as any;   // api接口请求参数
+    myFunc.$$res  = undefined as any;   // api接口返回类型
+    myFunc.$$self = undefined as any;   // 面向对象self变量
+
+    // 参数类型定义
+    myFunc.$args = function (i: number) {
+        if (i === 0 && myFunc["$$req"]) {
+            return myFunc["$$req"];
+        }
+        const p = node.parameters[i];
+        if (p?.type === "Identifier") {
+            const tx = typex[p.name];
+            if (tx) {
+                return loadType(tx.type, _g, tx.loc);
+            }
+        }
+    };
+
+    let isRunning = false;  // 是否正在运行中
+    let callOnce = false;   // 是否只允许一次
+    let resValue: any;      // 最近一次的返回值
+
+    return myFunc;
+
+    function myFunc (...params: any) {
+
+        const $$req  = myFunc["$$req"];  // api接口请求参数
+        const $$res  = myFunc["$$res"];  // api接口返回类型
+        const $$self = myFunc["$$self"]; // 面向对象self变量
 
         if (isRunning) {
             // console.log("函数递归回调");
-            resValue = returnType && loadType(returnType, _g) || resValue;
-            return resValue;
+            if (resValue) {
+                return resValue;
+
+            } else if (txRes) {
+                resValue = loadReturnTypes(txRes.type, _g, txRes.loc);
+                if (isArray(resValue) && resValue.length === 1) {
+                    resValue = resValue[1];  // 只有一个返回值
+                }
+                return resValue;
+            }
 
         } else if (callOnce && !$$self) {
             // console.log("只执行一次");
             return resValue;
         }
 
+        const newG = newScope(_g);
+
         // 没有参数：只执行一次
         let args = node.parameters;
         callOnce = (args.length === 0);
-
-        let newG = newScope(_g);
 
         if (isObject($$self)) {
             setValue(newG, "self", $$self, true);
@@ -92,19 +128,9 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             }
         }
 
-        // 初始化返回值数组
-        setValue(newG, "$$return", [], true);
-
-        // 初始化返回值类型
-        setValue(newG, "$type_return", $$res, true);
-
-        if (types) {
-            for (let name in types) {
-                let value = loadType(types[name], newG);
-                // 预定义类型 v21.11.25
-                setValue(newG, "$type_" + name, value, true);
-            }
-        }
+        setValue(newG, "$$return", [], true);           // 初始化返回值数组
+        setValue(newG, "$type_return", $$res, true);    // 初始化返回值类型
+        setValue(newG, "$type_return1", $$res, true);   // 初始化返回值类型
 
         // 构造器 @@ <Constructor>
         let self = getValue(newG, "self");
@@ -131,8 +157,9 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             } else if ( i === 0 && $$req) {
                 value = $$req;                          // 生成请求参数类型
 
-            } else if (types && types[name]) {
-                value = loadType(types[name], newG);    // 通过类型名称取得类型
+            } else if (typex[name]) {
+                const tx = typex[name];
+                value = loadType(tx.type, newG, tx.loc);    // 通过类型名称取得类型
 
             } else if ( name === "self" && self && value === undefined) {
                 value = self;                           // 构造器 @@ <Constructor>
@@ -141,46 +168,41 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             setValue(newG, name, value, true, p.loc);
         });
 
-        // 编辑模式下，或者未指定返回类型，则需要运行代码
-        let needToRun = getValue(newG, "$$node") || (!$$res && !returnType);
+        // 加载参数类型
+        for (let name in typex) {
+            let tx = typex[name];
+            if (name !== "return") {
+                let vt = loadType(tx.type, newG, tx.loc);
+                setValue(newG, "$type_" + name, vt, true);
+            } else {
+                // 返回值类型
+                let vtypes = loadReturnTypes(tx.type, newG, tx.loc);
+                vtypes.forEach((vt, i) => {
+                    i === 0 && setValue(newG, "$type_return", vt, true);
+                    setValue(newG, "$type_return" + (i+1), vt, true);
+                });
+            }
+        }
 
-        // apicheck 成员字段检查需运行代码
-        if (getValue(newG, "$$lints")) {needToRun = true;}
-
-        if (needToRun) {
+        // 编辑模式, 或检查模式, 或者未指定返回类型, 则需要运行代码
+        if (isEdit || isLint || (!$$res && !txRes)) {
             isRunning = true;  // 避免递归回调：造成死循环
             resValue = loadBody(node.body, newG, node.loc);
             isRunning = false;
         }
 
         if ($$res) {
-            resValue = $$res;  // 返回值类型 v21.11.25
+            resValue = $$res;
+        } else if (txRes) {
+            resValue = loadReturnTypes(txRes.type, newG, txRes.loc);
+        }
 
-        } else if (returnType) {
-            // 按指定类型返回或按指定参数返回 v21.11.25
-            resValue = loadType(returnType, newG) || getValue(newG, returnType) || resValue;
+        if (isArray(resValue) && resValue.length === 1) {
+            resValue = resValue[1];  // 只有一个返回值
         }
 
         return resValue;
-    };
-
-    // 构造器 @@ <Constructor>
-    if (types && types["@@"]) {
-        setValue(_g, "@@", myFunc, true);
     }
-
-    // 参数类型定义
-    myFunc.$args = function (i: number) {
-        let p = node.parameters[i];
-        if (p?.type === "Identifier") {
-            let typeName = types && types[p.name];
-            if (typeName) {
-                return loadType(typeName, _g);
-            }
-        }
-    };
-
-    return myFunc;
 
 }
 
