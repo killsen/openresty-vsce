@@ -211,7 +211,7 @@ ngx.socket.connect(host: string, port: number)  -> tcpsock
     tcpsock:connect(host: string, port?: number | table, options_table?: table)
     tcpsock:setclientcert(cert: string, pkey: string)
     tcpsock:sslhandshake(reused_session?: boolean, server_name?: string, ssl_verify?: boolean)
-    tcpsock:send(data: string)
+    tcpsock:send(data: string | string[])
     tcpsock:receive(size_or_pattern?: number)
     tcpsock:receiveany(max: number)
     tcpsock:receiveuntil(pattern: string, options?: table)
