@@ -219,12 +219,12 @@ export function getBasicType(typeName: string) {
         return LuaTypes[typeName];
 
     } else if (typeName === "table" || typeName === "object") {
-        const t : LuaType = { ...LuaObject, readonly: false };
+        const t : LuaType = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false };
         return t;
 
     } else if (typeName === "table[]" || typeName === "object[]") {
-        const t : LuaType = { ...LuaObject, readonly: false };
-        return { type: "table[]", "[]": t, readonly: false };
+        const t : LuaType = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false };
+        return { type: "table[]", "[]": t, readonly };
 
     } else if (typeName === "void") {
         return LuaNil;
