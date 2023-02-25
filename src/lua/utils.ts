@@ -138,8 +138,8 @@ type NodeX = { loc?: Node["loc"] };
 /** 是否在作用域内 */
 export function isInScope(node: NodeX, $$node: NodeX) {
 
-    let loc = node.loc;
-    let $$loc = $$node.loc;
+    let loc = node?.loc;
+    let $$loc = $$node?.loc;
 
     if (!loc || !$$loc) { return false; }
 
@@ -156,8 +156,8 @@ export function isInScope(node: NodeX, $$node: NodeX) {
 /** 检查作用域是否下面 */
 export function isDownScope(node: NodeX, $$node: NodeX) {
 
-    let loc = node.loc;
-    let $$loc = $$node.loc;
+    let loc = node?.loc;
+    let $$loc = $$node?.loc;
 
     if (!loc || !$$loc) { return false; }
 

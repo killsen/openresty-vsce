@@ -4,7 +4,7 @@ import { newScope, getValue, setValue, LuaScope } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule } from './types';
-import { getItem, isArray, isObject } from './utils';
+import { getItem, isArray, isInScope, isObject } from './utils';
 import { loadReturnTypes, loadType, loadTypex } from './vtype';
 
 /** 调用函数 */
@@ -54,9 +54,6 @@ export function getFunc(t: any) {
 /** 生成函数 */
 export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
-    const isEdit = !!getValue(_g, "$$node");    // 编辑模式
-    const isLint = !!getValue(_g, "$$lints");   // 检查模式
-
     const typex = loadTypex(node, _g);  // 通过注释加载类型
     const txRes = typex["return"];      // 返回值类型
 
@@ -87,6 +84,12 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     let isRunning = false;  // 是否正在运行中
     let callOnce = false;   // 是否只允许一次
     let resValue: any;      // 最近一次的返回值
+
+    let $$lints = getValue(_g, "$$lints") || null;  // 类型检查
+    let $$node  = getValue(_g, "$$node")  || null;  // 光标位置
+    if ($$node && !isInScope(node, $$node)) {
+        $$node = null;  // 不在作用域内
+    }
 
     return myFunc;
 
@@ -184,9 +187,15 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         }
 
         // 编辑模式, 或检查模式, 或者未指定返回类型, 则需要运行代码
-        if (isEdit || isLint || (!$$res && !txRes)) {
-            isRunning = true;  // 避免递归回调：造成死循环
-            resValue = loadBody(node.body, newG, node.loc);
+        if ($$node || $$lints || (!$$res && !txRes)) {
+            $$node === null && setValue(newG, "$$node", null, true);
+            $$node   = null;    // 光标位置只处理一次
+
+            $$lints === null && setValue(newG, "$$lints", null, true);
+            $$lints   = null;   // 类型检查只进行一次
+
+            isRunning = true;   // 避免递归回调：造成死循环
+            resValue  = loadBody(node.body, newG, node.loc);
             isRunning = false;
         }
 

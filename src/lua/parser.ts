@@ -980,7 +980,7 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
         let vt = getValue(newG, varName);
         let vtName = getLuaTypeName(vt);
 
-        if (!isObject(vt) || vtName === "any" || vtName === "nil") {
+        if (!isObject(vt) || vtName === "never" || vtName === "any" || vtName === "nil") {
             let name = typeNames.length === 1 ? typeNames[0] : "";
             if (name && name !== vtName) {
                 vt = getBasicType(name);
@@ -1012,6 +1012,12 @@ function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScop
 
         let vtypesNew = vtypes.filter( vt =>   typeNames.includes(getLuaTypeName(vt)) );
         let vtypesEls = vtypes.filter( vt => ! typeNames.includes(getLuaTypeName(vt)) );
+
+        // 只有一个类型
+        if (typeNames.length === 1 && vtypesNew.length === 0) {
+            let vt0 = getBasicType(typeNames[0]);
+            if (vt0) { vtypesNew.push(vt0); }
+        }
 
         let vtNew = unionTypes(vtypesNew);
         let vtEls = unionTypes(vtypesEls);
