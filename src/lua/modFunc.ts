@@ -11,6 +11,8 @@ import { loadReturnTypes, loadType, loadTypex } from './vtype';
 export function callFunc(t: any, ...args: any) {
 
     try {
+        if (!t) { return; }
+
         if (typeof t === "function") {
             return t(...args);
         }

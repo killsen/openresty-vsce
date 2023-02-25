@@ -503,13 +503,11 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 运行函数: func(a, b, c)
         case "CallExpression": {
             let funt = loadNode(node.base, _g);
-            if (!funt) {return;}
 
-            let $$self;  // self:func(...)
-            if (node.base.type === "MemberExpression" && node.base.indexer === ":") {
-                $$self = loadNode(node.base.base, _g);
+            // self:func(...)
+            if (funt && node.base.type === "MemberExpression" && node.base.indexer === ":") {
+                funt.$$self = loadNode(node.base.base, _g);
             }
-            funt["$$self"] = $$self;
 
             let args: any[] = [];
 
@@ -556,7 +554,6 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 运行函数 func { a=1, b=2, c=3 }
         case "TableCallExpression": {
             let funt = loadNode(node.base, _g);
-            if (!funt) {return;}
 
             let n = node.arguments;
             set_arg_vtype(funt, n, _g);  // 形参类型
