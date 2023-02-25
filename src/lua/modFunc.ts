@@ -101,7 +101,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             if (!resValue && txRes) {
                 resValue = loadReturnTypes(txRes.type, _g, txRes.loc);
                 if (isArray(resValue) && resValue.length === 1) {
-                    resValue = resValue[1];  // 只有一个返回值
+                    resValue = resValue[0];  // 只有一个返回值
                 }
             }
             return resValue;
@@ -197,7 +197,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         }
 
         if (isArray(resValue) && resValue.length === 1) {
-            resValue = resValue[1];  // 只有一个返回值
+            resValue = resValue[0];  // 只有一个返回值
         }
 
         return resValue;
