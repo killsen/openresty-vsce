@@ -15,13 +15,13 @@ export interface LuaLoc {
 
 export type LuaValue = LuaModule | undefined;
 
-export interface LuaTable {
+export interface LuaObject {
     [key: string]: LuaValue;
 }
 
 export interface LuaModule {
-    "."?: LuaTable;
-    ":"?: LuaTable;
+    "."?: LuaObject;
+    ":"?: LuaObject;
     "()"?: LuaValue[] | Function;
     "[]"?: LuaModule;
     args?: string;
@@ -39,9 +39,9 @@ export interface LuaModule {
     "$file"?: string;
     "$loc"?: LuaLoc;
 
-    "$types"?: LuaTable;    // 自定义类型
-    "$req"?: LuaTable;      // 请求参数类型
-    "$res"?: LuaTable;      // 返回值类型
+    "$types"?: LuaObject;    // 自定义类型
+    "$req"?: LuaObject;      // 请求参数类型
+    "$res"?: LuaObject;      // 返回值类型
 
     "@@"?: Function;        // 构造函数
 }
@@ -65,7 +65,7 @@ export interface LuaDao {
     name: string;
     desc: string;
     fields: LuaDaoField[];
-    row: LuaTable;
+    row: LuaObject;
     "$file"?: string;
     "$loc"?: LuaLoc;
     "doc": string;
@@ -99,8 +99,8 @@ export interface LuaApiDoc {
 }
 
 export interface LuaType {
-    "."     ? : LuaTable;
-    ":"     ? : LuaTable;
+    "."     ? : LuaObject;
+    ":"     ? : LuaObject;
     "[]"    ? : LuaType;
     type      : string;
     types   ? : LuaType[];
@@ -167,7 +167,8 @@ export const LuaFile       = { type: "file", basic, readonly };
 export const LuaFileArray  = { type: "file[]", "[]": LuaFile, readonly };
 
 // 对象类型
-export const LuaObject  = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly };
+export const LuaTable      = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly };
+export const LuaTableArray = { type: "table[]", "[]": LuaTable, readonly };
 
 const LuaTypes: { [key: string] : LuaType } = {
     "..."               : LuaVarArgs,
@@ -183,6 +184,8 @@ const LuaTypes: { [key: string] : LuaType } = {
     "ctype"             : LuaCType                  , "ctype[]"         : LuaCTypeArray,
     "cdata"             : LuaCData                  , "cdata[]"         : LuaCDataArray,
     "file"              : LuaFile                   , "file[]"          : LuaFileArray,
+    "table"             : LuaTable                  , "table[]"         : LuaTableArray,
+    "object"            : LuaTable                  , "object[]"        : LuaTableArray,
 
     "map<any>"          : { type: "map<any>"        , ".": { "*": LuaAny            }, readonly },
     "map<never>"        : { type: "map<never>"      , ".": { "*": LuaNever          }, readonly },
@@ -194,7 +197,9 @@ const LuaTypes: { [key: string] : LuaType } = {
     "map<userdata>"     : { type: "map<userdata>"   , ".": { "*": LuaUserData       }, readonly },
     "map<ctype>"        : { type: "map<ctype>"      , ".": { "*": LuaCType          }, readonly },
     "map<cdata>"        : { type: "map<cdata>"      , ".": { "*": LuaCData          }, readonly },
-    "map<file>"        : { type: "map<file>"        , ".": { "*": LuaFile           }, readonly },
+    "map<file>"         : { type: "map<file>"       , ".": { "*": LuaFile           }, readonly },
+    "map<table>"        : { type: "map<table>"      , ".": { "*": LuaTable          }, readonly },
+    "map<object>"       : { type: "map<table>"      , ".": { "*": LuaTable          }, readonly },
 
     "map<any[]>"        : { type: "map<any[]>"      , ".": { "*": LuaAnyArray       }, readonly },
     "map<string[]>"     : { type: "map<string[]>"   , ".": { "*": LuaStringArray    }, readonly },
@@ -206,6 +211,8 @@ const LuaTypes: { [key: string] : LuaType } = {
     "map<ctype[]>"      : { type: "map<ctype[]>"    , ".": { "*": LuaCTypeArray     }, readonly },
     "map<cdata[]>"      : { type: "map<cdata[]>"    , ".": { "*": LuaCDataArray     }, readonly },
     "map<file[]>"       : { type: "map<file[]>"     , ".": { "*": LuaFileArray      }, readonly },
+    "map<table[]>"      : { type: "map<table[]>"    , ".": { "*": LuaTableArray     }, readonly },
+    "map<object[]>"     : { type: "map<table[]>"    , ".": { "*": LuaTableArray     }, readonly },
 };
 
 /** 获取基本类型 */
@@ -217,14 +224,6 @@ export function getBasicType(typeName: string) {
 
     if (typeName in LuaTypes) {
         return LuaTypes[typeName];
-
-    } else if (typeName === "table" || typeName === "object") {
-        const t : LuaType = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false };
-        return t;
-
-    } else if (typeName === "table[]" || typeName === "object[]") {
-        const t : LuaType = { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false };
-        return { type: "table[]", "[]": t, readonly };
 
     } else if (typeName === "void") {
         return LuaNil;

@@ -3,7 +3,7 @@ import { Diagnostic, Position, Range } from "vscode";
 import { callFunc } from "./modFunc";
 import { loadNode } from "./parser";
 import { getValue, LuaScope, setChild } from "./scope";
-import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaModule, LuaNever, LuaNumber, LuaString, LuaTable, LuaType } from "./types";
+import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaModule, LuaNever, LuaNumber, LuaString, LuaObject, LuaType } from "./types";
 import { getItem, isArray, isObject } from "./utils";
 
 const readonly = true;
@@ -317,8 +317,8 @@ export function unionTypes(vtypes: LuaType[]) : LuaType {
     let tAny = types.find( vt => vt?.type === "any" );
     if (tAny) { return LuaAny; }
 
-    let tInter = {} as LuaTable;    // 交集
-    let tUnion = {} as LuaTable;    // 并集
+    let tInter = {} as LuaObject;   // 交集
+    let tUnion = {} as LuaObject;   // 并集
     let tItems = [] as LuaType[];   // 数组
     let tNames = [] as string[];    // 名称
 
@@ -425,7 +425,7 @@ export function mergeTypes(vtypes: LuaType[], checkUnionTypes = true) : LuaType 
     let tNever = types.find( vt => vt.type === "never" || vt.basic );
     if (tNever) { return LuaNever; }
 
-    let tUnion = {} as LuaTable;    // 并集
+    let tUnion = {} as LuaObject;   // 并集
     let tItems = [] as any[];       // 数组
     let tNames = [] as string[];    // 名称
 

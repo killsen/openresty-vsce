@@ -3,18 +3,18 @@ import { Node } from 'luaparse';
 import { callFunc } from '../modFunc';
 import { loadNode } from '../parser';
 import { LuaScope } from '../scope';
-import { getLuaTypeName, LuaAny, LuaAnyArray, LuaBoolean, LuaFunction, LuaNil, LuaNumber, LuaObject, LuaString, LuaTable } from '../types';
+import { getLuaTypeName, LuaAny, LuaAnyArray, LuaBoolean, LuaFunction, LuaNil, LuaNumber, LuaTable, LuaString } from '../types';
 import { getItem, isArray, isObject, setItem } from "../utils";
 import { get_arg_vtype } from '../vtype';
 import { _unpack } from "./TableLib";
 
 _ipairs         ["$args"] = [ LuaAnyArray               ];
-_pairs          ["$args"] = [ LuaObject                 ];
+_pairs          ["$args"] = [ LuaTable                 ];
 _xpcall         ["$args"] = [ LuaFunction               ];
-_setmetatable   ["$args"] = [ LuaObject, LuaObject      ];
-_getmetatable   ["$args"] = [ LuaObject                 ];
-_rawget         ["$args"] = [ LuaObject, LuaAny         ];
-_rawset         ["$args"] = [ LuaObject, LuaAny, LuaAny ];
+_setmetatable   ["$args"] = [ LuaTable, LuaTable      ];
+_getmetatable   ["$args"] = [ LuaTable                 ];
+_rawget         ["$args"] = [ LuaTable, LuaAny         ];
+_rawset         ["$args"] = [ LuaTable, LuaAny, LuaAny ];
 
 export const GlobalLib : { [key: string] : Function } = {
     tonumber: _tonumber,
@@ -208,11 +208,11 @@ function _getmetatable(t: any) {
 }
 
 /** 获取表对应key的值(不触发元表__index) */
-function _rawget(t: LuaTable, k: string) {
+function _rawget(t: any, k: string) {
     return getItem(t, [".", k]);
 }
 
 /** 设置表对应key的值(不触发元表__newindex) */
-function _rawset(t: LuaTable, k: string, v: any) {
+function _rawset(t: any, k: string, v: any) {
     setItem(t, [".", k], v);
 }

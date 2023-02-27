@@ -3,7 +3,7 @@ import * as lua from './index';
 import { NgxPath } from "./ngx";
 import { LuaScope, newScope, setValue } from "./scope";
 import { getItem, setItem } from "./utils";
-import { LuaString, LuaTable } from "./types";
+import { LuaString, LuaObject } from "./types";
 import { _unpack } from "./libs/TableLib";
 import { GlobalLib } from "./libs/GlobalLib";
 import { CompletionItemKind } from 'vscode';
@@ -35,7 +35,7 @@ function loadGlobal(ctx: NgxPath) {
     _G["$scope" ] = undefined;
     _G["$file"  ] = "buildin";
 
-    const _g: LuaTable = {};
+    const _g: LuaObject = {};
 
     _G["_G"] = {
         type: "lib",

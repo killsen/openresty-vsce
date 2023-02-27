@@ -1,19 +1,19 @@
 
 import { Node } from 'luaparse';
 import { LuaScope } from '../scope';
-import { LuaAny, LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaObject, LuaString, LuaType } from '../types';
+import { LuaAny, LuaAnyArray, LuaFunction, LuaNever, LuaNumber, LuaTable, LuaString, LuaType } from '../types';
 import { getItem, isObject } from "../utils";
 import { get_node_vtype } from '../vtype';
 
 _new    ["$args"] = [ LuaNumber, LuaNumber ];
-_clear  ["$args"] = [ LuaObject ];
-_clone  ["$args"] = [ LuaObject ];
+_clear  ["$args"] = [ LuaTable ];
+_clone  ["$args"] = [ LuaTable ];
 _concat ["$args"] = [ LuaAnyArray, LuaString, LuaNumber, LuaNumber ];
-_getn   ["$args"] = [ LuaObject ];
-_maxn   ["$args"] = [ LuaObject ];
-_nkeys  ["$args"] = [ LuaObject ];
-_move   ["$args"] = [ LuaObject, LuaNumber, LuaNumber, LuaNumber, LuaAny ];
-_remove ["$args"] = [ LuaObject, LuaNumber ];
+_getn   ["$args"] = [ LuaTable ];
+_maxn   ["$args"] = [ LuaTable ];
+_nkeys  ["$args"] = [ LuaTable ];
+_move   ["$args"] = [ LuaTable, LuaNumber, LuaNumber, LuaNumber, LuaAny ];
+_remove ["$args"] = [ LuaTable, LuaNumber ];
 _unpack ["$args"] = [ LuaAnyArray, LuaNumber, LuaNumber ];
 
 export const TableLib : { [key: string] : Function | LuaType[] } = {

@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import * as ngx from './lua/ngx';
-import { LuaTable } from './lua/types';
+import { LuaObject } from './lua/types';
 import { CompletionItem, CompletionItemKind } from 'vscode';
 import { loadFileItems } from './fileItems';
 import { importFiles } from './importFiles';
@@ -34,7 +34,7 @@ export function loadItems(doc: vscode.TextDocument, pos: vscode.Position, tok: v
 }
 
 /** 生成补全项目 */
-export function loadKeys(items: CompletionItem[], t: LuaTable, pkey: string, level = 0) {
+export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, level = 0) {
     if (!t) { return; }
 
     Object.keys(t).forEach(k => {
