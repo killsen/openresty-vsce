@@ -115,7 +115,10 @@ const basic = true;
 const readonly = true;
 
 export const LuaNil  = null;
-export const LuaNull = null;
+
+// ngx.null 或 cjson.null
+export const LuaNull      = { type: "null", basic, readonly };
+export const LuaNullArray = { type: "null[]", "[]": LuaNull, readonly };
 
 export const LuaVarArgs = { type: "...", basic, readonly, nilable: true };
 
@@ -172,6 +175,7 @@ export const LuaTableArray = { type: "table[]", "[]": LuaTable, readonly };
 
 const LuaTypes: { [key: string] : LuaType } = {
     "..."               : LuaVarArgs,
+    "null"              : LuaNull                   , "null[]"          : LuaNullArray,
     "any"               : LuaAny                    , "any[]"           : LuaAnyArray,
     "never"             : LuaNever                  , "never[]"         : LuaNeverArray,
     "string"            : LuaString                 , "string[]"        : LuaStringArray,
@@ -187,6 +191,7 @@ const LuaTypes: { [key: string] : LuaType } = {
     "table"             : LuaTable                  , "table[]"         : LuaTableArray,
     "object"            : LuaTable                  , "object[]"        : LuaTableArray,
 
+    "map<null>"         : { type: "map<null>"       , ".": { "*": LuaNull           }, readonly },
     "map<any>"          : { type: "map<any>"        , ".": { "*": LuaAny            }, readonly },
     "map<never>"        : { type: "map<never>"      , ".": { "*": LuaNever          }, readonly },
     "map<string>"       : { type: "map<string>"     , ".": { "*": LuaString         }, readonly },
@@ -201,6 +206,7 @@ const LuaTypes: { [key: string] : LuaType } = {
     "map<table>"        : { type: "map<table>"      , ".": { "*": LuaTable          }, readonly },
     "map<object>"       : { type: "map<table>"      , ".": { "*": LuaTable          }, readonly },
 
+    "map<null[]>"       : { type: "map<null[]>"     , ".": { "*": LuaNullArray      }, readonly },
     "map<any[]>"        : { type: "map<any[]>"      , ".": { "*": LuaAnyArray       }, readonly },
     "map<string[]>"     : { type: "map<string[]>"   , ".": { "*": LuaStringArray    }, readonly },
     "map<number[]>"     : { type: "map<number[]>"   , ".": { "*": LuaNumberArray    }, readonly },
@@ -257,6 +263,7 @@ export function getLuaTypeName(v: any) {
             :  t === "thread"   ? "thread"
             :  t === "userdata" ? "userdata"
             :  t === "file"     ? "userdata"
+            :  t === "null"     ? "userdata"
             :  t === "cdata"    ? "cdata"
             :  t === "ctype"    ? "ctype"
             :  t === "table"    ? "table"

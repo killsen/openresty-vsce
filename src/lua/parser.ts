@@ -458,10 +458,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                             op === "%" ? l % r : 0 ;
 
                 case "==":
-                    return l === r;
+                    return l === r || (l?.type === "null" && r?.type === "null");
 
                 case "~=":
-                    return l !== r;
+                    return l !== r && (l?.type !== "null" && r?.type !== "null");
 
                 case "<": case "<=": case ">": case ">=":
                     l = typeof l === "string" ? l : typeof l === "number" ? l : 0;
@@ -582,6 +582,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 doc: parseFuncDoc(node, _g),  // 生成文档
                 args: "(" + args.join(", ") + ")",
                 type: "function",
+                readonly: true,
                 "$file": $file,
                 "$loc": node.loc,
             };
