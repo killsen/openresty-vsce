@@ -4,20 +4,20 @@
 
 bit
 
-bit.tobit(x)            -> number
-bit.tohex(x [,n])       -> string
+bit.tobit(x: number)                    -> number
+bit.tohex(x: number, n=8?)              -> string
 
-bit.bnot(x)             -> number
+bit.bnot(x: number)                     -> number
 
-bit.bor(x1 [,x2...])    -> number
-bit.band(x1 [,x2...])   -> number
-bit.bxor(x1 [,x2...])   -> number
+bit.bor(x1: number, x2?: number, ...)   -> number
+bit.band(x1: number, x2?: number, ...)  -> number
+bit.bxor(x1: number, x2?: number, ...)  -> number
 
-bit.lshift(x, n)        -> number
-bit.rshift(x, n)        -> number
-bit.arshift(x, n)       -> number
+bit.lshift(x: number, n: number)        -> number
+bit.rshift(x: number, n: number)        -> number
+bit.arshift(x: number, n: number)       -> number
 
-bit.rol(x, n)           -> number
-bit.ror(x, n)           -> number
+bit.rol(x: number, n: number)           -> number
+bit.ror(x: number, n: number)           -> number
 
-bit.bswap(x)            -> number
+bit.bswap(x: number)                    -> number
