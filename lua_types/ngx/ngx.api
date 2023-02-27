@@ -6,7 +6,7 @@ ok                          -> boolean
 err                         -> string?
 ------------------------------------------------------------
 
-ngx.null
+ngx.null                    -> null
 
 ngx.ctx
 ngx.ctx.*                   -> any
