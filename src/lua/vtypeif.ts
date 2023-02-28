@@ -1,6 +1,6 @@
 import { Expression } from 'luaparse';
 import { getBasicType, getLuaTypeName, LuaType } from './types';
-import { getValue, setValue, LuaScope } from './scope';
+import { getValue, setValueTyped, LuaScope } from './scope';
 import { isArray, isObject } from './utils';
 import { unionTypes } from './vtype';
 import { _getn } from './libs/TableLib';
@@ -117,7 +117,8 @@ function loadMaybeTypes(exp: Expression) : MaybeTypes | undefined {
 }
 
 
-export function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: LuaScope, withReturn: boolean) {
+export function maybeTypes(exp: Expression, _g: LuaScope,
+    thenG: LuaScope, elseG: LuaScope, thenReturn: boolean, elseReturn: boolean) {
 
     // if type(t) == "string" then ... else ... end
     // if type(t) ~= "string" then ... else ... end
@@ -127,30 +128,36 @@ export function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: 
 
     Object.keys(map).forEach(varName => {
 
-        let typeNames = map[varName];
+        const thenTypes = map[varName];
+        const elseTypes = notType(thenTypes);
 
-        let vt = getValue(newG, varName);
-        let vtName = getLuaTypeName(vt);
+        const vt = getValue(thenG, varName);
+        const vtName = getLuaTypeName(vt);
 
         if (!isObject(vt) || vtName === "never" || vtName === "any" || vtName === "nil") {
-            let name = typeNames.length === 1 ? typeNames[0] : "";
-            if (name && name !== vtName) {
-                vt = getBasicType(name);
-                setValue(newG, "$type_" + varName, null, true);
-                setValue(newG, varName, vt, true);
-                return;
-            }
-            // if type(t) ~= "string" then return end
-            if (withReturn && typeNames.length >= AllTypes.length - 1) {
-                typeNames = notType(typeNames);
-                name = typeNames.length === 1 ? typeNames[0] : "";
-                if (name && name !== vtName) {
-                    setValue(newG, "$type_" + varName, null, true);
-                    setValue(newG, varName, vt, true);  // 保留原值
+            let name : string;
 
-                    vt = getBasicType(name);
-                    setValue(_g, "$type_" + varName, null, true);
-                    setValue(_g, varName, vt, true);
+            // if type(t) == "string" then ... else return end
+            name = thenTypes.length === 1 ? thenTypes[0] : "";
+            if (name && name !== vtName) {
+                const vtThen = getBasicType(name) as LuaType;
+                setValueTyped(thenG, varName, vtThen);
+
+                if (elseReturn) {
+                    setValueTyped(elseG, varName, vt);  // 保留原值
+                    setValueTyped(_g, varName, vtThen);
+                }
+            }
+
+            // if type(t) ~= "string" then return else ... end
+            name = elseTypes.length === 1 ? elseTypes[0] : "";
+            if (name && name !== vtName) {
+                const vtElse = getBasicType(name) as LuaType;
+                setValueTyped(elseG, varName, vtElse);
+
+                if (thenReturn) {
+                    setValueTyped(thenG, varName, vt);  // 保留原值
+                    setValueTyped(_g, varName, vtElse);
                 }
             }
             return;
@@ -160,30 +167,37 @@ export function maybeTypes(exp: Expression, _g: LuaScope, newG: LuaScope, elsG: 
             return;  // 非类型声明不处理
         }
 
-        let vtypes: LuaType[] = isArray(vt?.types) ? vt.types : [ vt ];
+        const vtypes: LuaType[] = isArray(vt?.types) ? vt.types : [ vt ];
 
-        let vtypesNew = vtypes.filter( vt =>   typeNames.includes(getLuaTypeName(vt)) );
-        let vtypesEls = vtypes.filter( vt => ! typeNames.includes(getLuaTypeName(vt)) );
+        const vtypesThen = vtypes.filter( vt => thenTypes.includes(getLuaTypeName(vt)) );
+        const vtypesElse = vtypes.filter( vt => elseTypes.includes(getLuaTypeName(vt)) );
 
-        // 只有一个类型
-        if (typeNames.length === 1 && vtypesNew.length === 0) {
-            let vt0 = getBasicType(typeNames[0]);
-            if (vt0) { vtypesNew.push(vt0); }
+        // then 只有一个类型
+        if (thenTypes.length === 1 && vtypesThen.length === 0) {
+            const vt0 = getBasicType(thenTypes[0]);
+            if (vt0) { vtypesThen.push(vt0); }
         }
 
-        let vtNew = unionTypes(vtypesNew);
-        let vtEls = unionTypes(vtypesEls);
+        // else 只有一个类型
+        if (elseTypes.length === 1 && vtypesElse.length === 0) {
+            const nt0 = getBasicType(elseTypes[0]);
+            if (nt0) { vtypesElse.push(nt0); }
+        }
 
-        setValue(newG, "$type_" + varName, null, true);
-        setValue(newG, varName, vtNew, true);
+        const vtThen = unionTypes(vtypesThen);
+        const vtElse = unionTypes(vtypesElse);
 
-        setValue(elsG, "$type_" + varName, null, true);
-        setValue(elsG, varName, vtEls, true);
+        setValueTyped(thenG, varName, vtThen);
+        setValueTyped(elseG, varName, vtElse);
 
-        // if type(t) ~= "string" then return end
-        if (withReturn) {
-            setValue(_g, "$type_" + varName, vtEls, true);
-            setValue(_g, varName, vtEls, true);
+        // if type(t) ~= "string" then return else ... end
+        if (thenReturn) {
+            setValueTyped(_g, varName, vtElse);
+        }
+
+        // if type(t) == "string" then ... else return end
+        if (elseReturn) {
+            setValueTyped(_g, varName, vtThen);
         }
     });
 

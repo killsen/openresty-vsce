@@ -1,6 +1,6 @@
 
 import { Node, FunctionDeclaration } from 'luaparse';
-import { newScope, getValue, setValue, LuaScope } from './scope';
+import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule } from './types';
@@ -152,6 +152,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
             let name  = p.type === "VarargLiteral" ? p.raw : p.name;
             let value = params[i];
+            let vt    = null;
 
             if ( name === "..." ) {
                 value = params.slice(i);
@@ -161,12 +162,14 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
             } else if (typex[name]) {
                 const tx = typex[name];
-                value = loadType(tx.type, newG, tx.loc);    // 通过类型名称取得类型
+                vt = loadType(tx.type, newG, tx.loc);    // 通过类型名称取得类型
+
 
             } else if ( name === "self" && self && value === undefined) {
                 value = self;                           // 构造器 @@ <Constructor>
             }
 
+            setValueTyped(newG, "$type_" + name, vt);
             setValue(newG, name, value, true, p.loc);
         });
 
@@ -175,13 +178,13 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             let tx = typex[name];
             if (name !== "return") {
                 let vt = loadType(tx.type, newG, tx.loc);
-                setValue(newG, "$type_" + name, vt, true);
+                setValueTyped(newG, "$type_" + name, vt);
             } else {
                 // 返回值类型
                 let vtypes = loadReturnTypes(tx.type, newG, tx.loc);
                 vtypes.forEach((vt, i) => {
-                    i === 0 && setValue(newG, "$type_return", vt, true);
-                    setValue(newG, "$type_return" + (i+1), vt, true);
+                    i === 0 && setValueTyped(newG, "$type_return", vt);
+                    setValueTyped(newG, "$type_return" + (i+1), vt);
                 });
             }
         }

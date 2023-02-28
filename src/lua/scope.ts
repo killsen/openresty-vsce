@@ -1,4 +1,7 @@
-import { getItem } from "./utils";
+import { Node } from "luaparse";
+import { getBasicType, getLuaTypeName, LuaType } from "./types";
+import { getItem, isObject } from "./utils";
+import { mergeTypes } from "./vtype";
 
 /** 作用域 */
 export interface LuaScope {
@@ -34,11 +37,7 @@ export function getScope(_g: LuaScope, key: string): LuaScope {
 }
 
 /** 设置变量值 */
-export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, loc?: any) {
-
-    if (val === undefined) {
-        val = {};  // 默认值
-    }
+export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, loc?: Node["loc"]) {
 
     if (isLocal) {
         _g["$local"][key] = true;
@@ -53,37 +52,70 @@ export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, 
         _g = getScope(_g, key);
     }
 
-    if (_g["$local"][key]) {
-        // 预定义类型 v21.11.25
-        let typeVal = _g["$type_" + key];
-        if (typeVal) {val = typeVal;}
+    if (!key.startsWith("$")) {
+        let vt = getType(_g, key);
+        if (vt) {
+            val = getValueTyped(vt, val);  // 类型收敛
+        }
     }
 
-    _g[key] = val;
+    _g[key] = val === undefined ? {} : val;
 
 }
 
+/** 设置值或类型 */
+export function setValueTyped(_g: LuaScope, name: string, vtype: LuaType | null) {
+    _g["$local"][name] = true;
+    _g[name] = vtype;
+}
+
+/** 类型收敛 */
+export function getValueTyped(vt: LuaType, v: any) : LuaType {
+
+    if (!vt || !vt?.types) { return vt; }  // 非联合类型
+    if (v === null || v === undefined) { return vt; }
+    if (v?.type === "never" || v?.type === "any") { return vt; }
+    if (vt === v || vt?.type === v?.type) { return vt; }
+
+    let vt2 : LuaType;
+
+    if (!isObject(v)) {
+        let vtName = getLuaTypeName(v);
+        if (vtName === "nil" || vtName === "any") {
+            return vt;
+        } else {
+            vt2 = getBasicType(vtName) as LuaType;
+        }
+    } else {
+        vt2 = v;
+    }
+
+    v = mergeTypes([vt, vt2]);
+    if (!v || v?.type === "never" || v?.type === "any") {
+        return vt;
+    } else {
+        return v;
+    }
+
+}
+
+
 /** 取得变量值 */
 export function getValue(_g: LuaScope, key: string) {
-
-    // 优先使用类型声明 v22.03.25
-    let keyT = "$type_" + key;
-    let _GT = getScope(_g, keyT);
     let _G = getScope(_g, key);
-
-    return _GT[keyT] || _G[key];
-
+    let v = _G[key];
+    if (v !== undefined) {
+        return v;  // 变量值优先
+    } else {
+        return getType(_g, key);  // 类型声明托底
+    }
 }
 
 /** 取得变量类型 */
 export function getType(_g: LuaScope, key: string) {
-
-    // 优先使用类型声明 v22.03.25
     let keyT = "$type_" + key;
     let _GT = getScope(_g, keyT);
-
     return _GT[keyT];
-
 }
 
 

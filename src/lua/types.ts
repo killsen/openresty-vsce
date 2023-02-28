@@ -231,6 +231,10 @@ export function getBasicType(typeName: string) {
     if (typeName in LuaTypes) {
         return LuaTypes[typeName];
 
+    } else if (typeName === "table*") {
+        // 可修改的 table 类型
+        return { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false };
+
     } else if (typeName === "void") {
         return LuaNil;
 
@@ -281,7 +285,7 @@ export function getLuaTypeName(v: any) {
 
 // 是否基本类型
 export function isBasicType(typeName: string) {
-    let vt = getBasicType(typeName);
+    let vt = getBasicType(typeName) as any;
     return !!vt?.basic;
 }
 

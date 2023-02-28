@@ -1,7 +1,7 @@
 
 import { Node, Statement, Comment } from 'luaparse';
 import { getLuaTypeName, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
-import { newScope, getType, getValue, setValue, setChild, LuaScope } from './scope';
+import { newScope, getType, getValue, setValue, setChild, LuaScope, setValueTyped } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
 import { addLint, check_vtype, get_node_vtype, get_vtype_inline, loadType, set_arg_vtype } from './vtype';
@@ -31,7 +31,7 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
 
     body.forEach(node=>{
 
-        if ($$node && $$node.scope) {
+        if ($$node?.scope) {
             return; // 光标所在位置已找到，则退出
         }
 
@@ -49,8 +49,7 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
                     const typ = m[2] === ":" ? m[3].trim() : `${m[1]} ${m[2]} ${m[3]}`;
                     const val = loadType(typ, _g, c.loc) as any;
                     if (val) {
-                        setValue(_g, "$type_" + key, val, true);
-                        setValue(_g, key, val, true);
+                        setValueTyped(_g, "$type_" + key, val);
                     }
                 }
             }
@@ -79,7 +78,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
     // 光标所在位置
     let $$node: Node | undefined = getValue(_g, "$$node");
-    if ($$node && $$node.scope) {
+    if ($$node?.scope) {
         return; // 光标所在位置已找到，则退出
     }
 
@@ -138,6 +137,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 待赋值的变量名（可能多个）
         node.variables.forEach((n, i) => {
+            if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
+
             const v = i === 0 && vtypeInLine || res[i];
 
             switch (n.type) {
@@ -148,8 +149,9 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         return;  // 退出
                     }
 
-                    if (getType(_g, n.name)) {  // 预设类型的变量才检查
-                        check_vtype(vtypes[i], v, n, _g);
+                    const vt = getType(_g, n.name);
+                    if (vt) {  // 预设类型的变量才检查
+                        check_vtype(vt, v, n, _g);
                     }
 
                     // local变量或者upvalue
@@ -278,38 +280,40 @@ export function loadNode(node: Node, _g: LuaScope): any {
         // 条件判断语句:  if (condition) then ... elseif (condition) then ... else ... end
         case 'IfStatement': {
             let ok_res : any;
-            let elsG = _g;
+            let elseG = _g;
 
-            for (let n of node.clauses) {
+            node.clauses.forEach((n, i) => {
 
-                let newG = newScope(elsG);
-                elsG = newScope(elsG);
+                let thenG = newScope(elseG);
+                elseG = newScope(elseG);
 
-                switch (n.type) {
-                    case "IfClause":
-                    case 'ElseifClause': {
-                        // 返回条件是否成立
-                        let ok = loadNode(n.condition, elsG);
-
-                        // 是否含有 return 语句
-                        let withReturn = -1 !== n.body.findIndex(d => d.type === "ReturnStatement");
-
-                        // TODO: 【未完成】条件判断 type 类型推导
-                        maybeTypes(n.condition, _g, newG, elsG, withReturn);
-
-                        setValue(newG, "$$return", [], true);
-                        let res = loadBody(n.body, newG, n.loc);
-                        setReturn(res, _g);
-
-                        if (isTrue(ok) && isFalse(ok_res)) {
-                            ok_res = res;  // 条件成立时的返回值
-                        }
-                        break;
-                    }
-                    case 'ElseClause':
-                        loadBody(n.body, newG, n.loc);
+                if (n.type === "ElseClause") {
+                    loadBody(n.body, elseG, n.loc);
+                    return;
                 }
-            }
+
+                // 返回条件是否成立
+                let ok = loadNode(n.condition, elseG);
+
+                // 是否含有 return 语句
+                let thenReturn = n.body.findIndex(d => d.type === "ReturnStatement") !== -1;
+
+                let elseC = node.clauses[i+1];
+                let elseReturn = elseC
+                    && elseC.type === "ElseClause"
+                    && elseC.body.findIndex(d => d.type === "ReturnStatement") !== -1;
+
+                // if type 类型推导
+                maybeTypes(n.condition, _g, thenG, elseG, thenReturn, elseReturn);
+
+                setValue(thenG, "$$return", [], true);
+                let res = loadBody(n.body, thenG, n.loc);
+                setReturn(res, _g);
+
+                if (isTrue(ok) && isFalse(ok_res)) {
+                    ok_res = res;  // 条件成立时的返回值
+                }
+            });
 
             if (isTrue(ok_res)) {
                 setReturn(ok_res, _g);  // 条件成立时的返回值
