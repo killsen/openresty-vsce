@@ -597,7 +597,7 @@ export function loadTypes(node: Node, _g: LuaScope) {
 /** 通过注释加载类型 */
 export function loadTypex(n: Node, _g: LuaScope) {
 
-    const typex = {} as { [key: string]: { name: string, type: string, desc: string, loc: Node["loc"] } };
+    const typex = {} as { [key: string]: { name: string, type: string, desc: string, loc: Node["loc"], isArg?: boolean } };
 
     const comments = getValue(_g, "$$comments") as Comment[];
     if (!isArray(comments)) { return typex; }

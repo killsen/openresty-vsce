@@ -162,8 +162,8 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
             } else if (typex[name]) {
                 const tx = typex[name];
+                tx.isArg = true;  // 参数类型
                 vt = loadType(tx.type, newG, tx.loc);    // 通过类型名称取得类型
-
 
             } else if ( name === "self" && self && value === undefined) {
                 value = self;                           // 构造器 @@ <Constructor>
@@ -173,19 +173,18 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             setValue(newG, name, value, true, p.loc);
         });
 
-        // 加载参数类型
+        // 加载其它非参数及返回值类型
         for (let name in typex) {
             let tx = typex[name];
-            if (name !== "return") {
-                let vt = loadType(tx.type, newG, tx.loc);
-                setValueTyped(newG, "$type_" + name, vt);
-            } else {
-                // 返回值类型
+            if (name === "return") {  // 返回值类型
                 let vtypes = loadReturnTypes(tx.type, newG, tx.loc);
                 vtypes.forEach((vt, i) => {
                     i === 0 && setValueTyped(newG, "$type_return", vt);
                     setValueTyped(newG, "$type_return" + (i+1), vt);
                 });
+            } else if (!tx.isArg) {  // 非参数类型
+                let vt = loadType(tx.type, newG, tx.loc);
+                setValueTyped(newG, "$type_" + name, vt);
             }
         }
 
