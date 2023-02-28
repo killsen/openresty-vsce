@@ -69,7 +69,7 @@ export function setValueTyped(_g: LuaScope, name: string, vtype: LuaType | null)
     _g["$local"][name] = true;
     _g[name] = vtype;
 
-    if (name.startsWith("$type_")) {
+    if (vtype && name.startsWith("$type_")) {
         let key = name.substring(6);
         let val = getValue(_g, key);
         if (val !== vtype) {
@@ -126,7 +126,10 @@ export function getValue(_g: LuaScope, key: string) {
 export function getType(_g: LuaScope, key: string) {
     let keyT = "$type_" + key;
     let _GT = getScope(_g, keyT);
-    return _GT[keyT];
+    let vt = _GT[keyT];
+    if (vt !== undefined && vt !== null) {
+        return vt;
+    }
 }
 
 
