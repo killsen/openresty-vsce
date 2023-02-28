@@ -30,10 +30,7 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
     let lastLine = loc?.start.line || 0;
 
     body.forEach(node=>{
-
-        if ($$node?.scope) {
-            return; // 光标所在位置已找到，则退出
-        }
+        if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
 
         if ($$node && isDownScope(node, $$node)) {
             $$node = undefined;
@@ -78,9 +75,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
     // 光标所在位置
     let $$node: Node | undefined = getValue(_g, "$$node");
-    if ($$node?.scope) {
-        return; // 光标所在位置已找到，则退出
-    }
+    if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
 
     // console.log("onCreateNode", node.type, node);
 
@@ -283,6 +278,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let elseG = _g;
 
             node.clauses.forEach((n, i) => {
+                if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
 
                 let thenG = newScope(elseG);
                 elseG = newScope(elseG);
@@ -371,6 +367,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let runCount = 0;  // 运行次数
 
             while(runCount < 1000){  // 最多运行 1000 次, 避免死循环
+                if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
 
                 let res : any[];
                 res = callFunc(_iter, _obj, _next);  // 执行迭代函数
@@ -704,6 +701,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             let i = 1; // 下标从1开始：跟Lua保持一致
 
             node.fields.forEach((f, index) => {
+                if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
 
                 // 取得行内类型声明
                 const vtypeInLine = get_vtype_inline(f, _g);
