@@ -65,8 +65,19 @@ export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, 
 
 /** 设置值或类型 */
 export function setValueTyped(_g: LuaScope, name: string, vtype: LuaType | null) {
+
     _g["$local"][name] = true;
     _g[name] = vtype;
+
+    if (name.startsWith("$type_")) {
+        let key = name.substring(6);
+        let val = getValue(_g, key);
+        if (val !== vtype) {
+            _g["$local"][key] = true;
+            _g[key] = vtype;
+        }
+    }
+
 }
 
 /** 类型收敛 */
