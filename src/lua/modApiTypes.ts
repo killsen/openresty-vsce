@@ -1,5 +1,5 @@
 
-import { getBasicType, LuaModule } from './types';
+import { getBasicType, LuaModule, LuaStringOrNil } from './types';
 import { NgxPath } from "./ngx";
 import { isObject, getItem, setItem, delItem, toTable } from './utils';
 import * as lua from './index';
@@ -106,10 +106,9 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
             }
 
             delItem(API_MOD, [".", k]);
-            setItem(API_MOD, [".", name, "()"], [res]);
-            setItem(API_MOD, [".", name, "doc"], doc);
-            setItem(API_MOD, [".", name, "$$res"], res);
-            setItem(API_MOD, [".", name, "$$req"], req);
+            setItem(API_MOD, [".", name, "()"   ], [res, LuaStringOrNil]);  // 返回值类型
+            setItem(API_MOD, [".", name, "$args"], [req]);  // 请求参数类型
+            setItem(API_MOD, [".", name, "doc"  ], doc);
         }
     });
 

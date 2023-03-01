@@ -3,7 +3,7 @@ import { Node, FunctionDeclaration } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
-import { LuaModule } from './types';
+import { LuaModule, LuaStringOrNil } from './types';
 import { getItem, isArray, isInScope, isObject } from './utils';
 import { loadReturnTypes, loadType, loadTypex } from './vtype';
 
@@ -188,6 +188,12 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             }
         }
 
+        if ($$res) {
+            setValueTyped(newG, "$type_return", $$res);
+            setValueTyped(newG, "$type_return1", $$res);
+            setValueTyped(newG, "$type_return2", LuaStringOrNil);
+        }
+
         // 编辑模式, 或检查模式, 或者未指定返回类型, 则需要运行代码
         if ($$node || $$lints || (!$$res && !txRes)) {
             $$node === null && setValue(newG, "$$node", null, true);
@@ -202,7 +208,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         }
 
         if ($$res) {
-            resValue = $$res;
+            resValue = [ $$res, LuaStringOrNil ];
         } else if (txRes) {
             resValue = loadReturnTypes(txRes.type, newG, txRes.loc);
         }

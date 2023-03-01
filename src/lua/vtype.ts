@@ -10,29 +10,45 @@ const readonly = true;
 const doc = "";
 
 function getValueX(name: string, _g: LuaScope) {
+    let keys = [] as string[];
     name = name.replace(/\s/g, "");
-    let K = name.includes(".") ? name.split(".") : [ name ];
-    let T = getValue(_g, K[0].trim());
-    for (let i=1; i<K.length; i++) {
-        T = getItem(T, [".", K[i].trim()]);
+    name.split(".").forEach((s, i) => {
+        i > 0 && keys.push(".");
+        if (s.includes(":")) {
+            let a = s.split(":");
+            keys.push(a[0], ":", a[1]);
+        } else {
+            keys.push(s);
+        }
+    });
+
+    let key = keys.shift();
+    if (key) {
+        let T = getValue(_g, key);
+        if (keys.length > 0) {
+            T = getItem(T, keys);
+        }
+        return T;
     }
-    return T;
 }
 
-function getReqOfFunc(name: string, _g: LuaScope) {
+function getReqOfFunc(name: string, _g: LuaScope, index: string) {
+    let i = Number(index) || 0;
+    if (i > 0) { i--; }
     const funt = getValueX(name, _g);
-    return get_arg_vtype(funt, 0, [], _g);
+    return get_arg_vtype(funt, i, [], _g);
 }
 
-function getResOfFunc(name: string, _g: LuaScope) {
-    let t = getValueX(name, _g);
-
-    if (isObject(t?.$$res)) {
-        return t.$$res;
+function getResOfFunc(name: string, _g: LuaScope, index: string) {
+    let i = Number(index) || 0;
+    if (i > 0) { i--; }
+    const funt = getValueX(name, _g);
+    const resx = callFunc(funt);
+    if (isArray(resx)) {
+        return resx[i];
+    } else if (i === 0) {
+        return resx;
     }
-
-    let v = callFunc(t);
-    return isArray(v) ? v[0] : v;
 }
 
 // 两边括号
@@ -242,9 +258,11 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     }
 
     // req<T> 或 res<T>
-    m = name.match(/^(req|res)\s*<\s*(.+)\s*>$/);
+    m = name.match(/^(req|res)(\d*)\s*<\s*(.+)\s*>$/);
     if (m) {
-        let T = m[1] === "req" ? getReqOfFunc(m[2], _g) : getResOfFunc(m[2], _g);
+        let T = m[1] === "req"
+            ? getReqOfFunc(m[3], _g, m[2])
+            : getResOfFunc(m[3], _g, m[2]);
         return newType(name, T);
     }
 
@@ -847,14 +865,9 @@ export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope)
 
     const func  = funt["()"];
     const $args = func?.$args || funt.$args;
-    const $$req = func?.$$req || funt.$$req;
     const $$row = funt.$dao?.row;   // dao 对象参数字段
 
-    if (isObject($$req)) {
-        if (i !== 0) {return;}
-        return $$req;
-
-    } else if (isObject($$row)) {
+    if (isObject($$row)) {
         if (i !== 0) {return;}
 
         const doc: string = typeof funt.doc === "string" ? funt.doc : "";
