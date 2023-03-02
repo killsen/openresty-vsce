@@ -563,26 +563,15 @@ function getUserType(typeName: string, _g: LuaScope) : LuaType | undefined {
         // 加载 dao 类型
         let _load = getValue(_g, "_load");
         if (_load) {
-            let mod: LuaModule = callFunc(_load, typeName);
-            if (mod instanceof Object && mod["$dao"]) {
-                let daoType = mod["$dao"];
-                let daoRow = daoType["row"];
-                let doc = "## "+ typeName +"\ndao 类型单行数据\n" + daoType.doc;
-                return { type: typeName, doc, ".": daoRow, readonly };
-            }
+            let t = callFunc(_load, typeName);
+            t = isArray(t) ? t[0] : t;
+            return t?.$row;
         }
 
     } else {
         // 加载自定义类型
-        let $$types = getValue(_g, "$$types");
-        if ($$types instanceof Object) {
-            let mod: LuaModule = $$types[typeName];
-            if (mod instanceof Object && mod["."] instanceof Object) {
-                let userType = mod["."];
-                let doc = "## "+ typeName +"\n自定义类型对象\n" + mod.doc;
-                return { type: typeName, doc, ".": userType, readonly };
-            }
-        }
+        const $$types = getValue(_g, "$$types");
+        return $$types && $$types[typeName];
     }
 
 }
@@ -705,6 +694,19 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
 
     if (vt1 === "never" || vt2 === "never") {
         addLint(n, "", _g, `不能将类型 “${ vt2 }” 分配给类型 “${ vt1 }”`);
+    }
+
+    // 检查必填字段
+    if (isArray(v1.$required) && v1.$required.length > 0) {
+        let keys = v1.$required as string[];
+        let ti = getItem(v2, ["."]);
+        if (keys.length > 0 && isObject(ti) && !("*" in ti)) {
+            keys = keys.filter(k => !(k in ti));
+            if (keys.length > 0) {
+                addLint(n, "", _g, `缺少类型 “${ v1.type }” 中的以下属性: ${ keys.join(", ") }`);
+                return;
+            }
+        }
     }
 
     // if (vt1 === vt2) {return;}
@@ -840,12 +842,6 @@ export function get_node_vtype(n: Node, _g: LuaScope) {
 
 }
 
-const $dao_ext = {
-    _order_by : { doc: "## _order_by \n\n `< string >` \n\n ### 排序 \n\n" },
-    _group_by : { doc: "## _group_by \n\n `< string >` \n\n ### 汇总 \n\n" },
-    _limit    : { doc: "## _limit    \n\n `< number | string >` \n\n ### 记录数 \n\n" },
-};
-
 // 设置形参类型
 export function set_arg_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [], i = 0) {
 
@@ -865,31 +861,6 @@ export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope)
 
     const func  = funt["()"];
     const $args = func?.$args || funt.$args;
-    const $$row = funt.$dao?.row;   // dao 对象参数字段
-
-    if (isObject($$row)) {
-        if (i !== 0) {return;}
-
-        const doc: string = typeof funt.doc === "string" ? funt.doc : "";
-
-        if (/dao[:.](get|list)/g.test(doc)) {
-            return {
-                ["." ] : { ...$$row, ...$dao_ext },
-                ["[]"] : { ".": {} },
-            };
-        }else if (/dao[:.](add|set)/g.test(doc)) {
-            return {
-                ["." ] : $$row,
-                ["[]"] : { ".": $$row },
-            };
-        } else {
-            return {
-                ["." ] : $$row,
-                ["[]"] : { ".": {} },
-            };
-        }
-
-    }
 
     if (typeof $args === "function") {
         return $args(i, args, _g);

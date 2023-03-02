@@ -57,7 +57,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                 req = genRefType(name, req) || req;
 
             } else if (isObject(req)) {
-                req = genType(req);
+                req = genType(req, "req<" + modName + "." + name + ">");
                 let doc = req.doc;
                 doc && apiDocs.push(doc);
             }
@@ -74,7 +74,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                 res = genRefType(name, res) || res;
 
             } else if (isObject(res)) {
-                res = genType(res);
+                res = genType(res, "res<" + modName + "." + name + ">");
                 let doc = res.doc;
                 doc && apiDocs.push(doc);
             }
@@ -112,11 +112,26 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
         }
     });
 
+    for (let k in API_TYPES) {
+        let t = API_TYPES[k];
+        API_TYPES[k] = t?.$typed || t;
+    }
+
+    for (let k in REQ_TYPES) {
+        let t = REQ_TYPES[k];
+        REQ_TYPES[k] = t?.$typed || t;
+    }
+
+    for (let k in RES_TYPES) {
+        let t = RES_TYPES[k];
+        RES_TYPES[k] = t?.$typed || t;
+    }
+
     setItem(API_MOD, [".", "$types"], API_TYPES);
 
     API_MOD["$types"] = API_TYPES;  // 自定义类型
-    API_MOD["$req"] = REQ_TYPES;    // 请求参数类型
-    API_MOD["$res"] = RES_TYPES;    // 返回值类型
+    API_MOD["$req"  ] = REQ_TYPES;  // 请求参数类型
+    API_MOD["$res"  ] = RES_TYPES;  // 返回值类型
 
     API_MOD.doc = modDocs.join("\n");
 
@@ -166,14 +181,18 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
 
         if (!isObject(t)) {return obj;}
 
-        let doc : string[] = [];
+        let docs : string[] = [];
 
         typeName = typeName || "";
-        typeName && doc.push(
-            "### [" + modName + "]" + modFile
-            + "." + typeName
-            + "\n\n"
-        );
+        if (typeName && !typeName.startsWith("req<") && !typeName.startsWith("res<")) {
+            docs.push(
+                "### [" + modName + "]" + modFile
+                + "." + typeName.replace(modName + ".", "")
+                + "\n\n"
+            );
+        }
+
+        const $required = [] as string[];
 
         Object.keys(t).forEach(k=>{
 
@@ -182,8 +201,19 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                 return;
             }
 
-            k = k.replace("?", "");
+            let isRequired = true;
+
+            if (k.includes("?")) {
+                k = k.replace("?", "");
+                isRequired = false;
+            }
+
             let v = t[k];
+
+            if (typeof v === "string" && v.includes("?")) {
+                v = v.replace("?", "");
+                isRequired = false;
+            }
 
             // "MenuInfo  //继承",
             // { "MenuID", "菜品编码", "string" },
@@ -204,7 +234,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                         Object.keys(pt).forEach(pk => {
                             obj[pk] = pt[pk];
                         });
-                        doc.push("* 继承属性：`<" + v + ">`");
+                        docs.push("* 继承属性：`<" + v + ">`");
                     }
                     return;
 
@@ -213,17 +243,28 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                     let desc = v["desc"] || v[2] || "";
                     let type = v["type"] || v[3] || "string";
 
-                    if (typeof name === "string") {
+                    if (typeof name === "string" && name.includes("?")) {
                         name = name.replace("?", "");
+                        isRequired = false;
+                    }
+                    if (typeof type === "string" && type.includes("?")) {
+                        type = type.replace("?", "");
+                        isRequired = false;
+                    }
 
+                    if (typeof name === "string") {
                         if (typeof type === "string") {
                             if (desc && typeof desc === "string") {type += "//" + desc;}
-                            doc.push(genApiDoc(name, type));
+                            docs.push(genApiDoc(name, type));
                             obj[name] = genRefType(name, type, typeName);
                         } else if (isObject(type)) {
                             obj[name] = genType(type, typeName);
                         } else {
                             return;
+                        }
+
+                        if (isRequired && !$required.includes(name)) {
+                            $required.push(name);
                         }
 
                         // 变量定义的位置信息
@@ -242,7 +283,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                 if (typeof type === "string") {
 
                     obj[name] = genRefType(name, type);
-                    doc.push(genApiDoc(name, type));
+                    docs.push(genApiDoc(name, type));
 
                 } else if (isObject(type)) {
 
@@ -255,17 +296,24 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
                         typeDesc = "object //扩展属性";
                     }
 
-                    doc.push(genApiDoc(name, typeDesc));
+                    docs.push(genApiDoc(name, typeDesc));
 
                 } else {
                     return;
+                }
+
+                if (isRequired && !$required.includes(name)) {
+                    $required.push(name);
                 }
 
             }
 
         });
 
-        return { ".": obj, doc: doc.join("\n"), readonly };
+        const type = typeName || "table";
+        const doc  = docs.join("\n");
+
+        return { ".": obj, type, doc, readonly, $required };
 
     }
 
@@ -297,6 +345,7 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
             // 读
             get(target, prop) {
                 let m = getMod();
+                if (prop === "$typed") {return m;}
                 if (prop === "loaded") {return loaded;}
                 return m[prop];
             },
