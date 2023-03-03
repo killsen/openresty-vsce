@@ -1,65 +1,60 @@
 
 import { TextDocument, Position } from 'vscode';
-import { getUpValues } from './lua/upValues';
+import { getDefineScope } from './lua/upValues';
 
 /** 取得悬停提示 */
 export function getHover(doc: TextDocument, pos: Position) {
 
-    let regx = /[a-zA-Z_]\w*/;
-    let range = doc.getWordRangeAtPosition(pos, regx);
-    if (!range) {return;}
-
-    let name = doc.getText(range);
-    if (!name) {return;}
-
-    let scope: any = getUpValues(doc, pos);
-    if (!scope) {return;}
+    const defineScope = getDefineScope(doc, pos);
+    if ( !defineScope ) { return; }
+    const { scope, name } = defineScope;
 
     let t = scope[name];
-    if (t === undefined) {t = scope["*"];}
-    if (t === undefined) {return;}
+    if (t === undefined) { t = scope["*"]; }
+    if (t === undefined) { return; }
 
     let contents = getContents(name, t);
-    let hover = { contents };
-
-    return hover;
+    return { contents };
 
 }
 
 /** 取得提示内容 */
-export function getContents(name: string, t: any) {
+export function getContents(name: string, t: any) : string[] {
 
     if (t instanceof Object) {
         if (t.type === "lib" || t.type === "api") {return [t.doc];}
 
-        // 提示变量类型
-        if (typeof t.type === "string" && (!t.doc || t.doc === "## str\n")) {
-            return [`${ name } : \`${ t.type }\``];
+        let doc: string = typeof t.doc === "string" ? t.doc : "";
+        let docs: string[] = [];
+
+        if (typeof t.type === "string" && t.type !== "table" && !doc) {
+            doc = `${ name } : \`${ t.type }\``;  // 提示变量类型
+            return [ doc ];
         }
 
-        let doc = t.doc;
-        let contents: string[] = [];
-
-        if (typeof doc === "string" && doc) {
-            doc = doc.replace("{{name}}", name); // 替换函数名
-            contents.push(doc);
-            if (doc.split("\n").length > 1) {return contents;}
+        if (doc.includes("{{name}}")) {
+            doc = doc.replace("{{name}}", name);  // 替换函数名
+            return [ doc ];
         }
 
-        doc = funcToDoc(name, t);
+        if (doc.includes("\n")) {
+            return [ doc ];
+        }
+
+        doc = funcToDoc(name, t) || "";
         if (doc) {
-            contents.push(doc);
+            docs.push(doc);
         } else {
-            contents.push("## " + name);
+            docs.push("## " + name);
         }
 
-        doc = objectToDoc(name + " . ", t["."]);
-        doc && contents.push(doc);
+        doc = objectToDoc(name + " . ", t["."]) || "";
+        doc && docs.push(doc);
 
-        doc = objectToDoc(name + " : ", t[":"]);
-        doc && contents.push(doc);
+        doc = objectToDoc(name + " : ", t[":"]) || "";
+        doc && docs.push(doc);
 
-        return contents;
+        return docs;
 
     } else {
 

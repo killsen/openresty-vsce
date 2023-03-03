@@ -138,12 +138,6 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             switch (n.type) {
                 case "Identifier": {
-                    // 找到光标所在的位置
-                    if ($$node === n) {
-                        $$node.scope = _g;
-                        return;  // 退出
-                    }
-
                     const vt = getType(_g, n.name);
                     if (vt) {  // 预设类型的变量才检查
                         check_vtype(vt, v, n, _g);
@@ -151,6 +145,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                     // local变量或者upvalue
                     setValue(_g, n.name, v, isLocal, n.loc);
+
+                    // 找到光标所在的位置
+                    if ($$node === n) { $$node.scope = _g; }
+
                     break;
                 }
 
@@ -159,17 +157,6 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     let t = loadNode(n.base, _g);
 
                     t = isArray(t) ? t[0] : t;
-
-                    // 找到光标所在的位置
-                    if ($$node === n.identifier) {
-                        let ti = getItem(t, [n.indexer]);
-                        let mt = getItem(t, ["$$mt", ".", "__index", n.indexer]);
-                        $$node.scope = {
-                            ... isObject(mt) ? mt : {},
-                            ... isObject(ti) ? ti : {},
-                        };
-                        return;  // 退出
-                    }
 
                     if (v instanceof Object && typeof v["()"] === "function" ){
                         // 生成请求参数类型
@@ -187,6 +174,16 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     } else {
                         check_vtype(vtypes[i], v, n, _g);  // 类型检查
                         setChild(_g, t, n.indexer, k, v, n.identifier.loc);
+                    }
+
+                    // 找到光标所在的位置
+                    if ($$node === n.identifier) {
+                        let ti = getItem(t, [n.indexer]);
+                        let mt = getItem(t, ["$$mt", ".", "__index", n.indexer]);
+                        $$node.scope = {
+                            ... isObject(mt) ? mt : {},
+                            ... isObject(ti) ? ti : {},
+                        };
                     }
 
                     break;
@@ -390,7 +387,13 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 node.variables.forEach((v, i)=>{
                     const val = i < res.length ? res[i] : LuaAny;
                     setValue(newG, v.name, val, true, v.loc);
+
+                    // 找到光标所在的位置
+                    if ($$node === v) { $$node.scope = newG; }
                 });
+
+                if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
+
                 loadBody(node.body, newG, node.loc);
             }
 
@@ -399,12 +402,8 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
         // 通过变量名取值
         case "Identifier": {
-
             // 找到光标所在的位置
-            if ($$node === node) {
-                $$node.scope = _g;
-                return;  // 退出
-            }
+            if ($$node === node) { $$node.scope = _g; }
 
             return getValue(_g, node.name);
         }
@@ -614,6 +613,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 switch (ni.type) {
                     case "Identifier":
                         setValue(_g, ni.name, fun, isLocal, ni.loc);  // local变量或者upvalue
+
+                        // 找到光标所在的位置
+                        if ($$node === ni) { $$node.scope = _g; }
+
                         return;
 
                     case "MemberExpression":
@@ -632,6 +635,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
                         if ($$res && $$res[k]) {fun["()"]["$$res"] = $$res[k];}
 
                         setChild(_g, t, ni.indexer, k, fun, ni.identifier.loc);
+
+                        // 找到光标所在的位置
+                        if ($$node === ni.identifier) {
+                            $$node.scope = t && t["."] || {};
+                        }
+
                         return;
                     }
                 }
@@ -766,6 +775,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                         check_vtype(vtype, v, f.key, _g);  // 类型检查
                         setChild(_g, t, ".", f.key.name, v, f.key.loc);
+
+                        // 找到光标所在的位置
+                        if ($$node === f.key) {
+                            $$node.scope = scope || getItem(t, ["."]) || {};
+                        }
+
                         break;
                     }
 

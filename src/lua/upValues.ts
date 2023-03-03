@@ -2,9 +2,9 @@
 import * as luaparse from "luaparse";
 import * as lua from './index';
 import * as ngx from './ngx';
-import { TextDocument, Position } from 'vscode';
+import { TextDocument, Position, Range } from 'vscode';
 import { loadBody } from './parser';
-import { parseComments } from './utils';
+import { isObject, parseComments } from './utils';
 import { setValue } from './scope';
 import { loadModule, loadModuleByCode } from './modLoader';
 
@@ -92,20 +92,53 @@ export function getUpValues(doc: TextDocument, pos: Position) {
 
 }
 
+/** 位置信息是否一致 */
+function isSameLoc(node: luaparse.Node, range: Range) {
+    const loc = node.loc;
+    return loc && range &&
+        loc.start.line === range.start.line + 1 &&
+        loc.start.column === range.start.character &&
+        loc.end.line === range.end.line + 1 &&
+        loc.end.column === range.end.character;
+}
+
+/** 取得变量定义 */
+export function getDefineScope(doc: TextDocument, pos: Position) {
+
+    const regx = /[a-zA-Z_]\w*/;
+    const range = doc.getWordRangeAtPosition(pos, regx);
+
+    const name = range && doc.getText(range);
+    if (!name) { return; }
+
+    function findNode(node: luaparse.Node) {
+        if (node.type === 'Identifier' &&
+            isSameLoc(node, range!) ) {
+            node.isCursor = true;  // 光标所在位置
+            return true;
+        }
+    }
+
+    const ctx = ngx.getPath(doc.fileName);
+    ctx.fileName = doc.fileName + ".editing";  // 正在编辑中的文件
+
+    const codes = [ doc.getText() ];
+    const scope = loadScope({ ctx, codes, findNode });
+
+    if (!isObject(scope)) { return; }
+
+    return { name, scope };
+
+}
+
 /** 取得变量定义 */
 export function getDefine(doc: TextDocument, pos: Position) {
 
-    let regx = /[a-zA-Z_]\w*/;
-    let range = doc.getWordRangeAtPosition(pos, regx);
-    if (!range) { return; }
+    const defineScope = getDefineScope(doc, pos);
+    if ( !defineScope ) { return; }
+    const { scope, name } = defineScope;
 
-    let name = doc.getText(range);
-    if (!name) { return; }
-
-    // console.log(name);
-
-    let scope: any = getUpValues(doc, pos);
-    return scope && (scope["$" + name + "$"] || scope[name] || scope["*"]);
+    return scope["$" + name + "$"] || scope[name] || scope["*"];
 
 }
 
