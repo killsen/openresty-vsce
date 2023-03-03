@@ -451,6 +451,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                 case "+": case "-": case "*": case "/": case "^": case "%":
                     if (l?.type === "cdata" || r?.type === "cdata") {return LuaCData;}
+                    if (l?.type === "any"   || r?.type === "any") {return LuaAny;}
                     if (typeof l !== "number" || typeof r !== "number") {return LuaNumber;}
                     return  op === "+" ? l + r :
                             op === "-" ? l - r :

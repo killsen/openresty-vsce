@@ -21,7 +21,7 @@ ffi.arch                                                -> string
 ffi.cdef(def: string)                                   -> void
 
 ffi.load(name: string, global?: boolean)                                -> userdata
-ffi.new(ct: ctype | cdata | string, nelem?, init?, ...)                 -> cdata
+ffi.new(ct: ctype | cdata | string, nelem_or_init?: any, ...)           -> cdata
 ffi.typeof(ct: ctype | cdata | string)                                  -> ctype
 ffi.cast(ct: ctype | cdata | string, init: any)                         -> cdata
 ffi.metatype(ct: ctype | cdata | string, metatable: table)              -> ctype
@@ -30,8 +30,8 @@ ffi.sizeof(ct: ctype | cdata | string, nelem?: number)                  -> numbe
 ffi.alignof(ct: ctype | cdata | string)                                 -> number
 ffi.offsetof(ct: ctype | cdata | string, field: string)                 -> ofs, bpos, bsize
 ffi.istype(ct: ctype | cdata | string, obj: any)                        -> boolean
-ffi.errno(newerr?: number)                                              -> number
-ffi.string(ptr: cdata, len?: number)                                    -> string
-ffi.copy(dst: cdata, src: cdata, len?: number)                          -> void
-ffi.fill(dst: cdata, len: number, c?: number)                           -> void
+ffi.errno(newerr?)                                                      -> number
+ffi.string(ptr, len?: number)                                           -> string
+ffi.copy(dst, src, len?: number)                                        -> void
+ffi.fill(dst, len: number, c?: number)                                  -> void
 ffi.abi(param: string)                                                  -> boolean
