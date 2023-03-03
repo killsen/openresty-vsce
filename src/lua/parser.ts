@@ -1,6 +1,6 @@
 
 import { Node, Statement, Comment } from 'luaparse';
-import { getLuaTypeName, LuaAny, LuaModule, LuaNumber, LuaString } from './types';
+import { getLuaTypeName, LuaAny, LuaCData, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope, setValueTyped } from './scope';
 import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
@@ -450,6 +450,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     return `${ l }${ r }`;
 
                 case "+": case "-": case "*": case "/": case "^": case "%":
+                    if (l?.type === "cdata" || r?.type === "cdata") {return LuaCData;}
                     if (typeof l !== "number" || typeof r !== "number") {return LuaNumber;}
                     return  op === "+" ? l + r :
                             op === "-" ? l - r :

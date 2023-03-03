@@ -158,7 +158,7 @@ export const LuaUserData      = { type: "userdata", ".": { "*": LuaAny }, basic,
 export const LuaUserDataArray = { type: "userdata[]", "[]": LuaUserData, readonly };
 
 // C数据
-export const LuaCData       = { type: "cdata", basic, readonly };
+export const LuaCData       = { type: "cdata", ".": { "*": LuaAny }, basic, readonly };
 export const LuaCDataArray  = { type: "cdata[]", "[]": LuaCData, readonly };
 
 // C类型

@@ -21,7 +21,7 @@ ffi.arch                                                -> string
 ffi.cdef(def: string)                                   -> void
 
 ffi.load(name: string, global?: boolean)                                -> userdata
-ffi.new(ct: ctype | cdata | string, nelem?: number, init?: any, ...)    -> cdata
+ffi.new(ct: ctype | cdata | string, nelem?, init?, ...)                 -> cdata
 ffi.typeof(ct: ctype | cdata | string)                                  -> ctype
 ffi.cast(ct: ctype | cdata | string, init: any)                         -> cdata
 ffi.metatype(ct: ctype | cdata | string, metatable: table)              -> ctype
