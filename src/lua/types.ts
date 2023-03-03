@@ -269,7 +269,7 @@ export function getLuaTypeName(v: any) {
             :  t === "file"     ? "userdata"
             :  t === "null"     ? "userdata"
             :  t === "cdata"    ? "cdata"
-            :  t === "ctype"    ? "ctype"
+            :  t === "ctype"    ? "cdata"
             :  t === "table"    ? "table"
             :  t === "lib"      ? "table"
             :  t === "api"      ? "table"
