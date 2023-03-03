@@ -184,20 +184,18 @@ export function maybeTypes(exp: Expression, _g: LuaScope,
             if (nt0) { vtypesElse.push(nt0); }
         }
 
-        const vtThen = unionTypes(vtypesThen);
-        const vtElse = unionTypes(vtypesElse);
-
-        setValueTyped(thenG, varName, vtThen);
-        setValueTyped(elseG, varName, vtElse);
-
         // if type(t) ~= "string" then return else ... end
-        if (thenReturn) {
-            setValueTyped(_g, varName, vtElse);
+        if (vtypesElse.length > 0) {
+            const vtElse = unionTypes(vtypesElse);
+            setValueTyped(elseG, varName, vtElse);
+            thenReturn && setValueTyped(_g, varName, vtElse);
         }
 
         // if type(t) == "string" then ... else return end
-        if (elseReturn) {
-            setValueTyped(_g, varName, vtThen);
+        if (vtypesThen.length > 0) {
+            const vtThen = unionTypes(vtypesThen);
+            setValueTyped(thenG, varName, vtThen);
+            elseReturn && setValueTyped(_g, varName, vtThen);
         }
     });
 
