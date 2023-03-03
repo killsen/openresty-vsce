@@ -2,33 +2,36 @@
 -- ffi.* API Functions
 -- https://luajit.org/ext_ffi_api.html
 
+-- FFI · OpenResty最佳实践
+-- https://moonbingbing.gitbooks.io/openresty-best-practices/content/lua/FFI.html
+
 ffi
 
-------------------------------------------------------------
-ofs                                             -> number
-bpos                                            -> number
-bsize                                           -> number
-------------------------------------------------------------
+--------------------------------------------------------------------
+ofs                                                     -> number
+bpos                                                    -> number
+bsize                                                   -> number
+--------------------------------------------------------------------
 
-ffi.C                                           -> userdata
+ffi.C                                                   -> userdata
 
-ffi.os                                          -> string
-ffi.arch                                        -> string
+ffi.os                                                  -> string
+ffi.arch                                                -> string
 
-ffi.cdef(def)
+ffi.cdef(def: string)                                   -> void
 
-ffi.load(name, global?)                         -> userdata
-ffi.new(ct, nelem?, init?, ...)                 -> cdata
-ffi.typeof(ct)                                  -> ctype
-ffi.cast(ct, init)                              -> cdata
-ffi.metatype(ct, metatable)                     -> ctype
-ffi.gc(cdata, finalizer)                        -> cdata
-ffi.sizeof(ct, nelem?)                          -> number
-ffi.alignof(ct)                                 -> number
-ffi.offsetof(ct, field)                         -> ofs, bpos, bsize
-ffi.istype(ct, obj)                             -> boolean
-ffi.errno(newerr?)                              -> string
-ffi.string(ptr, len?)                           -> string
-ffi.copy(dst, src, len?)
-ffi.fill(dst, len, c?)
-ffi.abi(param)                                  -> boolean
+ffi.load(name: string, global?: boolean)                                -> userdata
+ffi.new(ct: ctype | cdata | string, nelem?: number, init?: any, ...)    -> cdata
+ffi.typeof(ct: ctype | cdata | string)                                  -> ctype
+ffi.cast(ct: ctype | cdata | string, init: any)                         -> cdata
+ffi.metatype(ct: ctype | cdata | string, metatable: table)              -> ctype
+ffi.gc(cd: cdata, finalizer: function)                                  -> cdata
+ffi.sizeof(ct: ctype | cdata | string, nelem?: number)                  -> number
+ffi.alignof(ct: ctype | cdata | string)                                 -> number
+ffi.offsetof(ct: ctype | cdata | string, field: string)                 -> ofs, bpos, bsize
+ffi.istype(ct: ctype | cdata | string, obj: any)                        -> boolean
+ffi.errno(newerr?: number)                                              -> number
+ffi.string(ptr: cdata, len?: number)                                    -> string
+ffi.copy(dst: cdata, src: cdata, len?: number)                          -> void
+ffi.fill(dst: cdata, len: number, c?: number)                           -> void
+ffi.abi(param: string)                                                  -> boolean

@@ -2,28 +2,21 @@
 
 ## ffi.C
 
-This is the default C library namespace — note the uppercase 'C'. It binds to the default set of symbols or libraries on the target system. These are more or less the same as a C compiler would offer by default, without specifying extra link libraries.
+这是默认的 C 库命名空间--注意为大写的 C。它绑定到目标系统上的默认符号集或库。这些或多或少与 C 编译器默认提供的相同，而不指定额外的链接库。
 
-On POSIX systems, this binds to symbols in the default or global namespace. This includes all exported symbols from the executable and any libraries loaded into the global namespace. This includes at least libc, libm, libdl (on Linux), libgcc (if compiled with GCC), as well as any exported symbols from the Lua/C API provided by LuaJIT itself.
-
-On Windows systems, this binds to symbols exported from the *.exe, the lua51.dll (i.e. the Lua/C API provided by LuaJIT itself), the C runtime library LuaJIT was linked with (msvcrt*.dll), kernel32.dll, user32.dll and gdi32.dll.
+在 POSIX 系统中，它绑定到默认或全局命名空间中的符号。这包括可执行文件中的所有导出符号以及加载到全局命名空间中的任意库。这至少包括 libc，libm，libdl（在 Linux 中），libgcc（如果使用 GCC 编译器），以及 LuaJIT 本身提供的 Lua/C API 中的任何导出符号。
 
 ## ffi.cdef(def)
 
-Adds multiple C declarations for types or external symbols (named variables or functions). def must be a Lua string. It's recommended to use the syntactic sugar for string arguments as follows:
+声明 C 函数或者 C 的数据结构，数据结构可以是结构体、枚举或者是联合体，函数可以是 C 标准函数，或者第三方库函数，也可以是自定义的函数，注意这里只是函数的声明，并不是函数的定义。声明的函数应该要和原来的函数保持一致。
 
 ```lua
 ffi.cdef[[
-typedef struct foo { int a, b; } foo_t;  // Declare a struct and typedef.
-int dofoo(foo_t *f, int n);  /* Declare an external C function. */
+typedef struct foo { int a, b; } foo_t;  /* Declare a struct and typedef.   */
+int printf(const char *fmt, ...);        /* Declare a typical printf function. */
 ]]
 ```
-
-The contents of the string (the part in green above) must be a sequence of C declarations, separated by semicolons. The trailing semicolon for a single declaration may be omitted.
-
-Please note, that external symbols are only declared, but they are not bound to any specific address, yet. Binding is achieved with C library namespaces (see below).
-
-C declarations are not passed through a C pre-processor, yet. No pre-processor tokens are allowed, except for #pragma pack. Replace #define in existing C header files with enum, static const or typedef and/or pass the files through an external C pre-processor (once). Be careful not to include unneeded or redundant declarations from unrelated header files.
+注意： 所有使用的库函数都要对其进行声明，这和我们写 C 语言时候引入 .h 头文件是一样的。
 
 ## ffi.load
 
@@ -31,38 +24,48 @@ C declarations are not passed through a C pre-processor, yet. No pre-processor t
 clib = ffi.load(name [,global])
 ```
 
-This loads the dynamic library given by name and returns a new C library namespace which binds to its symbols. On POSIX systems, if global is true, the library symbols are loaded into the global namespace, too.
+这将加载由 name 指定的动态库，并返回一个绑定到其符号的新 C 库命名空间。在 POSIX 系统中，如果 global 为 true，这个库的符号将会加载到全局命名空间中。
 
-If name is a path, the library is loaded from this path. Otherwise name is canonicalized in a system-dependent way and searched in the default search path for dynamic libraries:
-
-On POSIX systems, if the name contains no dot, the extension .so is appended. Also, the lib prefix is prepended if necessary. So ffi.load("z") looks for "libz.so" in the default shared library search path.
-
-On Windows systems, if the name contains no dot, the extension .dll is appended. So ffi.load("ws2_32") looks for "ws2_32.dll" in the default DLL search path.
+如果 name 是路径，该库将会从该路径中加载。否则，name 将以与系统相关的方式进行规范化，并按默认搜索路径来搜索动态库：在 POSIX 系统上，如果 name 不包含 '.'，则追加扩展名 .so。此外，如果需要，还会添加库的前缀。所以 ffi.load("z") 在默认的共享库路径中搜索 "libz.so"。
 
 ## ffi.new
+
+如下 API 函数创建 cdata 对象（ctype() 返回 "cdata"）。所有创建的对象都是垃圾回收的。
 
 ```lua
 cdata = ffi.new(ct [,nelem] [,init...])
 cdata = ctype([nelem,] [init...])
 ```
 
-Creates a cdata object for the given ct. VLA/VLS types require the nelem argument. The second syntax uses a ctype as a constructor and is otherwise fully equivalent.
+开辟空间，第一个参数为 ctype 对象，ctype 对象最好通过 ctype = ffi.typeof(ct) 构建。
 
-The cdata object is initialized according to the rules for initializers, using the optional init arguments. Excess initializers cause an error.
+顺便一提，可能很多人会有疑问，到底 ffi.new 和 ffi.C.malloc 有什么区别呢？
 
-Performance notice: if you want to create many objects of one kind, parse the cdecl only once and get its ctype with ffi.typeof(). Then use the ctype as a constructor repeatedly.
+如果使用 ffi.new 分配的 cdata 对象指向的内存块是由垃圾回收器 LuaJIT GC 自动管理的，所以不需要用户去释放内存。
 
-Please note, that an anonymous struct declaration implicitly creates a new and distinguished ctype every time you use it for ffi.new(). This is probably not what you want, especially if you create more than one cdata object. Different anonymous structs are not considered assignment-compatible by the C standard, even though they may have the same fields! Also, they are considered different types by the JIT-compiler, which may cause an excessive number of traces. It's strongly suggested to either declare a named struct or typedef with ffi.cdef() or to create a single ctype object for an anonymous struct with ffi.typeof().
+如果使用 ffi.C.malloc 分配的空间便不再使用 LuaJIT 自己的分配器了，所以不是由 LuaJIT GC 来管理的，但是，要注意的是 ffi.C.malloc 返回的指针本身所对应的 cdata 对象还是由 LuaJIT GC 来管理的，也就是这个指针的 cdata 对象指向的是用 ffi.C.malloc 分配的内存空间。这个时候，你应该通过 ffi.gc() 函数在这个 C 指针的 cdata 对象上面注册自己的析构函数，这个析构函数里面你可以再调用 ffi.C.free，这样的话当 C 指针所对应的 cdata 对象被 Luajit GC 管理器垃圾回收时候，也会自动调用你注册的那个析构函数来执行 C 级别的内存释放。
+
+请尽可能使用最新版本的 Luajit，x86_64 上由 LuaJIT GC 管理的内存已经由 1G->2G，虽然管理的内存变大了，但是如果要使用很大的内存，还是用 ffi.C.malloc 来分配会比较好，避免耗尽了 LuaJIT GC 管理内存的上限，不过还是建议不要一下子分配很大的内存。
+
+```lua
+local int_array_t = ffi.typeof("int[?]")
+local bucket_v = ffi.new(int_array_t, bucket_sz)
+
+local queue_arr_type = ffi.typeof("lrucache_pureffi_queue_t[?]")
+local q = ffi.new(queue_arr_type, size + 1)
+```
 
 ## ffi.typeof(ct)
 
+创建一个 ctype 对象，会解析一个抽象的 C 类型定义。
+该函数仅用于解析 cdecl 一次，然后使用生成的 ctype 对象作为构造函数。
+
 ```lua
-ctype = ffi.typeof(ct)
+local uintptr_t = ffi.typeof("uintptr_t")
+local c_str_t = ffi.typeof("const char*")
+local int_t = ffi.typeof("int")
+local int_array_t = ffi.typeof("int[?]")
 ```
-
-Creates a ctype object for the given ct.
-
-This function is especially useful to parse a cdecl only once and then use the resulting ctype object as a constructor.
 
 ## ffi.cast(ct, init)
 
@@ -70,9 +73,16 @@ This function is especially useful to parse a cdecl only once and then use the r
 cdata = ffi.cast(ct, init)
 ```
 
-Creates a scalar cdata object for the given ct. The cdata object is initialized with init using the "cast" variant of the C type conversion rules.
+创建一个 scalar cdata 对象。
 
-This functions is mainly useful to override the pointer compatibility checks or to convert pointers to addresses or vice versa.
+```lua
+local str = "abc"
+local c_str_t = ffi.typeof("const char*")
+local c_str = ffi.cast(c_str_t, str)       -- 转换为指针地址
+
+local uintptr_t = ffi.typeof("uintptr_t")
+tonumber(ffi.cast(uintptr_t, c_str))       -- 转换为数字
+```
 
 ## ffi.metatype(ct, metatable)
 
@@ -80,11 +90,9 @@ This functions is mainly useful to override the pointer compatibility checks or 
 ctype = ffi.metatype(ct, metatable)
 ```
 
-Creates a ctype object for the given ct and associates it with a metatable. Only struct/union types, complex numbers and vectors are allowed. Other types may be wrapped in a struct, if needed.
+为给定的 ct 创建一个 ctype 对象，并将其与 metatable 相关联。仅允许使用 struct/union 类型，复数和向量。如果需要，其他类型可以封装在 struct 中。
 
-The association with a metatable is permanent and cannot be changed afterwards. Neither the contents of the metatable nor the contents of an __index table (if any) may be modified afterwards. The associated metatable automatically applies to all uses of this type, no matter how the objects are created or where they originate from. Note that predefined operations on types have precedence (e.g. declared field names cannot be overridden).
-
-All standard Lua metamethods are implemented. These are called directly, without shortcuts, and on any mix of types. For binary operations, the left operand is checked first for a valid ctype metamethod. The __gc metamethod only applies to struct/union types and performs an implicit ffi.gc() call during creation of an instance.
+与 metatable 的关联是永久性的，之后不可更改。之后，metatable 的内容和 __index 表（如果有的话）的内容都不能被修改。无论对象如何创建或源自何处，相关地元表都会自动应用于此类型的所有用途。注意，对类型的预定义操作具有优先权（如，声明的字段名称不能被覆盖）。
 
 ## ffi.gc(cdata, finalizer)
 
@@ -189,9 +197,12 @@ Performance notice: ffi.copy() may be used as a faster (inlinable) replacement f
 
 ## ffi.fill(dst, len [,c])
 
-Fills the data pointed to by dst with len constant bytes, given by c. If c is omitted, the data is zero-filled.
+填充数据，此函数和 memset(dst, c, len) 类似，注意参数的顺序。
 
-Performance notice: ffi.fill() may be used as a faster (inlinable) replacement for the C library function memset(dst, c, len). Please note the different order of arguments!
+```lua
+ffi.fill(self.bucket_v, ffi_sizeof(int_t, bucket_sz), 0)
+ffi.fill(q, ffi_sizeof(queue_type, size + 1), 0)
+```
 
 ## ffi.abi(param)
 
