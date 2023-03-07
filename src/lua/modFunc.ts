@@ -1,5 +1,5 @@
 
-import { Node, FunctionDeclaration } from 'luaparse';
+import { Node, FunctionDeclaration, Statement } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
@@ -14,20 +14,24 @@ export function callFunc(t: any, ...args: any) {
         if (!t) { return; }
 
         if (typeof t === "function") {
-            return t(...args);
+            let res = t(...args);
+            t["$$self"] = undefined;
+            return res;
         }
 
         let f = getItem(t, ["()"]);
         if (typeof f === "function") {
             f["$$self"] = t["$$self"];
-            return f(...args);
+            let res = f(...args);
+            f["$$self"] = t["$$self"] = undefined;
+            return res;
         } else if (f !== undefined) {
             return f;
         }
 
         f = getItem(t, ["$$mt", ".", "__call", "()"]);
         if (typeof f === "function") {
-            f["$$self"] = t["$$self"];
+            f["$$self"] = t["$$self"] = undefined;
             return f(t, ...args);  // 第一个参数 t 自己
         } else if (f !== undefined) {
             return f;
@@ -50,6 +54,39 @@ export function getFunc(t: any) {
     if (typeof f === "function") { return f; }
 }
 
+/** 生成函数 SelfCall */
+export function makeSelfCallFunc(funt: any) {
+
+    if (!isObject(funt)) { return; }
+
+    const func = funt["()"];
+    if (typeof func !== "function") { return; }
+
+    const $args = func.$args;
+    if (typeof $args !== "function") { return; }
+
+    selfCallFunc.$$self = undefined as any;
+
+    selfCallFunc.$args = (i: number) => {
+        i = Number(i) || 0;
+        return $args(i+1);
+    };
+
+    return {
+        ...funt,
+        "()"    : selfCallFunc,
+        "args"  : funt["selfArgs"],
+        "$argx" : funt["selfArgx"],
+    };
+
+    function selfCallFunc (...args: any) {
+        func.$$self = selfCallFunc.$$self;
+        const res = func(...args);
+        func.$$self = selfCallFunc.$$self = undefined;
+        return res;
+    }
+
+}
 
 /** 生成函数 */
 export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
@@ -61,6 +98,19 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     if (typex["@@"]) {
         setValue(_g, "@@", myFunc, true);
         delete typex["@@"];
+    }
+
+    const argt = getFuncArgx(node, typex);
+
+    myFunc.args     = argt.args;
+    myFunc.$argx    = argt.argx;
+    myFunc.selfCall = argt.selfCall;
+    myFunc.selfArgs = argt.selfArgs;
+    myFunc.selfArgx = argt.selfArgx;
+
+    if (typex["@@desc"]) {  // 函数注释
+        myFunc.$$docs = typex["@@desc"].desc;
+        delete typex["@@desc"];
     }
 
     myFunc.$$req  = undefined as any;   // api接口请求参数
@@ -170,6 +220,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             }
 
             setValueTyped(newG, "$type_" + name, vt);
+            setValue(newG, "$param_" + name, true, true);
             setValue(newG, name, value, true, p.loc);
         });
 
@@ -219,6 +270,55 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
         return resValue;
     }
+
+}
+
+/** 取得函数参数及返回值表达式 */
+function getFuncArgx(node: FunctionDeclaration, typex: ReturnType<typeof loadTypex>) {
+
+    let args = node.parameters.map(p => {
+        switch (p.type) {
+            case "Identifier": return p.name;
+            case "VarargLiteral": return p.raw;
+        }
+    });
+
+    let argx = args.map(name => {
+        const vt = typex[name];
+        return vt ? `${ vt.name }: ${ vt.type }` : name;
+    }).join(", ");
+    argx = "(" + argx + ")";
+
+    let selfCall = args[0] === "self" || args[0] === "_";
+    let selfArgs = args.slice(1);
+    let selfArgx = selfArgs.map(name => {
+        const vt = typex[name];
+        return vt ? `${ vt.name }: ${ vt.type }` : name;
+    }).join(", ");
+    selfArgx = "(" + selfArgx + ")";
+
+    if (typex["return"]) {
+        const vt = typex["return"];
+        argx += " => " + vt.type;
+        selfArgx += " => " + vt.type;
+    } else {
+        const resArgs = genResArgs(node.body);
+        if (resArgs.includes("\n")) {
+            argx += "\n" + resArgs;
+            selfArgx += "\n" + resArgs;
+        } else {
+            argx += resArgs;
+            selfArgx += resArgs;
+        }
+    }
+
+    return {
+        args: `(${ args.join(", ") })`,
+        argx,
+        selfCall,
+        selfArgs: `(${ selfArgs.join(", ") })`,
+        selfArgx
+    };
 
 }
 

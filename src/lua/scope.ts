@@ -1,29 +1,32 @@
 import { Node } from "luaparse";
+import { makeSelfCallFunc } from "./modFunc";
 import { getBasicType, getLuaTypeName, LuaType } from "./types";
 import { getItem, isObject } from "./utils";
 import { mergeTypes } from "./vtype";
 
 /** 作用域 */
 export interface LuaScope {
-    ["$local"] : { [key: string]: boolean };
-    ["$scope"] : LuaScope | undefined;
-    ["$file"] : string;
+    $file     : string;
+    $scope  ? : LuaScope;
+    $inited ? : boolean;
+    $global ? : boolean;
+    $root   ? : boolean;
     [key: string] : any;
 }
 
 /** 创建新作用域 */
 export function newScope(_g: LuaScope, $file?: string): LuaScope {
     return {
-        ["$local"]: {},
-        ["$scope"]: _g,
-        ["$file"]: $file || _g["$file"]
+        $scope : _g,
+        $file  : $file || _g.$file,
+        $root  : false,
     };
 }
 
 /** 查找上量出现的作用域 */
 export function getScope(_g: LuaScope, key: string): LuaScope {
 
-    if (_g[key] !== undefined || _g["$local"][key]) {
+    if (_g["$local_"+key] || key in _g) {
         return _g;
     }
 
@@ -39,20 +42,20 @@ export function getScope(_g: LuaScope, key: string): LuaScope {
 /** 设置变量值 */
 export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, loc?: Node["loc"]) {
 
-    if (isLocal) {
-        _g["$local"][key] = true;
-
-        if (loc && !key.startsWith("$")) {
-            _g["$" + key + "$"] = {
-                ["$file"]: getValue(_g, "$file"),
-                ["$loc"]: loc, // 保留本地变量的位置
-            };
-        }
-    } else {
-        _g = getScope(_g, key);
-    }
+    _g = isLocal ? _g : getScope(_g, key);
+    if (_g["$root"]) { return; }
 
     if (!key.startsWith("$")) {
+        if (isLocal) {
+            _g["$local_"+key] = true;
+            if (loc) {
+                _g["$" + key + "$"] = {
+                    ["$file"]: getValue(_g, "$file"),
+                    ["$loc"]: loc, // 保留本地变量的位置
+                };
+            }
+        }
+
         let vt = getType(_g, key);
         if (vt) {
             val = getValueTyped(vt, val);  // 类型收敛
@@ -66,14 +69,12 @@ export function setValue(_g: LuaScope, key: string, val: any, isLocal: boolean, 
 /** 设置值或类型 */
 export function setValueTyped(_g: LuaScope, name: string, vtype: LuaType | null) {
 
-    _g["$local"][name] = true;
     _g[name] = vtype;
 
     if (vtype && name.startsWith("$type_")) {
         let key = name.substring(6);
         let val = getValue(_g, key);
         if (val !== vtype) {
-            _g["$local"][key] = true;
             _g[key] = vtype;
         }
     }
@@ -178,15 +179,13 @@ export function setChild(_g: LuaScope, t: any, indexer: string, key: string | nu
     ti[key] = val;
 
     // function t.f(self, a, b, c) -> t:f(a, b, c)
-    if (isSelfCall(val) && indexer === ".") {
+    if (val?.type === "function" && val?.selfCall === true && indexer === ".") {
         let ti = t[":"] = t[":"] || {};
         if (ti instanceof Object) {
-            ti[key] = {
-                ["()"]: val["()"],
-                "args": val["selfArgs"],
-                "doc": val["doc"],
-                "$file": val["$file"],
-                "$loc": val["$loc"],
+            ti[key] = makeSelfCallFunc(val);  // 生成函数 SelfCall
+            ti["$" + key + "$"] = {
+                ["$file"]: $file,
+                ["$loc"]: loc, // 保留成员变量的位置
             };
         }
     }

@@ -615,11 +615,33 @@ export function loadTypex(n: Node, _g: LuaScope) {
     const nline1 = nloc.start.line;
     const nline2 = nloc.end.line;
 
-    comments.forEach(c => {
-        const loc = c.loc;
+
+    comments.forEach((c, idx) => {
+        let loc = c.loc;
         if (!loc) { return; }
-        const line1 = loc.start.line;
-        const line2 = loc.end.line;
+        let line1 = loc.start.line;
+        let line2 = loc.end.line;
+
+        // 解析多行注释
+        if (line2 === nline1 - 1) {
+            const docs = [] as string[];
+            for (let j=idx; j>=0; j--) {
+                c = comments[j];
+                loc = c?.loc;
+                if (!loc) { break; }
+                if (line2 !== loc.end.line) { break; }
+                line2 = loc.start.line - 1;
+                docs.push(c.value);
+            }
+            typex["@@desc"] = {
+                name : "",
+                type : "",
+                desc : docs.reverse().join("\n\n"),
+                loc,
+            };
+            return;
+        }
+
         if (line1 !== line2 || line1 < nline1 || line2 > nline2) {
             return;  // 单行注释且在函数体内
         }

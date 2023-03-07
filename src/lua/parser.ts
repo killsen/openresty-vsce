@@ -2,7 +2,7 @@
 import { Node, Statement, Comment } from 'luaparse';
 import { getLuaTypeName, LuaAny, LuaCData, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope, setValueTyped } from './scope';
-import { callFunc, makeFunc, parseFuncDoc, setArgsCall, setScopeCall } from './modFunc';
+import { callFunc, makeFunc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
 import { addLint, check_vtype, get_node_vtype, get_vtype_inline, loadType, set_arg_vtype } from './vtype';
 import { _getn } from './libs/TableLib';
@@ -287,6 +287,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                 // 返回条件是否成立
                 let ok = loadNode(n.condition, elseG);
+                if ($$node?.scope) { return; }  // 光标所在位置已找到，则退出
 
                 // 是否含有 return 语句
                 let thenReturn = n.body.findIndex(d => d.type === "ReturnStatement") !== -1;
@@ -579,40 +580,37 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             });
 
-            let fun: any = {
-                ["()"]: makeFunc(node, _g),  // 生成函数
-                doc: parseFuncDoc(node, _g),  // 生成文档
-                args: "(" + args.join(", ") + ")",
-                type: "function",
-                readonly: true,
-                "$file": $file,
-                "$loc": node.loc,
+            const func = makeFunc(node, _g);  // 生成函数
+
+            const funt: any = {
+                "()"        : func,
+                doc         : func.$$docs || "",
+                args        : func.args,
+                $argx       : func.$argx,
+                selfCall    : func.selfCall,  // 第一个参数是否 self 或 _
+                selfArgs    : func.selfArgs,
+                selfArgx    : func.selfArgx,
+
+                "$file"     : $file,
+                "$loc"      : node.loc,
+                type        : "function",
+                readonly    : true,
             };
 
             // 为 apicheck 提供待运行的函数
-            let funcs = getValue(_g, "$$funcs");
-            if (funcs) {
-                funcs.push(fun["()"]);
-            }
+            const funcs = getValue(_g, "$$funcs") as Function[];
+            funcs && funcs.push(func);
 
             // 检查变量是否在函数定义作用内
             if ($$node && isInScope(node, $$node)) {
-                setValue(_g, "$$func", fun["()"], false);
-            }
-
-            // 第一个参数是否 self
-            let isSelfCall = args[0] === "self" || args[0] === "_";
-            if (isSelfCall) {
-                args.splice(0, 1);
-                fun["selfCall"] = true;
-                fun["selfArgs"] = "(" + args.join(", ") + ")";
+                setValue(_g, "$$func", func, false);
             }
 
             let ni = node.identifier;
             if (ni) {
                 switch (ni.type) {
                     case "Identifier":
-                        setValue(_g, ni.name, fun, isLocal, ni.loc);  // local变量或者upvalue
+                        setValue(_g, ni.name, funt, isLocal, ni.loc);  // local变量或者upvalue
 
                         // 找到光标所在的位置
                         if ($$node === ni) { $$node.scope = _g; }
@@ -628,17 +626,17 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
                         // 生成请求参数类型
                         let $$req = getValue(_g, "$$req");
-                        if ($$req && $$req[k]) {fun["()"]["$$req"] = $$req[k];}
+                        if ($$req && $$req[k]) {func["$$req"] = $$req[k];}
 
                         // 生成返回值类型 v21.11.25
                         let $$res = getValue(_g, "$$res");
-                        if ($$res && $$res[k]) {fun["()"]["$$res"] = $$res[k];}
+                        if ($$res && $$res[k]) {func["$$res"] = $$res[k];}
 
-                        setChild(_g, t, ni.indexer, k, fun, ni.identifier.loc);
+                        setChild(_g, t, ni.indexer, k, funt, ni.identifier.loc);
 
                         // 找到光标所在的位置
                         if ($$node === ni.identifier) {
-                            $$node.scope = t && t["."] || {};
+                            $$node.scope = t && t[ni.indexer] || {};
                         }
 
                         return;
@@ -646,7 +644,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 }
             }
 
-            return fun;
+            return funt;
         }
 
         // 索引表达式：table[key]
@@ -669,6 +667,10 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 t = getValue(_g, "$type<@file>");  // 文件类型
             } else if (t?.type === "any") {
                 return LuaAny;  // 任意类型
+            }
+
+            if (k === "parse_part") {
+                console.log(k);
             }
 
             let ti = getItem(t, [node.indexer]);

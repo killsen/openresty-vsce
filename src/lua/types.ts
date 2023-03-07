@@ -26,6 +26,7 @@ export interface LuaModule {
     "[]"?: LuaModule;
     args?: string;
     $args?: any;
+    $argx?: string;
     doc?: string;
     type?: string;
     text?: string;
