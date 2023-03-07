@@ -1,7 +1,7 @@
 
 import { NgxPath, getApiFile } from './ngx';
 import { loadApiDoc } from './apiDoc';
-import { LuaModule, LuaDao, LuaApi, getBasicType, LuaAny, LuaString, LuaNumber, LuaNever, LuaType } from './types';
+import { LuaModule, LuaDao, LuaApi, getBasicType, LuaAny, LuaString, LuaNumber, LuaNever, LuaType, LuaStringOrNil } from './types';
 import { setDepend } from "./modCache";
 import { isObject, setItem } from './utils';
 import { TableLib } from './libs/TableLib';
@@ -77,24 +77,28 @@ function genArgs(args: string, _g: LuaScope, loc?: LuaApi["loc"], isRes = false)
 }
 
 const $dao_ext = {
-    _order_by : { type: "string", basic, readonly, doc: "## _order_by \n\n `< string >` \n\n ### 排序 \n\n" },
-    _group_by : { type: "string", basic, readonly, doc: "## _group_by \n\n `< string >` \n\n ### 汇总 \n\n" },
-    _limit    : { type: "number | string", types: [ LuaNumber, LuaString ], readonly, doc: "## _limit    \n\n `< number | string >` \n\n ### 记录数 \n\n" },
+    _order_by : { type: "string", basic, readonly, doc: "排序" },
+    _group_by : { type: "string", basic, readonly, doc: "汇总" },
+    _limit    : { type: "number | string", types: [ LuaNumber, LuaString ], readonly, doc: "记录数" },
 };
 
 // 注入 dao 类型
 function initDao(_g: LuaScope, dao: LuaDao) {
 
+    const doc = "数据库查询结果\n\n"
+        + "[" + dao.name + "](file:"+ dao.$file +")"
+        + " ( " + dao.desc + " ) " ;
+
     _g["row"] = {
         "." : dao.row, "[]": LuaNever,
         type: "$"+ dao.name, readonly,
-        doc : "## $"+ dao.name +"\ndao 类型单行数据\n" + dao.doc,
+        doc,
     };
 
     _g["row[]"] = {
         "." : {}, "[]": _g["row"],
         type: "$"+ dao.name + "[]", readonly,
-        doc: "## $"+ dao.name +"[]\ndao 类型多行数据\n" + dao.doc,
+        doc,
     };
 
     _g["sql"] = {
@@ -126,6 +130,10 @@ function gen_dao_fields(t: any, dao: LuaDao) : LuaType | undefined {
 
     if (!isObject(t) || !isObject(t["."])) { return; }
 
+    const doc = "数据库查询结果\n\n"
+        + "[" + dao.name + "](file:"+ dao.$file +")"
+        + " ( " + dao.desc + " ) " ;
+
     for (let i=1; i<100; i++) {
         let f = t["."][i];
         if (f === null || f === undefined) { return; }
@@ -153,7 +161,7 @@ function gen_dao_fields(t: any, dao: LuaDao) : LuaType | undefined {
             }
         }
 
-        return { type: "table", readonly, ".": ti };
+        return { type: "table", doc, readonly, ".": ti };
     }
 
 }
@@ -162,24 +170,32 @@ function gen_dao_fields(t: any, dao: LuaDao) : LuaType | undefined {
 function gen_dao_func(mod: LuaModule, dao: LuaDao, $row: LuaType, $rows: LuaType) {
 
     setItem(mod, [".", "get", "()"], (t: any) => {
-        return gen_dao_fields(t, dao) || $row;
+        const row = gen_dao_fields(t, dao) || $row;
+        return [ row, LuaStringOrNil ];
     });
 
     setItem(mod, [".", "list", "()"], (t: any) => {
         const row = gen_dao_fields(t, dao);
-        return row && { "[]": row, type: "table[]", readonly } || $rows;
+        const rows = row && { "[]": row, type: "table[]", readonly, doc: row.doc } || $rows;
+        return [ rows, LuaStringOrNil ];
     });
 
     setItem(mod, [":", "get" , "()"], gen_sql_query);
     setItem(mod, [":", "list", "()"], gen_sql_query);
 
+    const doc = "数据库查询语句\n\n"
+        + "[" + dao.name + "](file:"+ dao.$file +")"
+        + " ( " + dao.desc + " ) " ;
+
     function gen_sql_query(t: any) {
         const row = gen_dao_fields(t, dao);
-        return {
+        const rows = row && { "[]": row, type: "table[]", readonly, doc: row.doc } || $rows;
+        const sql_query = {
             type: "string", readonly, basic,
-            $result: row && { "[]": row, type: "table[]", readonly } || $rows,
-            doc: "sql查询语句",
+            $result: rows,
+            doc,
         };
+        return [ sql_query ];
     }
 
 }
@@ -194,10 +210,11 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
     let apis = loadApiDoc(ctx, name);
     if (!apis) { return ; }
 
-    let _g: LuaScope = { $local: {}, $scope: undefined, $file: fileName };
+    let _g: LuaScope = { $file: fileName };
     let requireName = "";
 
     let daoDoc = dao?.doc || "";
+    let daoName = dao?.name || "";
     dao && initDao(_g, dao);  // 注入 dao 类型
 
     function genNode(api: LuaApi) {
@@ -267,9 +284,15 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
             p["()"] = genArgs(api.res , _g, p.$loc, true );  // 返回值类型
             p.$args = genArgs(api.args, _g, p.$loc, false);  // 参数类型
             p.args  = api.args;
-            p.doc   = api.doc + daoDoc;
+            p.$argx = api.args + (api.res ? " => " + api.res : "");
+            p.doc   = api.doc;
             p.$file = api.file;
             p.$loc  = api.loc;
+
+            if (daoName) {
+                p.args = p.args.replace(/row/g, `$${ daoName }`);
+                p.$argx = p.$argx.replace(/row/g, `$${ daoName }`);
+            }
 
         } else if (api.res) {
             if (!isNaN(Number(api.res))) {
@@ -357,6 +380,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
         t["$dao"] = dao;
         t["$row"] = _g["row"];
         t["doc"] = daoDoc;
+        t["type"] = `dao<$${ dao.name }>`;
 
         // 生成 dao 的 get 及 list 方法
         gen_dao_func(t, dao, _g["row"], _g["row[]"]);

@@ -67,7 +67,8 @@ function genApi(name: string): LuaApi | undefined {
 
     if (desc === "保留字") {desc = "";}
 
-    let doc = "## " + text + "\n" + desc;
+    // let doc = "## " + text + "\n" + desc;
+    let doc = desc;
     if (doc.includes("<")) {
         doc = doc.replace("<", "\\<");  // md文档转义
     }

@@ -6,7 +6,6 @@ import { getItem, setItem } from "./utils";
 import { LuaString, LuaObject } from "./types";
 import { _unpack } from "./libs/TableLib";
 import { GlobalLib } from "./libs/GlobalLib";
-import { CompletionItemKind } from 'vscode';
 
 // Lua的关键字
 const KeyWords = [
@@ -28,12 +27,13 @@ function loadGlobal(ctx: NgxPath) {
     let mod = lua.load(ctx, "_G");
 
     let _G = (mod && mod["."] || {}) as LuaScope;
-    if (_G["$inited"]) { return _G; }
+    if (_G.$inited) { return _G; }
 
-    _G["$inited"] = true;
-    _G["$local" ] = {};
-    _G["$scope" ] = undefined;
-    _G["$file"  ] = "buildin";
+    _G.$inited = true;
+    _G.$global = true;
+    _G.$root   = true;
+    _G.$scope  = undefined;
+    _G.$file   = "buildin";
 
     const _g: LuaObject = {};
 
@@ -56,7 +56,7 @@ function loadGlobal(ctx: NgxPath) {
     KeyWords.forEach(name => {
         _G[name] = {
             readonly: true,
-            kind: CompletionItemKind.Keyword,
+            type: "keyword",
         };
     });
 
@@ -86,19 +86,13 @@ export function genGlobal(ctx: NgxPath) {
     // 注入文件类型
     _G["$type<@file>"] = getItem(_G, [ "io", ".", "$type<@file>" ]);
 
-    setValue(_g, "_load", {
+    _g["_load"] = _g["require"] = {
         "()": _require,
         args: '(modname: string)',
         $args: [ LuaString ],
-        doc: "## _load(modname)\n加载模块"
-    }, true);
-
-    setValue(_g, "require", {
-        "()": _require,
-        args: '(modname: string)',
-        $args: [ LuaString ],
-        doc: "## require(modname)\n加载模块"
-    }, true);
+        $argx: '(modname: string) => any',
+        doc: "加载模块"
+    };
 
     return _g;
 

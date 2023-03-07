@@ -1,131 +1,97 @@
 
-import { TextDocument, Position } from 'vscode';
+import { TextDocument, Position, ProviderResult, Hover, MarkdownString } from 'vscode';
+import { getLuaTypeName } from './lua/types';
 import { getDefineScope } from './lua/upValues';
 
 /** 取得悬停提示 */
-export function getHover(doc: TextDocument, pos: Position) {
+export function getHover(doc: TextDocument, pos: Position) : ProviderResult<Hover> {
 
     const defineScope = getDefineScope(doc, pos);
     if ( !defineScope ) { return; }
     const { scope, name } = defineScope;
 
-    let t = scope[name];
-    if (t === undefined) { t = scope["*"]; }
-    if (t === undefined) { return; }
+    const docs = getHoverText(name, scope);
+    return { contents : [ docs ] };
 
-    let contents = getContents(name, t);
-    return { contents };
+}
+
+function getVarValue(v: unknown) {
+
+    if (typeof v === "number" || typeof v === "boolean") {
+        return ` = ${ v }`;
+
+    } else if (typeof v === "string") {
+        let s = v;
+        if (s.length > 20) {
+            s = s.substring(0, 20) + "...";
+        }
+        if (!s.includes('"')) {
+            return ` = "${ s }"`;
+        } else if (!s.includes("'")) {
+            return ` = '${ s }'`;
+        } else {
+            return ` = [[${ s }]]`;
+        }
+    } else {
+        return "";
+    }
 
 }
 
 /** 取得提示内容 */
-export function getContents(name: string, t: any) : string[] {
+export function getHoverText(name: string, scope: any) : MarkdownString {
 
-    if (t instanceof Object) {
-        if (t.type === "lib" || t.type === "api") {return [t.doc];}
+    const md = new MarkdownString();
 
-        let doc: string = typeof t.doc === "string" ? t.doc : "";
-        let docs: string[] = [];
+    let t = scope[name];
+    if (t === undefined) { t = scope["*"]; }
+    if (t === undefined) { return md; }
 
-        if (typeof t.type === "string" && t.type !== "table" && !doc) {
-            doc = `${ name } : \`${ t.type }\``;  // 提示变量类型
-            return [ doc ];
-        }
+    if (typeof t?.doc === "string" && t.doc.includes("##")) {
+        return new MarkdownString(t?.doc);
+    }
 
-        if (doc.includes("{{name}}")) {
-            doc = doc.replace("{{name}}", name);  // 替换函数名
-            return [ doc ];
-        }
+    const isGlobal = scope["$global"];
+    const isParam  = scope["$param_" + name];
+    const isLocal  = scope["$local_" + name];
+    const isFunction = t?.type === "function" || (t && t["()"]);
 
-        if (doc.includes("\n")) {
-            return [ doc ];
-        }
+    const docs = [ "```lua" ];
 
-        doc = funcToDoc(name, t) || "";
-        if (doc) {
-            docs.push(doc);
-        } else {
-            docs.push("## " + name);
-        }
-
-        doc = objectToDoc(name + " . ", t["."]) || "";
-        doc && docs.push(doc);
-
-        doc = objectToDoc(name + " : ", t[":"]) || "";
-        doc && docs.push(doc);
-
-        return docs;
-
+    if (isFunction) {
+        const args = typeof t?.$argx === "string" && t?.$argx || t?.args || "()";
+        docs.push(`function ${ name } ${ args }`);
     } else {
+        let vt = scope["$type_" + name];
+        let type = isFunction ? typeof t?.$argx === "string" ? t?.$argx : t?.args
+                 : typeof t?.type  === "string" ? t?.type
+                 : typeof vt?.type === "string" ? vt?.type
+                 : getLuaTypeName(t);
+        let pref = isFunction ? "function"
+                 : isParam    ? "parameter"
+                 : isLocal    ? "local"
+                 : isGlobal   ? "global"
+                 : "property";
 
-        if (t === null) {
-            t = "nil";
-        } else if (t === undefined) {
-            t = "any";
-
-        } else if (typeof t === "string") {
-            if (t.length > 20) {
-                t = t.substring(0, 20) + "...";
-            }
-            if (!t.includes('"')) {
-                t = `"${ t }"`;
-            } else if (!t.includes("'")) {
-                t = `'${ t }'`;
-            } else {
-                t = `[[${ t }]]`;
-            }
+        if (type === "lib" || type === "api") {
+            type = "table";
         }
 
-        return [`${ name } = \`${ t }\``];
-
-    }
-
-}
-
-function funcToDoc(name: string, t: any){
-
-    if (!(t instanceof Object)) {return;}
-
-    let docs : string[] = [];
-
-    if (t.args || typeof t["()"] === "function") {
-        let args = t.args || "()";
-        let doc = "### " + name + " " + args;
-        docs.push(doc);
-
-        let resArgs: string = t.resArgs;
-        if (typeof resArgs === "string" && resArgs) {
-            docs.push("返回值：");
-            resArgs.split("\n").forEach(s=>{
-                s = "* " + s;
-                if (!docs.includes(s)) {docs.push(s);}
-            });
+        if (type === "keyword") {
+            docs.push(`(keyword) ${ name }`);
+        } else {
+            const vals = getVarValue(t);
+            docs.push(`(${ pref }) ${ name }: ${ type }${ vals }`);
         }
     }
 
-    return docs.join("\n");
+    docs.push("```");
 
-}
+    if (typeof t?.doc === "string") {
+        docs.push(t?.doc);
+    }
 
-function objectToDoc(name: string, t: any) {
-
-    if (!(t instanceof Object)) {return;}
-
-    let docs: string[] = [];
-
-    Object.keys(t).forEach(k=>{
-        if (k.startsWith("$")) {return;}
-        let v = t[k];
-        if (v instanceof Object) {
-            if (v.args || typeof v["()"] === "function") {
-                let args = v.args || "()";
-                return docs.push("* " + name + k + " " + args);
-            }
-        }
-
-        docs.push("* " + name + k);
-    });
-
-    return docs.join("\n");
+    // let contents = getContents(name, t);
+    return new MarkdownString(docs.join("\n"));
 
 }

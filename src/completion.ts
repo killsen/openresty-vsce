@@ -6,7 +6,7 @@ import { CompletionItem, CompletionItemKind } from 'vscode';
 import { loadFileItems } from './fileItems';
 import { importFiles } from './importFiles';
 import { getUpValues } from './lua/upValues';
-import { getContents } from "./hover";
+import { getHoverText } from "./hover";
 
 /** 代码补全 */
 export function loadItems(doc: vscode.TextDocument, pos: vscode.Position, tok: vscode.CancellationToken) {
@@ -39,13 +39,14 @@ export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, le
 
     Object.keys(t).forEach(k => {
 
-        // 以数字或 $ * 开头的不显示
-        if (k.match(/^(\d|\$|\*)/)) { return; }
+        // 不以字母或下划线开头的不输出
+        if (!k.match(/^[a-zA-Z_]/)) {
+            return;
+        }
 
         let c = t[k];
 
-        let docs = getContents(pkey + k, c).join("\n------\n");
-        let documentation = new vscode.MarkdownString(docs);
+        let documentation = getHoverText(k, t);
 
         if (!(c instanceof Object)) {
             return items.push({
@@ -53,6 +54,15 @@ export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, le
                 documentation,
                 kind: CompletionItemKind.Value // 变量
             });
+        }
+
+        if (c.type === "keyword") {
+            items.push({
+                label: pkey + k,
+                kind: CompletionItemKind.Keyword, // 关键字
+                documentation,
+            });
+            return;
         }
 
         if (c.type === "lib" || c.type === "api") {

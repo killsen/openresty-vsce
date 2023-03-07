@@ -383,48 +383,27 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
         // 自定义类型命名: 兼容处理
         name = name.replace(/[@?\r\n\s]/g, "") || "string";
 
-        let doc = "## " + key + "\n\n`< " + name + " >`\n\n" + desc;
-
-        if (typeName && modName) {
-            doc += "### [" + modName + "]" + modFile + "." + typeName;
-        }
-
         // 是否数组
         let isArr = name.indexOf("[]") !== -1;
         if (isArr) {
             name = name.replace("[]", "");
         }
 
-        let vt, daoType, userType;
+        let vt;
+        let loaded = true;
 
         if (name.startsWith("$")) {
-            let daoMod = lua.load(ctx, name);
-            if (daoMod) {daoType = daoMod["$dao"];}
-        } else {
-            userType = API_TYPES[name];
-        }
-
-        if (userType) {
-            // userType 使用 proxy 创建可解决自引用问题
-            // userType 加载完成后才能解构 (即访问相关属性)
-            vt = userType;
-            if (vt.loaded) {
-                doc = doc + "\n---\n" + vt.doc;  // 补上 userType 文档
-                let docx = "## "+ name +"\n自定义类型对象\n" + vt.doc;
-                vt = { ... vt, readonly, type: name, doc: isArr ? docx : doc };
-            }
-
-        } else if (daoType) {
-            doc = doc + "\n---\n" + daoType.doc;  // 补上 dao 文档
-            let daox = "## "+ name +"\ndao 类型单行数据\n" + daoType.doc;
-            vt = { ".": daoType.row, readonly, type: name, doc: isArr ? daox : doc };
-
+            let dao = lua.load(ctx, name) as any;
+            vt = dao && dao["$row"] || {};
+        } else if (API_TYPES[name]) {
+            vt = API_TYPES[name] || {};
+            loaded = vt.loaded !== false;
         } else {
             vt = getBasicType(name) || {};
-            vt = { ...vt, readonly, type: name, doc: isArr ? "" : doc };
         }
 
-        return isArr ? { "[]": vt, doc, readonly, type: name + "[]" } : vt;
+        return isArr  ? { "[]": vt, readonly, type: name + "[]", doc: desc } :
+               loaded ? { ...vt, readonly, type: name, doc: desc } : vt;
 
     }
 

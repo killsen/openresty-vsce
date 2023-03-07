@@ -63,9 +63,7 @@ export function loadDao(mod: LuaModule): LuaDao | undefined {
                 let fLen = f.len ? "(" + f.len + ")" : "";
 
                 // markdown 文档提示内容
-                let doc = "## " + f.name + "\n\n"
-                        + "`< " + type + " >`" + " `" + f.type + fLen + "`" + "\n\n"
-                        + "### " + f.desc + pkStr + "\n\n"
+                let doc = f.desc + pkStr  + " `<" + f.type + fLen + ">`" + "\n\n"
                         + "[" + name + "](file:"+ $file +")"
                         + " ( " + desc + " ) " ;
 

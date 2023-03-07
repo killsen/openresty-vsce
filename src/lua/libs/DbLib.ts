@@ -12,7 +12,7 @@ export const DbLib : { [key: string] : Function } = {
     tranx   : _tranx,
 };
 
-const _g: LuaScope = { $file: "", $local: {}, $scope: undefined };
+const _g: LuaScope = { $file: "" };
 const AnyRows   = loadType("(string | number | boolean)[][]", _g);
 const MapString = loadType("map<string>", _g);
 const ArrString = loadType("string | string[]", _g);
