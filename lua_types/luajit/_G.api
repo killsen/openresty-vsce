@@ -1,28 +1,28 @@
 
-assert(v, message?)                         -- 断言
+assert(v: any, message?: string)            -- 断言
 collectgarbage(opt?, arg?)                  -- 垃圾回收
-dofile(filename?)                           -- 执行文件
+dofile(filename?: string)                   -- 执行文件
 error(message, level?)                      -- 抛出错误信息
 getfenv(f?)                                 -- 取得环境变量
-getmetatable(t)                             -- 取得元表
-ipairs(t)                                   -- 遍历数组
-load(func, chunkname?)
+getmetatable(t: table)                      -- 取得元表
+ipairs(t: table)                            -- 遍历数组
+load(func, chunkname?)                      -- 加载函数
 loadfile(filename?)                         -- 加载文件
 loadstring(string, chunkname?)              -- 加载代码
 module(name, ···)                           -- 模块定义
-next(t, index?)
-pairs(t)                                    -- 遍历表
-pcall(f, arg1, ···)                         -- 调用
+next(t: table, index?)                      -- 获取下一个元素
+pairs(t: table)                             -- 遍历表
+pcall(f, arg1, ···)                         -- 执行函数
 print(···)                                  -- 打印输出
-rawequal(v1, v2)
+rawequal(v1, v2)                            -- 原始比值
 rawget(t, index)                            -- 原始取值
 rawset(t, index, value)                     -- 原始赋值
 require(modname)                            -- 加载模块
-select(index, ···)
+select(index, ···)                          -- 获取元素
 setfenv(f, t)                               -- 设置环境变量
-setmetatable(t, mt)                         -- 设置元表
-tonumber(e, base?)                          -- 转数字
-tostring(e)                                 -- 转字符串
-type(v)                                     -- 变量类型
+setmetatable(t: table, mt: table) -> table  -- 设置元表
+tonumber(v: any, base?: number)  -> number  -- 转数字
+tostring(v: any) -> string                  -- 转字符串
+type(v: any) -> string                      -- 变量类型
 unpack(list, i?, j?)                        -- 拆开数组
-xpcall(f, err)                              -- 调用
+xpcall(f: function, err: function)          -- 执行函数
