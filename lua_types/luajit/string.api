@@ -9,7 +9,7 @@ string.dump (f: function)                                               -> strin
 string.find (s: string, pattern: string, init=1?, plain=false?)         -> number, number, string?
 string.format (s: string, v?: any, ...)                                 -> string
 string.gmatch (s: string, pattern: string)                              -> iterator
-string.gsub (s: string, pattern: string, replace: string | function, n?: number)   -> string
+string.gsub (s: string, pattern: string, replace: string | map<string> | function, n?: number)   -> string
 string.len (s: string)                                                  -> number
 string.lower (s: string)                                                -> string
 string.match (s: string, pattern: string, i?: number)                   -> string
@@ -25,7 +25,7 @@ str:byte (i?: number, j?: number)                                       -> numbe
 str:find (pattern: string, init=1?, plain=false?)                       -> number, number, string?
 str:format (v?: any, ...)                                               -> string
 str:gmatch (pattern: string)                                            -> iterator
-str:gsub (pattern: string, replace: string | function, n?: number)      -> string
+str:gsub (pattern: string, replace: string | map<string> | function, n?: number)      -> string
 str:len ()                                                              -> number
 str:lower ()                                                            -> string
 str:match (pattern: string, i?: number)                                 -> string

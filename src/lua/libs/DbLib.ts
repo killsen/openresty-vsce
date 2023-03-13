@@ -1,6 +1,6 @@
 
 import { LuaScope } from "../scope";
-import { LuaBoolean, LuaNumber, LuaString, LuaStringOrNil } from "../types";
+import { LuaBoolean, LuaNumber, LuaString, LuaStringOrNil, LuaTable } from "../types";
 import { isObject } from "../utils";
 import { loadType } from "../vtype";
 
@@ -35,7 +35,8 @@ const DbQueryResult = {
         server_status : { type: "number", readonly, basic, doc: "服务器状态" },
         warning_count : { type: "number", readonly, basic, doc: "告警数目" },
         message       : { type: "string", readonly, basic, doc: "服务器消息" },
-    }
+    },
+    "[]": LuaTable
 };
 
 const DbTransResult = {

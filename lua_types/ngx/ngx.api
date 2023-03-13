@@ -67,7 +67,7 @@ ngx.location.capture(uri: string, opt?: CaptureOpt)     -> CaptureRes
 ngx.location.capture_multi(uri: CaptureUri, ...)        -> CaptureRes, ...
 
 ngx.status          -> number
-ngx.header          -> map<string | string[]>
+ngx.header          -> map<string | number | (string | number)[]>
 
 ngx.resp            -- ngx.resp.get_headers
 ngx.resp.get_headers(max_headers=100?, raw=false?)  -> map<string>
