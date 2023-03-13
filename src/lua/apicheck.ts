@@ -12,6 +12,8 @@ export function cleanLints(fileName: string) {
     CACHE.delete(fileName);
 }
 
+const TIMER = {} as { [key: string]: ReturnType<typeof setTimeout> };
+
 /** 注册 ApiCheck */
 export function registerApiCheck(context: vscode.ExtensionContext) {
 
@@ -35,13 +37,29 @@ export function registerApiCheck(context: vscode.ExtensionContext) {
 
         const { uri, fileName } = document;
 
-        let ctx = ngx.getPath(fileName);
-        ctx.fileName = fileName + ".editing";  // 正在编辑中的文件
+        if (CACHE.has(fileName)) {
+            collection.set(uri, CACHE.get(fileName));
+            return;
+        }
+
+        TIMER[fileName] && clearTimeout(TIMER[fileName]);
+        TIMER[fileName] = setTimeout(() => {
+            delete TIMER[fileName];
+            lintDelay(document);
+        }, 50);
+    }
+
+    function lintDelay (document: vscode.TextDocument) {
+        if (!vscode.languages.match(selector, document)) {return;}
+
+        const { uri, fileName } = document;
 
         if (CACHE.has(fileName)) {
             collection.set(uri, CACHE.get(fileName));
             return;
         }
+
+        let ctx = ngx.getPath(fileName);
 
         let $lints: any[] = [];
         let $funcs: any[] = [];
