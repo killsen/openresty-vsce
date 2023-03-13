@@ -160,7 +160,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
             let mod = loadModuleByCode(ctx, doc.getText());
             let types = mod && mod["$types"];
             if (types) {
-                loadKeys(items, types, "", 0);
+                loadKeys(items, types, "", 0, true);  // 自定义类型声明补全
             }
             break;
         }

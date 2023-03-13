@@ -25,7 +25,7 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
 
     // 类型声明注解:  1) t : T   2) t & T   3) t | T
     const comments: Comment[] | undefined = getValue(_g, "$$comments");
-    const typeRegx = /---\s*(\w+)\s*([:|&])\s*(.+)/;
+    const typeRegx = /---\s*(@?\w+)\s*([:|&])\s*(.+)/;
 
     let lastLine = loc?.start.line || 0;
 
@@ -42,11 +42,24 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
             if (line > lastLine && line <= node.loc!.start.line) {
                 const m = c.raw.match(typeRegx);
                 if (m) {
-                    const key = m[1].trim();
-                    const typ = m[2] === ":" ? m[3].trim() : `${m[1]} ${m[2]} ${m[3]}`;
+                    const key = m[1].replace("@", "");
+                    const typ = m[2] === ":" ? m[3] : `${m[1]} ${m[2]} ${m[3]}`;
                     const val = loadType(typ, _g, c.loc) as any;
                     if (val) {
                         setValueTyped(_g, "$type_" + key, val);
+
+                        // 以大写字母开头的自定义类型注册到 $$types 中
+                        if (key.match(/^[A-Z]/) && (m[2] === ":" || m[2] === "&")) {
+                            val.type = key;
+                            const $$types = getValue(_g, "$$types");
+                            if ($$types) {
+                                $$types[key] = val;
+                                $$types["$"+key+"$"] = $$types["$"+key+"$"] || {
+                                    $file: getValue(_g, "$file"),
+                                    $loc: c.loc,
+                                };
+                            }
+                        }
                     }
                 }
             }

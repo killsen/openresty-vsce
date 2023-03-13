@@ -81,6 +81,9 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, 
         // 初始化返回值数组
         setValue(_g, "$$return", [], true);
 
+        let $types = {};
+        setValue(_g, "$$types", $types, true);
+
         let mod = loadBody(chunk.body, _g);
 
         if (mod instanceof Object) {
@@ -103,10 +106,12 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, 
             loadApiTypes(ctx, mod);
             setValue(_g, "$$req", mod["$req"], true);       // 请求参数类型
             setValue(_g, "$$res", mod["$res"], true);       // 返回值类型 v21.11.25
-            setValue(_g, "$$types", mod["$types"], true);   // 自定义类型
+
+            // 自定义类型
+            $types = _g["$$types"] = mod["$types"] = { ...$types, ...mod["$types"] };
         }
 
-        return mod;
+        return mod || { $types };
 
     }catch(err){
         if (err instanceof SyntaxError) {

@@ -34,7 +34,7 @@ export function loadItems(doc: vscode.TextDocument, pos: vscode.Position, tok: v
 }
 
 /** 生成补全项目 */
-export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, level = 0) {
+export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, level = 0, isTypes = false) {
     if (!t) { return; }
 
     Object.keys(t).forEach(k => {
@@ -45,6 +45,16 @@ export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, le
         }
 
         let c = t[k];
+
+        // 自定义类型声明补全
+        if (isTypes && c) {
+            const doc = c.doc || "```lua\n(type) " + k + "\n```\n自定义类型";
+            return items.push({
+                label: pkey + k,
+                documentation: new vscode.MarkdownString(doc),
+                kind: CompletionItemKind.Interface
+            });
+        }
 
         let documentation = getHoverText(k, t);
 
