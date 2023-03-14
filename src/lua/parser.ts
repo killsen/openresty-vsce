@@ -2,7 +2,7 @@
 import { Node, Statement, Comment } from 'luaparse';
 import { getLuaTypeName, LuaAny, LuaCData, LuaModule, LuaNumber, LuaString } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope, setValueTyped } from './scope';
-import { callFunc, makeFunc, setArgsCall, setScopeCall } from './modFunc';
+import { callFunc, makeFunc, makeNormalCallFunc, makeSelfCallFunc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
 import { addLint, check_vtype, get_node_vtype, get_vtype_inline, loadType, set_arg_vtype } from './vtype';
 import { _getn } from './libs/TableLib';
@@ -682,16 +682,39 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 return LuaAny;  // 任意类型
             }
 
-            if (k === "parse_part") {
-                console.log(k);
-            }
-
             let ti = getItem(t, [node.indexer]);
             let mt = getItem(t, ["$$mt", ".", "__index", node.indexer]);
 
             // 找到光标所在的位置
             if ($$node === node.identifier) {
                 $$node.scope = { ...mt, ...ti };
+                if (k in $$node.scope) { return; }
+
+                if (node.indexer === ".") {
+                    // 生成函数 obj:func(abc) => obj.func(self, abc)
+                    let funt = getItem(t, [":", k]) ||
+                               getItem(t, ["$$mt", ".", "__index", ":", k]);
+                    let info = getItem(t, [":", "$"+k+"$"]) ||
+                               getItem(t, ["$$mt", ".", "__index", ":", "$"+k+"$"]);
+                    funt = makeNormalCallFunc(funt);
+                    if (funt) {
+                        $$node.scope[k] = funt;
+                        $$node.scope["$"+k+"$"] = info;
+                    }
+
+                } else if (node.indexer === ":") {
+                    // 生成函数 obj.func(self, abc) => obj:func(abc)
+                    let funt = getItem(t, [".", k]) ||
+                               getItem(t, ["$$mt", ".", "__index", ".", k]);
+                    let info = getItem(t, [".", "$"+k+"$"]) ||
+                               getItem(t, ["$$mt", ".", "__index", ".", "$"+k+"$"]);
+                    funt = makeSelfCallFunc(funt);
+                    if (funt) {
+                        $$node.scope[k] = funt;
+                        $$node.scope["$"+k+"$"] = info;
+                    }
+                }
+
                 return;  // 退出
             }
 
@@ -711,6 +734,23 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     if (r instanceof Array) { r = r[0]; }
                     return r;
                 }
+            }
+
+            if (node.indexer === ".") {
+                // 生成函数 obj:func(abc) => obj.func(self, abc)
+                let funt = makeNormalCallFunc (
+                    getItem(t, [":", k]) ||
+                    getItem(t, ["$$mt", ".", "__index", ":", k])
+                );
+                if (funt) { return funt; }
+
+            } else if (node.indexer === ":") {
+                // 生成函数 obj.func(self, abc) => obj:func(abc)
+                let funt = makeSelfCallFunc (
+                    getItem(t, [".", k]) ||
+                    getItem(t, ["$$mt", ".", "__index", ".", k])
+                );
+                if (funt) { return funt; }
             }
 
             if (t?.basic || getLuaTypeName(t) !== "any" ) {

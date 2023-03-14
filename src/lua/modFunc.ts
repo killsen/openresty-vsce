@@ -3,7 +3,7 @@ import { Node, FunctionDeclaration, Statement } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
-import { LuaModule, LuaStringOrNil } from './types';
+import { LuaModule, LuaStringOrNil, LuaTable } from './types';
 import { getItem, isArray, isInScope, isObject } from './utils';
 import { loadReturnTypes, loadType, loadTypex } from './vtype';
 
@@ -54,7 +54,7 @@ export function getFunc(t: any) {
     if (typeof f === "function") { return f; }
 }
 
-/** 生成函数 SelfCall */
+/** 生成函数 obj.func(self, abc) => obj:func(abc) */
 export function makeSelfCallFunc(funt: any) {
 
     if (!isObject(funt)) { return; }
@@ -83,6 +83,46 @@ export function makeSelfCallFunc(funt: any) {
         func.$$self = selfCallFunc.$$self;
         const res = func(...args);
         func.$$self = selfCallFunc.$$self = undefined;
+        return res;
+    }
+
+}
+
+/** 生成函数 obj:func(abc) => obj.func(self, abc) */
+export function makeNormalCallFunc(funt: any) {
+
+    if (!isObject(funt)) { return; }
+
+    const func = funt["()"];
+    if (typeof func !== "function") { return; }
+
+    const $args = func.$args;
+    if (typeof $args !== "function") { return; }
+
+    _call.$$self = undefined as any;
+
+    _call.$args = (i: number) => {
+        i = Number(i) || 0;
+        return i === 0 ? LuaTable : $args(i-1);
+    };
+
+    let args  = typeof funt["args" ] === "string" ? funt["args" ] : "()";
+    let $argx = typeof funt["$argx"] === "string" ? funt["$argx"] : "()";
+
+    args  =  args.replace("(", "(self, ").replace(", )", ")");
+    $argx = $argx.replace("(", "(self, ").replace(", )", ")");
+
+    return {
+        ...funt,
+        "()" : _call,
+        args,
+        $argx,
+    };
+
+    function _call ($$self: any, ...args: any) {
+        func.$$self = $$self;
+        const res = func(...args);
+        func.$$self = $$self = undefined;
         return res;
     }
 
@@ -127,6 +167,8 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             const tx = typex[p.name];
             if (tx) {
                 return loadType(tx.type, _g, tx.loc);
+            } else if (p.name === "self") {
+                return LuaTable;
             }
         }
     };
