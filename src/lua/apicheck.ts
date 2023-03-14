@@ -23,13 +23,17 @@ export function registerApiCheck(context: vscode.ExtensionContext) {
 
     function onDidClose (document: vscode.TextDocument) {
         if (!vscode.languages.match(selector, document)) {return;}
-        collection.set(document.uri, []);
+        const { uri, fileName } = document;
+        TIMER[fileName] && clearTimeout(TIMER[fileName]);
+        collection.set(uri, []);
     }
 
     function onDidChange (document: vscode.TextDocument) {
         if (!vscode.languages.match(selector, document)) {return;}
-        CACHE.delete(document.fileName);
-        collection.set(document.uri, []);
+        const { uri, fileName } = document;
+        TIMER[fileName] && clearTimeout(TIMER[fileName]);
+        CACHE.delete(fileName);
+        collection.set(uri, []);
     }
 
     function lint (document: vscode.TextDocument) {
@@ -46,7 +50,7 @@ export function registerApiCheck(context: vscode.ExtensionContext) {
         TIMER[fileName] = setTimeout(() => {
             delete TIMER[fileName];
             lintDelay(document);
-        }, 50);
+        }, 50);  //延时50毫秒进行类型检查
     }
 
     function lintDelay (document: vscode.TextDocument) {
