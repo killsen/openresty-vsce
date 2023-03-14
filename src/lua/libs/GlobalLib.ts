@@ -195,6 +195,10 @@ function _xpcall(fun: any) {
 function _setmetatable(t: any, mt: any) {
 
     if (isObject(t) && isObject(mt)) {
+        if (t.readonly && t.type) {
+            // 克隆类型数据
+            t = { ...t, ".": { ...t["."] } };
+        }
         t["$$mt"] = mt;
     }
 
