@@ -1,8 +1,51 @@
 # 升级日志
 
-## v1.10.3
+## v1.10.4
 
 * 优化部分代码并修复部分bug
+* 完善元表元方法解析，新增支持多种函数调用方式及参数对齐，演示代码如下：
+```lua
+
+local _M = { }
+local mt = { __index = _M }
+
+-- 可以通过以下两种方式调用该构造函数: _M.new(init) 或 _M(init)
+function _M.new(init)
+    local obj = {
+        abc = init,
+        xyz = init * 2,
+    }
+    return setmetatable(obj, mt)
+end
+
+-- 添加 __call 元方法以支持 _M(init) 调用
+setmetatable(_M, {
+    __call = function(_, init)
+        return _M.new(init)
+    end
+})
+
+-- 可以通过以下两种方式调用该方法: obj:call(xyz) 或 obj.call(obj, xyz)
+function _M.call (self, xyz)
+    return {
+        abc = self.abc,
+        xyz = self.xyz + xyz,
+    }
+end
+
+local obj = _M.new(100)
+ngx.say(obj.abc, ", ", obj.xyz)  -- 100, 200
+
+local res = obj.call(obj, 200)
+ngx.say(res.abc, ", ", res.xyz)  -- 100, 400
+
+obj = _M(300)
+ngx.say(obj.abc, ", ", obj.xyz)  -- 300, 600
+
+res = obj:call(400)
+ngx.say(res.abc, ", ", res.xyz)  -- 300, 1000
+
+```
 
 ## v1.9.4
 
