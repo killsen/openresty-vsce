@@ -3,7 +3,7 @@ import { Diagnostic, Position, Range } from "vscode";
 import { callFunc } from "./modFunc";
 import { loadNode } from "./parser";
 import { getValue, LuaScope, setChild } from "./scope";
-import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaModule, LuaNever, LuaNumber, LuaString, LuaObject, LuaType } from "./types";
+import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaNever, LuaNumber, LuaString, LuaObject, LuaType } from "./types";
 import { getItem, isArray, isObject } from "./utils";
 
 const readonly = true;
@@ -87,7 +87,7 @@ export function parseTypes(name: string, _map: Map<string, string>) {
                 let key = "#T" + _map.size;
 
                 if (pref === "<") {
-                    if (!val.includes("&") && !val.includes("|")) {
+                    if (!val.includes("&") && !val.includes("|") && !val.includes(",")) {
                         temp.push(pref + val + subf);
                     } else {
                         _map.set(key, val);                 // 不含两边括号   #Tn : ...
@@ -266,6 +266,14 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
         return newType(name, T);
     }
 
+    // pick<T, K1, K2, ..., Kn>
+    T = pickType(name, _g, _map);
+    if (T) { return T; }
+
+    // omit<T, K1, K2, ..., Kn>
+    T = omitType(name, _g, _map);
+    if (T) { return T; }
+
     // T[] 或 T[K]
     m = name.match(/(.+)\[(.*)\]$/);
     if (m) {
@@ -293,6 +301,75 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     let namex = name.replace("@", "").trim();
     let t = getBasicType(namex) || getUserType(namex, _g) || getValue(_g, namex);
     return newType(name, t);
+}
+
+// Pick选取类型中某些项
+function pickType(typeName: string, _g: LuaScope, _map: Map<string, string>) : LuaType | undefined {
+
+    // pick<T, K1, K2, ..., Kn>
+    const m = typeName.match(/^(pick)\s*<\s*(.+)\s*>$/);
+    if (!m) { return; }
+
+    let text = _map.get(m[2]) || m[2];
+    let list = text.split(",").map(s => s.trim()).filter(s => !!s);
+    let name = list.shift();
+
+    let t    = name && getValueX(name, _g);
+    let ti   = t && t["."];
+    let TI   = {} as LuaObject;
+
+    isObject(ti) && list.forEach(k => {
+        if (k === "...") {
+            const args = getValue(_g, "...") as any[];
+            isArray(args) && args.forEach(s => {
+                if (typeof s === "string" && s in ti) {
+                    TI[s] = ti[s];
+                    TI!["$"+s+"$"] =  ti["$"+s+"$"];
+                }
+            });
+        } else {
+            if (k in ti) {
+                TI![k] =  ti[k];
+                TI!["$"+k+"$"] =  ti["$"+k+"$"];
+            }
+        }
+    });
+
+    return { type: "table", doc: "", ".": TI, readonly };
+
+}
+
+// Omit去除类型中某些项
+function omitType(typeName: string, _g: LuaScope, _map: Map<string, string>) : LuaType | undefined {
+
+    // omit<T, K1, K2, ..., Kn>
+    const m = typeName.match(/^(omit)\s*<\s*(.+)\s*>$/);
+    if (!m) { return; }
+
+    let text = _map.get(m[2]) || m[2];
+    let list = text.split(",").map(s => s.trim()).filter(s => !!s);
+    let name = list.shift();
+
+    let t    = name && getValueX(name, _g);
+    let TI   = { ...(t && t["."]) };
+
+    list.forEach(k => {
+        if (k === "...") {
+            const args = getValue(_g, "...") as any[];
+            isArray(args) && args.forEach(s => {
+                if (typeof s === "string") {
+                    delete TI[s];
+                    delete TI["$"+s+"$"];
+                }
+            });
+        } else {
+            delete TI[k];
+            delete TI["$"+k+"$"];
+        }
+    });
+
+    return { type: "table", doc: "", ".": TI, readonly };
+
 }
 
 // T1 | T2 | T3
