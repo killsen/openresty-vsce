@@ -37,4 +37,7 @@ exclude_files = {
     'lua_modules/lualib',
     'lua_modules/resty',
     'lua_types',
+    'luajit',
+    'lualib',
+    'ngx',
 }
