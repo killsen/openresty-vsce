@@ -169,7 +169,12 @@ export function loadReturnTypes(args: string, _g: LuaScope, loc?: Node["loc"], i
         if (vt) { return vt; }
 
         vt = loadType(type, _g, loc, _map);
-        return vt || LuaAny;
+
+        if (isObject(vt) && vt.type !== "never") {
+            return vt;
+        } else {
+            return LuaAny;
+        }
 
     });
 }
@@ -266,6 +271,10 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
         return newType(name, T);
     }
 
+    // load<T> 或 require<T>
+    T = loadModType(name, _g, _map);
+    if (T) { return T; }
+
     // pick<T, K1, K2, ..., Kn>
     T = pickType(name, _g, _map);
     if (T) { return T; }
@@ -301,6 +310,19 @@ export function loadType(name: string, _g: LuaScope, _loc?: Node["loc"], _map?: 
     let namex = name.replace("@", "").trim();
     let t = getBasicType(namex) || getUserType(namex, _g) || getValue(_g, namex);
     return newType(name, t);
+}
+
+// 加载模块
+function loadModType(typeName: string, _g: LuaScope, _map: Map<string, string>) : LuaType | undefined {
+
+    // load<T> 或 require<T>
+    const m = typeName.match(/^(_?load|require)\s*<\s*(.+)\s*>$/);
+    if (!m) { return; }
+
+    let name = _map.get(m[2]) || m[2];
+    let load = getValue(_g, "_load");
+
+    return callFunc(load, name);
 }
 
 // Pick选取类型中某些项

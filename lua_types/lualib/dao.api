@@ -1,22 +1,29 @@
 
-dao
+dao                                                         -- 数据库dao接口
 
 ----------------------------------------------------------------------------
 err                                 -> string?              -- 错误信息
 ----------------------------------------------------------------------------
 
+field                                                       -- 字段信息
+field.name                          -> string               -- 字段名称
+field.desc                          -> string               -- 字段描述
+field.type                          -> string               -- 字段类型
+field.def                           -> string               -- 字段默认值
+field.len                           -> number               -- 字段长度
+field.pk                            -> boolean              -- 字段主键
+
+res                                                         -- 数据库操作返回信息
+res.affected_rows                   -> number               -- 影响的记录行数
+res.insert_id                       -> number               -- INSERT 查询中产生的 AUTO_INCREMENT 的 ID 号
+res.server_status                   -> number               -- 服务器状态
+res.warning_count                   -> number               -- 告警数目
+res.message                         -> string               -- 服务器消息
+
 dao.table_name                      -> string               -- 表名
 dao.table_desc                      -> string               -- 描述
 dao.table_index                     -> any                  -- 索引
 dao.field_list                      -> field[]              -- 字段列表
-
-    field                                                   -- 字段信息
-    field.name                      -> string               -- 字段名称
-    field.desc                      -> string               -- 字段描述
-    field.type                      -> string               -- 字段类型
-    field.def                       -> string               -- 字段默认值
-    field.len                       -> number               -- 字段长度
-    field.pk                        -> boolean              -- 字段主键
 
 dao.new  (t?: row)                  -> row                  -- 创建数据
 
@@ -39,10 +46,3 @@ dao.clear()                         -> res, err             -- 清空表
 dao:create()                        -> sql                  -- 生成 create 语句
 dao:drop()                          -> sql                  -- 生成 drop 语句
 dao:clear()                         -> sql                  -- 生成 truncate 语句
-
-res                                                         -- 数据库操作返回信息
-res.affected_rows                   -> number               -- 影响的记录行数
-res.insert_id                       -> number               -- INSERT 查询中产生的 AUTO_INCREMENT 的 ID 号
-res.server_status                   -> number               -- 服务器状态
-res.warning_count                   -> number               -- 告警数目
-res.message                         -> string               -- 服务器消息

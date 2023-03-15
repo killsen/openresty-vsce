@@ -71,7 +71,12 @@ function genArgs(args: string, _g: LuaScope, loc?: LuaApi["loc"], isRes = false)
         if (vt) { return vt; }
 
         vt = loadType(type, _g, loc, _map);
-        return vt || LuaAny;
+
+        if (isObject(vt) && vt.type !== "never") {
+            return vt;
+        } else {
+            return LuaAny;
+        }
 
     });
 }
