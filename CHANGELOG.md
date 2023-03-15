@@ -1,5 +1,26 @@
 # 升级日志
 
+## v1.10.5
+
+* 新增支持 pick<T, K>, omit<T, K> 选取或去除类型中某些项，演示代码如下：
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+--- T1 : { aaa, bbb, ccc }
+--- T2 : pick<T1, aaa, bbb>  // pick 选取类型中某些项
+--- T3 : omit<T1, aaa, bbb>  // omit 去除类型中某些项
+
+local t1 = {} --> T1
+ngx.say(t1.aaa, t1.bbb, t1.ccc)
+
+local t2 = {} --> T2
+ngx.say(t2.aaa, t2.bbb, t2.ccc)  -- 成员字段 “ccc” 不存在或属性未定义
+
+local t3 = {} --> T3
+ngx.say(t3.aaa, t3.bbb, t3.ccc)  -- 成员字段 “aaa” “bbb” 不存在或属性未定义
+
+```
+
 ## v1.10.4
 
 * 优化部分代码并修复部分bug
