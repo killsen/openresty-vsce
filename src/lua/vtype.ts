@@ -700,10 +700,19 @@ export function loadTypes(node: Node, _g: LuaScope) {
 
 }
 
+type TypexInfo = {
+    name: string,
+    type: string,
+    desc: string,
+    loc: Node["loc"],
+    isArg?: boolean,
+    required?: boolean,
+};
+
 /** 通过注释加载类型 */
 export function loadTypex(n: Node, _g: LuaScope) {
 
-    const typex = {} as { [key: string]: { name: string, type: string, desc: string, loc: Node["loc"], isArg?: boolean } };
+    const typex = {} as { [key: string]: TypexInfo };
 
     const comments = getValue(_g, "$$comments") as Comment[];
     if (!isArray(comments)) { return typex; }
@@ -772,11 +781,12 @@ export function loadTypex(n: Node, _g: LuaScope) {
         }
 
         // -- @req : $pos_dd_store  // 参数类型声明
-        m = text.match(/^--\s*@(?<name>\w+)\s*:\s*(?<type>.+)/);
+        m = text.match(/^--\s*@(?<name>\w+)\s*(?<notrequired>\?)?\s*:\s*(?<type>.+)/);
         if (m && m.groups) {
             let name = m.groups.name;
             let type = m.groups.type.trim();
             let desc = "";
+            let required = !m.groups.notrequired;
 
             let pos = type.indexOf("//");
             if (pos !== -1) {
@@ -784,7 +794,7 @@ export function loadTypex(n: Node, _g: LuaScope) {
                 type = type.substring(0, pos).trim();
             }
 
-            typex[name] = { name, type, desc, loc };
+            typex[name] = { name, type, desc, loc, required };
             return;
         }
 

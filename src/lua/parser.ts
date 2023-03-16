@@ -527,6 +527,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
             }
 
             let args: any[] = [];
+            let vararg = false;
 
             node.arguments.forEach((arg, i) => {
 
@@ -540,6 +541,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 let t = loadNode(arg, _g);
                 if (t instanceof Array) {
                     if (arg.type === "VarargLiteral") {
+                        vararg = true;
                         args.push(...t);  // 可变参数全部传递 ...
                     } else {
                         args.push(t[0]);  // 返回数组传递第一项
@@ -551,6 +553,12 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 check_vtype(arg.vtype, args[i], arg, _g);  // 比较实参与形参类型
 
             });
+
+            // 最少参数个数检查
+            const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
+            if (args.length < argsMin && !vararg) {
+                addLint(node, "", _g, `最少需要 ${ argsMin } 个参数`);
+            }
 
             return callFunc(funt, ...args);
         }
@@ -599,6 +607,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 "()"        : func,
                 doc         : func.$$docs || "",
                 args        : func.args,
+                argsMin     : func.argsMin,
                 $argx       : func.$argx,
                 selfCall    : func.selfCall,  // 第一个参数是否 self 或 _
                 selfArgs    : func.selfArgs,

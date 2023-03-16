@@ -147,6 +147,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     myFunc.selfCall = argt.selfCall;
     myFunc.selfArgs = argt.selfArgs;
     myFunc.selfArgx = argt.selfArgx;
+    myFunc.argsMin  = argt.argsMin;
 
     if (typex["@@desc"]) {  // 函数注释
         myFunc.$$docs = typex["@@desc"].desc;
@@ -325,9 +326,18 @@ function getFuncArgx(node: FunctionDeclaration, typex: ReturnType<typeof loadTyp
         }
     });
 
+    // 取得最少参数个数
+    let argsMin = 0;
+    for (let p of node.parameters) {
+        if (p.type !== "Identifier") { break; }
+        let vt = typex[p.name];
+        if (!vt || !vt.required) { break; }
+        argsMin++;
+    }
+
     let argx = args.map(name => {
         const vt = typex[name];
-        return vt ? `${ vt.name }: ${ vt.type }` : name;
+        return vt ? `${ vt.name }${ vt.required ? "" : "?" }: ${ vt.type }` : name;
     }).join(", ");
     argx = "(" + argx + ")";
 
@@ -355,6 +365,7 @@ function getFuncArgx(node: FunctionDeclaration, typex: ReturnType<typeof loadTyp
     }
 
     return {
+        argsMin,
         args: `(${ args.join(", ") })`,
         argx,
         selfCall,

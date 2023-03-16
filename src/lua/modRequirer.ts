@@ -27,6 +27,31 @@ function genValue(args: string, _g: LuaScope, loc?: LuaApi["loc"]): any {
 
 }
 
+/** 取得最少需要的参数个数 */
+function getMinArgs(args: string) {
+
+    // 去除空格及左右两边的小括号()
+    args = args.replace(/\s/g, "");
+    if (args.startsWith("(") && args.endsWith(")")) {
+        args = args.substring(1, args.length-1);
+    }
+    if (!args) { return 0; }
+
+    const _map = new Map<string, string>();
+    const list = parseTypes(args, _map).split(",");
+
+    let minArgs = 0;
+    for (let arg of list) {
+        if (arg === "..." || arg.includes("?") || arg.includes("=")) {
+            break;
+        } else {
+            minArgs++;
+        }
+    }
+    return minArgs;
+
+}
+
 /** 获取参数类型或者返回值类型 */
 function genArgs(args: string, _g: LuaScope, loc?: LuaApi["loc"], isRes = false): any[] {
 
@@ -95,7 +120,7 @@ function initDao(_g: LuaScope, dao: LuaDao) {
         + " ( " + dao.desc + " ) " ;
 
     _g["row"] = {
-        "." : dao.row, "[]": LuaNever,
+        "." : dao.row,
         type: "$"+ dao.name, readonly,
         doc,
     };
@@ -289,6 +314,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
             p["()"] = genArgs(api.res , _g, p.$loc, true );  // 返回值类型
             p.$args = genArgs(api.args, _g, p.$loc, false);  // 参数类型
             p.args  = api.args;
+            p.argsMin = getMinArgs(api.args);
             p.$argx = api.args + (api.res ? " => " + api.res : "");
             p.doc   = api.doc;
             p.$file = api.file;

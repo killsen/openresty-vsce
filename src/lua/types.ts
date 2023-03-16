@@ -25,6 +25,7 @@ export interface LuaModule {
     "()"?: LuaValue[] | Function;
     "[]"?: LuaModule;
     args?: string;
+    argsMin?: number;
     $args?: any;
     $argx?: string;
     doc?: string;
