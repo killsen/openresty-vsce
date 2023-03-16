@@ -40,9 +40,15 @@ Lua 中 debug 库包含以下函数：
 
 返回关于一个函数信息的表。你可以直接提供该函数，也可以用一个数字 f 表示该函数。数字 f 表示运行在指定线程的调用栈对应层次上的函数：0 层表示当前函数（getinfo 自身）；1 层表示调用 getinfo 的函数（除非是尾调用，这种情况不计入栈）；等等。如果 f 是一个比活动函数数量还大的数字，getinfo 返回 nil。
 
-只有字符串 what 中有描述要填充哪些项，返回的表可以包含 lua_getinfo 能返回的所有项。what 默认是返回提供的除合法行号表外的所有信息。对于选项 'f' ，会在可能的情况下，增加func 域保存函数自身。对于选项 'L' ，会在可能的情况下，增加activelines 域保存合法行号表。
+只有字符串 what 中有描述要填充哪些项，返回的表可以包含 lua_getinfo 能返回的所有项。
+what 默认是返回提供的除合法行号表外的所有信息。
 
-例如,表达式 debug.getinfo(1,"n")返回带有当前函数名字信息的表（如果找的到名字的话），表达式 debug.getinfo(print) 返回关于 print 函数的包含有所有能提供信息的表。
+* 'n' : 得到 name 和 namewhat 字段
+* 'f' : 输出函数本身 func 字段
+* 'S' : 输出标明函数被定义的地方，函数所在的行号（source, short_src, what, linedefined）
+* 'l' : 输出在那个时刻函数所在的行号（currentline）
+* 'L' : 输出合法行号表（activelines）
+* 'u' : 输出该函数的 upvalue 的数量 （nup）
 
 ## debug.getlocal
 
