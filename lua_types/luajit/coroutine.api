@@ -1,15 +1,11 @@
 
 coroutine
 
-coroutine.create(f)                     -> thread
-coroutine.resume(co[,val1,...])
-coroutine.running()                     -> thread
-coroutine.status(co)
-coroutine.wrap(f)                       -> thread
-coroutine.yield(...)
+coroutine.create(f: function)                   -> co: thread
+coroutine.resume(co: thread, p?: any, ...)      -> ok: boolean, v?: any, ...
+coroutine.running()                             -> co: thread
+coroutine.status(co: thread)                    -> string
+coroutine.wrap(f: function)                     -> co: wraper
+coroutine.yield(p?: any, ...)                   -> v?: any, ...
 
-coroutine._create(f)                    -> thread   -- coroutine.create
-coroutine._resume(co[,val1,...])                    -- coroutine.resume
-coroutine._status(co)                               -- coroutine.status
-coroutine._wrap(f)                      -> thread   -- coroutine.wrap
-coroutine._yield(...)                               -- coroutine.yield
+wraper(p?: any, ...)                            -> ok: boolean, v?: any, ...

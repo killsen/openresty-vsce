@@ -36,7 +36,6 @@ coroutine.resume
 **环境:** *rewrite_by_lua*, access_by_lua*, content_by_lua*, init_by_lua*, ngx.timer.*, header_filter_by_lua*, body_filter_by_lua**
 
 恢复以前挂起或刚创建的用户 Lua 协程对象的执行。
-Resume the executation of a user Lua coroutine object previously yielded or just created.
 
 类似标准的 Lua [coroutine.resume](http://www.lua.org/manual/5.1/manual.html#pdf-coroutine.resume) API，但它是在 ngx_lua 创建的 Lua 协程环境中运行。
 
