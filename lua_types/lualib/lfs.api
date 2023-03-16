@@ -1,33 +1,33 @@
 
 lfs
 
-lfs.attributes(filepath[, aname])  -> attr
-lfs.symlinkattributes (filepath[, aname])  -> attr
-
-    attr
-    attr.dev
-    attr.ino
-    attr.mode
-    attr.nlink
-    attr.uid
-    attr.gid
-    attr.rdev
-    attr.access
-    attr.modification
-    attr.change
-    attr.size
-    attr.permissions
+attr
+attr.dev
+attr.ino
+attr.mode
+attr.nlink
+attr.uid
+attr.gid
+attr.rdev
+attr.access
+attr.modification
+attr.change
+attr.size
+attr.permissions
 --  attr.blocks
 --  attr.blksize
 
-lfs.chdir (path)
+lfs.attributes(filepath: string, aname?: string)  -> attr
+lfs.symlinkattributes (filepath: string, aname?: string)  -> attr
+
+lfs.chdir (path: string)
 lfs.currentdir ()
-lfs.dir (path)
-lfs.link (old, new[, symlink])
-lfs.lock (filehandle, mode[, start[, length]])
-lfs.lock_dir(path, [seconds_stale])
-lfs.mkdir (dirname)
-lfs.rmdir (dirname)
-lfs.setmode (file, mode)
-lfs.touch (filepath [, atime [, mtime]])
-lfs.unlock (filehandle[, start[, length]])
+lfs.dir (path: string)
+lfs.link (old: string, new: string, symlink?)
+lfs.lock (filehandle, mode: string, start?, length?)
+lfs.lock_dir(path: string, seconds_stale?)
+lfs.mkdir (dirname: string)
+lfs.rmdir (dirname: string)
+lfs.setmode (file: string, mode: string)
+lfs.touch (filepath: string, atime?, mtime?)
+lfs.unlock (filehandle, start?, length?)

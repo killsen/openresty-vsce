@@ -12,7 +12,7 @@ loadstring(string, chunkname?)              -- 加载代码
 module(name, ···)                           -- 模块定义
 next(t: table, index?)                      -- 获取下一个元素
 pairs(t: table)                             -- 遍历表
-pcall(f, arg1, ···)                         -- 执行函数
+pcall(f, arg1?: any, ···)                   -- 执行函数
 print(···)                                  -- 打印输出
 rawequal(v1, v2)                            -- 原始比值
 rawget(t, index)                            -- 原始取值

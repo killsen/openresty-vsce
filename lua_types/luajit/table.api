@@ -6,8 +6,8 @@ table.new(narray: number, nhash: number)                -- 用来预分配 table
 table.clear(t: table)                                   -- 用来高效的释放 table 空间
 table.clone(t: table)                                   -- 克隆 table 对象
 
-table.concat(t: table, sep: string, start?: number, end?: number)   -- 连接 table 元素, 以指定的分隔符(sep)隔开
-table.insert(t: table, pos_or_val: number | any, val: any)          -- 插入 table 元素
+table.concat(t: table, sep?: string, start?: number, end?: number)   -- 连接 table 元素, 以指定的分隔符(sep)隔开
+table.insert(t: table, pos_or_val: number | any, val?: any)          -- 插入 table 元素
 
 table.getn(t: table)                                    -- 返回 table 连续的数字索引最大值, 等价于 #table
 table.maxn(t: table)                                    -- 取得 table 数字索引最大值
