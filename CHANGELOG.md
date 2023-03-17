@@ -1,5 +1,32 @@
 # 升级日志
 
+## v1.10.10
+
+* 新增支持嵌套函数参数类型声明及检查，演示代码如下：
+```lua
+
+-- 外部函数
+local function outer(abc)
+-- @abc : string
+
+    -- 内部函数
+    local function inner(xyz)
+    -- @xyz     : number
+    -- @return  : string, number
+        return abc, xyz
+    end
+
+    return inner
+end
+
+local inner = outer("abc")
+local abc, xyz = inner(123)
+
+ngx.say(abc)
+ngx.say(xyz)
+
+```
+
 ## v1.10.9
 
 * 完善 lfs 参数类型声明
