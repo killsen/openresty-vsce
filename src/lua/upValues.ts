@@ -219,7 +219,7 @@ function loadScope(option: LuaScopeOption) {
 
     let $$func = _g["$$func"];
     while (typeof $$func === "function") {
-        delete _g["$$func"];
+        _g["$$func"] = null;  // 不能删除哦！！！
         $$func();
         if ($$node.scope) {
             let t = mergeScope($$node.scope);

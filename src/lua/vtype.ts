@@ -1,4 +1,4 @@
-import { Comment, Node } from "luaparse";
+import { Comment, FunctionDeclaration, Node } from "luaparse";
 import { Diagnostic, Position, Range } from "vscode";
 import { callFunc } from "./modFunc";
 import { loadNode } from "./parser";
@@ -11,7 +11,7 @@ const doc = "";
 
 function getValueX(name: string, _g: LuaScope) {
     let keys = [] as string[];
-    name = name.replace(/\s/g, "");
+    name = name.replace(/\s/g, "").replace("@", "");
     name.split(".").forEach((s, i) => {
         i > 0 && keys.push(".");
         if (s.includes(":")) {
@@ -710,7 +710,7 @@ type TypexInfo = {
 };
 
 /** 通过注释加载类型 */
-export function loadTypex(n: Node, _g: LuaScope) {
+export function loadTypex(n: FunctionDeclaration, _g: LuaScope) {
 
     const typex = {} as { [key: string]: TypexInfo };
 
@@ -721,8 +721,7 @@ export function loadTypex(n: Node, _g: LuaScope) {
     if (!nloc) { return typex; }
 
     const nline1 = nloc.start.line;
-    const nline2 = nloc.end.line;
-
+    const nline2 = n.body[0] ? n.body[0].loc!.start.line-1 : nloc.end.line;
 
     comments.forEach((c, idx) => {
         let loc = c.loc;

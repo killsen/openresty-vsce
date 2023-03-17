@@ -141,6 +141,10 @@ export function makeNormalCallFunc(funt: LuaModule) {
 /** 生成函数 */
 export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
+    if (node.func) {
+        return node.func;  // 避免重复创建
+    }
+
     const typex = loadTypex(node, _g);  // 通过注释加载类型
     const txRes = typex["return"];      // 返回值类型
 
@@ -194,6 +198,7 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         $$node = null;  // 不在作用域内
     }
 
+    node.func = myFunc;
     return myFunc;
 
     function myFunc (...params: any) {
@@ -237,6 +242,16 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         setValue(newG, "$type_return", $$res, true);    // 初始化返回值类型
         setValue(newG, "$type_return1", $$res, true);   // 初始化返回值类型
 
+        for (let i=2; i<100; i++) {
+            let vt = getValue(newG, "$type_return" + i);
+            if (vt) {
+                // 清除外层函数返回值类型
+                setValue(newG, "$type_return" + i, null, true);
+            } else {
+                break;
+            }
+        }
+
         // 构造器 @@ <Constructor>
         let self = getValue(newG, "self");
         if (!self) {
@@ -276,6 +291,8 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             setValue(newG, "$param_" + name, true, true);
             setValue(newG, name, value, true, p.loc);
         });
+
+        // setValueTyped(newG, "$type_return", null);
 
         // 加载其它非参数及返回值类型
         for (let name in typex) {

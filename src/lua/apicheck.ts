@@ -71,12 +71,14 @@ export function registerApiCheck(context: vscode.ExtensionContext) {
 
         loadModuleByCode(ctx, docText, "", $lints, $funcs);
 
-        $funcs.forEach(f => {
+        while ($funcs.length > 0) {
+            let f = $funcs.shift();
+            if (!f) { break; }
             if (!f["$runned"]) {
                 f["$runned"] = true;
                 callFunc(f);
             }
-        });
+        }
 
         CACHE.set(fileName, $lints);
         collection.set(uri, $lints);
