@@ -55,11 +55,11 @@ export function getFunc(t: any) {
 }
 
 /** 生成函数 obj.func(self, abc) => obj:func(abc) */
-export function makeSelfCallFunc(funt: any) {
+export function makeSelfCallFunc(funt: LuaModule) {
 
     if (!isObject(funt)) { return; }
 
-    const func = funt["()"];
+    const func = funt["()"] as any;
     if (typeof func !== "function") { return; }
 
     const $args = func.$args;
@@ -72,11 +72,16 @@ export function makeSelfCallFunc(funt: any) {
         return $args(i+1);
     };
 
+    // 最少参数个数 - 1
+    let argsMin = typeof funt.argsMin === "number" ? funt.argsMin : 0;
+    if (argsMin > 0) { argsMin--; }
+
     return {
         ...funt,
         "()"    : selfCallFunc,
-        "args"  : funt["selfArgs"],
-        "$argx" : funt["selfArgx"],
+        args    : funt.selfArgs,
+        $argx   : funt.selfArgx,
+        argsMin,
     };
 
     function selfCallFunc (...args: any) {
@@ -89,11 +94,11 @@ export function makeSelfCallFunc(funt: any) {
 }
 
 /** 生成函数 obj:func(abc) => obj.func(self, abc) */
-export function makeNormalCallFunc(funt: any) {
+export function makeNormalCallFunc(funt: LuaModule) {
 
     if (!isObject(funt)) { return; }
 
-    const func = funt["()"];
+    const func = funt["()"] as any;
     if (typeof func !== "function") { return; }
 
     const $args = func.$args;
@@ -106,16 +111,21 @@ export function makeNormalCallFunc(funt: any) {
         return i === 0 ? LuaTable : $args(i-1);
     };
 
-    let args  = typeof funt["args" ] === "string" ? funt["args" ] : "()";
-    let $argx = typeof funt["$argx"] === "string" ? funt["$argx"] : "()";
+    let args  = typeof funt.args  === "string" ? funt.args  : "()";
+    let $argx = typeof funt.$argx === "string" ? funt.$argx : "()";
 
     args  =  args.replace("(", "(self, ").replace(", )", ")");
     $argx = $argx.replace("(", "(self, ").replace(", )", ")");
+
+    // 最少参数个数 + 1
+    let argsMin = typeof funt.argsMin === "number" ? funt.argsMin : 0;
+    if (argsMin > 0) { argsMin++; }
 
     return {
         ...funt,
         "()" : _call,
         args,
+        argsMin,
         $argx,
     };
 
@@ -328,12 +338,12 @@ function getFuncArgx(node: FunctionDeclaration, typex: ReturnType<typeof loadTyp
 
     // 取得最少参数个数
     let argsMin = 0;
-    for (let p of node.parameters) {
-        if (p.type !== "Identifier") { break; }
-        let vt = typex[p.name];
-        if (!vt || !vt.required) { break; }
-        argsMin++;
-    }
+    node.parameters.forEach((p, i) => {
+        let vt = p.type === "Identifier" && typex[p.name];
+        if (vt && vt.required) {
+            argsMin = i+1;
+        }
+    });
 
     let argx = args.map(name => {
         const vt = typex[name];
@@ -345,7 +355,7 @@ function getFuncArgx(node: FunctionDeclaration, typex: ReturnType<typeof loadTyp
     let selfArgs = args.slice(1);
     let selfArgx = selfArgs.map(name => {
         const vt = typex[name];
-        return vt ? `${ vt.name }: ${ vt.type }` : name;
+        return vt ? `${ vt.name }${ vt.required ? "" : "?" }: ${ vt.type }` : name;
     }).join(", ");
     selfArgx = "(" + selfArgx + ")";
 
@@ -365,8 +375,8 @@ function getFuncArgx(node: FunctionDeclaration, typex: ReturnType<typeof loadTyp
     }
 
     return {
-        argsMin,
         args: `(${ args.join(", ") })`,
+        argsMin,
         argx,
         selfCall,
         selfArgs: `(${ selfArgs.join(", ") })`,

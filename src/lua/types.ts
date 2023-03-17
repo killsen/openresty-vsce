@@ -35,6 +35,7 @@ export interface LuaModule {
     readonly?: boolean;
     selfCall?: boolean;
     selfArgs?: string;
+    selfArgx?: string;
     resArgs?: string;
 
     "$dao"?: LuaDao;

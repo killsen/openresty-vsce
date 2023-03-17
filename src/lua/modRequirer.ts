@@ -28,7 +28,7 @@ function genValue(args: string, _g: LuaScope, loc?: LuaApi["loc"]): any {
 }
 
 /** 取得最少需要的参数个数 */
-function getMinArgs(args: string) {
+function getArgsMin(args: string) {
 
     // 去除空格及左右两边的小括号()
     args = args.replace(/\s/g, "");
@@ -314,7 +314,7 @@ export function requireModule(ctx: NgxPath, name: string, dao?: LuaDao): LuaModu
             p["()"] = genArgs(api.res , _g, p.$loc, true );  // 返回值类型
             p.$args = genArgs(api.args, _g, p.$loc, false);  // 参数类型
             p.args  = api.args;
-            p.argsMin = getMinArgs(api.args);
+            p.argsMin = getArgsMin(api.args);
             p.$argx = api.args + (api.res ? " => " + api.res : "");
             p.doc   = api.doc;
             p.$file = api.file;
