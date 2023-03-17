@@ -1,9 +1,30 @@
 # 升级日志
 
-## v1.10.8
+## v1.10.9
 
-* 完善 coroutine, debug, lfs 参数类型声明
-* 调用函数新增检查最少参数个数
+* 完善 lfs 参数类型声明
+* 新增最少参数个数检查，演示代码如下：
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+-- 测试程序参数 ccc 可空
+local function test(aaa, bbb, ccc)
+-- @aaa   : number
+-- @bbb   : number
+-- @ccc ? : number
+    ngx.say(aaa, bbb, ccc)
+end
+
+test (111, 222, 333)
+test (111, 222)
+test (111)          -- 最少需要 2 个参数
+test ()             -- 最少需要 2 个参数
+
+```
+
+## v1.10.7
+
+* 完善 coroutine, debug 参数类型声明
 * 新增支持 pick<T, K>, omit<T, K> 选取或去除类型中某些项，演示代码如下：
 ```lua
 -- 本插件仅在文件打开或保存时进行类型检查

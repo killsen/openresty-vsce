@@ -1,5 +1,7 @@
 # 欢迎使用 OpenResty Lua 代码补全插件
 
+## [升级日志 (CHANGELOG)](https://github.com/killsen/openresty-vsce/blob/master/CHANGELOG.md)
+
 ## 功能 (Features)
 
 * 本插件仅支持 Windows 操作系统
