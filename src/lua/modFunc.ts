@@ -1,11 +1,13 @@
 
 import { Node, FunctionDeclaration } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
-import { loadBody } from './parser';
+import { loadBody, loadNode } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule, LuaStringOrNil, LuaTable } from './types';
 import { getItem, isArray, isInScope, isObject } from './utils';
-import { loadReturnTypes, loadType, loadTypex } from './vtype';
+import { addLint, get_arg_vtype, loadReturnTypes, loadType, loadTypex } from './vtype';
+
+type ArgsFunc = (i: number, args: (undefined | Node)[], _g_: LuaScope) => any;
 
 /** 调用函数 */
 export function callFunc(t: any, ...args: any) {
@@ -62,14 +64,15 @@ export function makeSelfCallFunc(funt: LuaModule) {
     const func = funt["()"] as any;
     if (typeof func !== "function") { return; }
 
-    const $args = func.$args;
+    const $args = func.$args as ArgsFunc;
     if (typeof $args !== "function") { return; }
 
-    selfCallFunc.$$self = undefined as any;
+    _call.$$self = undefined as any;
 
-    selfCallFunc.$args = (i: number) => {
+    _call.$args = (i: number, args: (undefined | Node)[], _g_: LuaScope) => {
         i = Number(i) || 0;
-        return $args(i+1);
+        const argx = isArray(args) ? [undefined, ...args] : [];
+        return $args(i+1, argx, _g_);
     };
 
     // 最少参数个数 - 1
@@ -78,16 +81,16 @@ export function makeSelfCallFunc(funt: LuaModule) {
 
     return {
         ...funt,
-        "()"    : selfCallFunc,
+        "()"    : _call,
         args    : funt.selfArgs,
         $argx   : funt.selfArgx,
         argsMin,
     };
 
-    function selfCallFunc (...args: any) {
-        func.$$self = selfCallFunc.$$self;
+    function _call (...args: any) {
+        func.$$self = _call.$$self;
         const res = func(...args);
-        func.$$self = selfCallFunc.$$self = undefined;
+        func.$$self = _call.$$self = undefined;
         return res;
     }
 
@@ -101,14 +104,16 @@ export function makeNormalCallFunc(funt: LuaModule) {
     const func = funt["()"] as any;
     if (typeof func !== "function") { return; }
 
-    const $args = func.$args;
+    const $args = func.$args as ArgsFunc;
     if (typeof $args !== "function") { return; }
 
     _call.$$self = undefined as any;
 
-    _call.$args = (i: number) => {
+    _call.$args = (i: number, args: (undefined | Node)[], _g_: LuaScope) => {
         i = Number(i) || 0;
-        return i === 0 ? LuaTable : $args(i-1);
+        const argx = isArray(args) ? [...args] : [];
+        argx.shift();
+        return i === 0 ? LuaTable : $args(i-1, argx, _g_);
     };
 
     let args  = typeof funt.args  === "string" ? funt.args  : "()";
@@ -169,12 +174,48 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     myFunc.$$self = undefined as any;   // 面向对象self变量
 
     // 参数类型定义
-    myFunc.$args = function (i: number) {
+    myFunc.$args = function (i: number, args: (undefined | Node)[], _g_: LuaScope) {
+        i = Number(i) || 0;
+
         if (i === 0 && myFunc["$$req"]) {
             return myFunc["$$req"];
         }
+
+        // (fun: function*, ...)
+        const params = node.parameters;
+        if (params.length >= 2 && params[params.length - 1].type === "VarargLiteral") {
+            const j = params.length - 2;
+            const p = params[j];
+            if (i >= j && p.type === "Identifier") {
+                const tx = typex[p.name];
+                const nodej = args[j];
+                if (nodej && tx?.type === "function*" && isArray(args) && isObject(_g_)) {
+
+                    let funt = loadNode(nodej, _g_);
+                    funt = isArray(funt) ? funt[0] : funt;
+
+                    let argx = args.slice(j+1) as Node[];
+
+                    if (i === j) {
+                        const nodev = args.length > 1 && args[args.length-1];
+                        let vararg = nodev && nodev.type === "VarargLiteral";
+
+                        // 最少参数个数检查
+                        const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
+                        if (argsMin && argsMin > argx.length && !vararg) {
+                            addLint(nodej, "", _g_, `最少需要 ${ argsMin } 个参数`);
+                        }
+
+                        return loadType(tx.type, _g, tx.loc);
+                    } else {
+                        return get_arg_vtype(funt, i-j-1, argx, _g_);
+                    }
+                }
+            }
+        }
+
         const p = node.parameters[i];
-        if (p?.type === "Identifier") {
+        if (p && p.type === "Identifier") {
             const tx = typex[p.name];
             if (tx) {
                 return loadType(tx.type, _g, tx.loc);

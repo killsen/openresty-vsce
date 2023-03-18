@@ -864,6 +864,7 @@ export function check_vtype(v1: any, v2: any, n: Node, _g: LuaScope) {
 export function addLint(n: Node, k: string, _g: LuaScope, message?: string) {
 
     if (k.startsWith("_")) {return;}
+    if (!n || n.type === "VarargLiteral") {return;}
 
     let lints = getValue(_g, "$$lints") as Diagnostic[];
     if(!lints) {return;}

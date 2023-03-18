@@ -89,9 +89,10 @@ export function genGlobal(ctx: NgxPath) {
     _g["_load"] = _g["require"] = {
         "()": _require,
         args: '(modname: string)',
+        argsMin: 1,
         $args: [ LuaString ],
         $argx: '(modname: string) => any',
-        doc: "加载模块"
+        doc: "加载模块",
     };
 
     return _g;

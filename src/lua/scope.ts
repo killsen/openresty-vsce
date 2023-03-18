@@ -84,7 +84,12 @@ export function setValueTyped(_g: LuaScope, name: string, vtype: LuaType | null)
 /** 类型收敛 */
 export function getValueTyped(vt: LuaType, v: any) : LuaType {
 
-    if (!vt || !vt?.types) { return vt; }  // 非联合类型
+    if (!vt) { return v; }  // 类型未定义
+
+    // function* 或 table* 类型
+    if (vt?.passthrough && vt?.type === v?.type) { return v; }
+
+    if (!vt?.types) { return vt; }  // 非联合类型
     if (v === null || v === undefined) { return vt; }
     if (v?.type === "never" || v?.type === "any") { return vt; }
     if (vt === v || vt?.type === v?.type) { return vt; }

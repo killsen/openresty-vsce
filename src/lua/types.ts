@@ -112,10 +112,12 @@ export interface LuaType {
     basic   ? : boolean;
     readonly  : boolean;
     nilable ? : boolean;
+    passthrough? : boolean;
 }
 
 const basic = true;
 const readonly = true;
+const passthrough = true;
 
 export const LuaNil  = null;
 
@@ -235,8 +237,12 @@ export function getBasicType(typeName: string) {
         return LuaTypes[typeName];
 
     } else if (typeName === "table*") {
-        // 可修改的 table 类型
-        return { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false };
+        // 可传递的 可修改的 table 类型
+        return { type: "table", ".": { "*": LuaAny }, ":": { "*": LuaFunction }, readonly: false, passthrough };
+
+    } else if (typeName === "function*") {
+        // 可传递的 function 类型
+        return { type: "function", "()": [LuaAny], basic, readonly, passthrough };
 
     } else if (typeName === "void") {
         return LuaNil;

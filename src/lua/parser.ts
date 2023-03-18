@@ -556,7 +556,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             // 最少参数个数检查
             const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
-            if (args.length < argsMin && !vararg) {
+            if (argsMin && argsMin > args.length && !vararg) {
                 addLint(node.base, "", _g, `最少需要 ${ argsMin } 个参数`);
             }
 
@@ -575,7 +575,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             // 最少参数个数检查
             const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
-            if (argsMin > 1) {
+            if (argsMin && argsMin > 1) {
                 addLint(node.base, "", _g, `最少需要 ${ argsMin } 个参数`);
             }
 
@@ -594,7 +594,7 @@ export function loadNode(node: Node, _g: LuaScope): any {
 
             // 最少参数个数检查
             const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
-            if (argsMin > 1) {
+            if (argsMin && argsMin > 1) {
                 addLint(node.base, "", _g, `最少需要 ${ argsMin } 个参数`);
             }
 
