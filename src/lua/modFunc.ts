@@ -1,5 +1,5 @@
 
-import { Node, FunctionDeclaration, Statement } from 'luaparse';
+import { Node, FunctionDeclaration } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
 import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
@@ -141,10 +141,6 @@ export function makeNormalCallFunc(funt: LuaModule) {
 /** 生成函数 */
 export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
 
-    if (node.func) {
-        return node.func;  // 避免重复创建
-    }
-
     const typex = loadTypex(node, _g);  // 通过注释加载类型
     const txRes = typex["return"];      // 返回值类型
 
@@ -198,7 +194,17 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
         $$node = null;  // 不在作用域内
     }
 
-    node.func = myFunc;
+    if (!node.isParsed) {
+        node.isParsed = true;  // 标识为: 已经解析过了
+
+        // 光标位置在函数定义内部
+        $$node && setValue(_g, "$$func", myFunc, false);
+
+        // 为 apicheck 提供待运行的函数
+        const $$funcs = getValue(_g, "$$funcs") as Function[];
+        isArray($$funcs) && $$funcs.push(myFunc);
+    }
+
     return myFunc;
 
     function myFunc (...params: any) {

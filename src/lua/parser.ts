@@ -631,15 +631,6 @@ export function loadNode(node: Node, _g: LuaScope): any {
                 readonly    : true,
             };
 
-            // 为 apicheck 提供待运行的函数
-            const funcs = getValue(_g, "$$funcs") as Function[];
-            funcs && funcs.push(func);
-
-            // 检查变量是否在函数定义作用内
-            if ($$node && isInScope(node, $$node)) {
-                setValue(_g, "$$func", func, false);
-            }
-
             let ni = node.identifier;
             if (ni) {
                 switch (ni.type) {

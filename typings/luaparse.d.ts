@@ -28,7 +28,7 @@ export interface Base<TType extends string> {
     scope?: any;  // added by Killsen
     isCursor?: boolean;  // 光标所在位置
     isLinted?: boolean;
-    func?: Function;
+    isParsed?: boolean;
     vtype?: {
         ["."] : any;
         ["[]"] : any;
