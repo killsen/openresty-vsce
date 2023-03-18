@@ -153,8 +153,8 @@ ngx.re -- 正则表达式库
 ngx.re.match(subject: string, regex: string, options?: string, ctx?: { pos: number }, res_table?: table)    -> map<string | boolean>, err
 ngx.re.find(subject: string, regex: string, options?: string, ctx?: { pos: number }, nth?: number)          -> number, number, err
 ngx.re.gmatch(subject: string, regex: string, options?: string)                                             -> iterator, err
-ngx.re.sub(subject: string, regex: string, replace: string, options?: string)                               -> string, number, err
-ngx.re.gsub(subject: string, regex: string, replace: string, options?: string)                              -> string, number, err
+ngx.re.sub(subject: string, regex: string, replace: string | function, options?: string)                               -> string, number, err
+ngx.re.gsub(subject: string, regex: string, replace: string | function, options?: string)                              -> string, number, err
 
 iterator()  -> map<string>, err
 

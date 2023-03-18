@@ -3,7 +3,7 @@
 -- https://www.w3schools.cn/lua/lua_strings.asp
 
 string
-string.byte (s: string, i?: number, j?: number)                         -> number
+string.byte (s: string, i?: number, j?: number)                         -> number, ...
 string.char (c: number, ...)                                            -> string
 string.dump (f: function)                                               -> string
 string.find (s: string, pattern: string, init=1?, plain=false?)         -> number, number, string?
@@ -21,7 +21,7 @@ string.upper (s: string)                                                -> strin
 iterator()  -> string
 
 str
-str:byte (i?: number, j?: number)                                       -> number
+str:byte (i?: number, j?: number)                                       -> number, ...
 str:find (pattern: string, init=1?, plain=false?)                       -> number, number, string?
 str:format (v?: any, ...)                                               -> string
 str:gmatch (pattern: string)                                            -> iterator
