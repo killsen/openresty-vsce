@@ -44,6 +44,11 @@ export function loadKeys(items: CompletionItem[], t: LuaObject, pkey: string, le
             return;
         }
 
+        // 不输出 _VERSION, _README 或 _TESTING
+        if (k === "_VERSION" || k === "_README" || k === "_TESTING") {
+            return;
+        }
+
         let c = t[k];
 
         // 自定义类型声明补全

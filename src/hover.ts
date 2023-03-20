@@ -2,6 +2,7 @@
 import { TextDocument, Position, ProviderResult, Hover, MarkdownString } from 'vscode';
 import { getLuaTypeName } from './lua/types';
 import { getDefineScope } from './lua/upValues';
+import { getItem, isObject } from './lua/utils';
 
 /** 取得悬停提示 */
 export function getHover(doc: TextDocument, pos: Position) : ProviderResult<Hover> {
@@ -80,15 +81,30 @@ export function getHoverText(name: string, scope: any) : MarkdownString {
         if (type === "keyword") {
             docs.push(`(keyword) ${ name }`);
         } else {
-            const vals = getVarValue(t);
+            const vals = name === "_README" ? "" : getVarValue(t);
             docs.push(`(${ pref }) ${ name }: ${ type }${ vals }`);
         }
     }
 
     docs.push("```");
 
-    if (typeof t?.doc === "string") {
+    if (typeof t?.doc === "string" && t?.doc) {
         docs.push(t?.doc);
+    }
+
+    if (name === "_README" && typeof t === "string" && t) {
+        docs.push(t);
+    }
+
+    if (isObject(t)) {
+        const _VERSION = getItem(t, [".", "_VERSION"]);
+        if (typeof _VERSION === "string" && _VERSION) {
+            docs.push("_VERSION: `" + _VERSION + "`");
+        }
+        const _README = getItem(t, [".", "_README"]);
+        if (typeof _README === "string" && _README) {
+            docs.push(_README);
+        }
     }
 
     // let contents = getContents(name, t);
