@@ -4,7 +4,16 @@
 -- https://tieske.github.io/date/
 
 date
-date(...)                                                       -> dateObject
+
+DateTime                    -- 日期
+DateTime.year   -> number   -- 年
+DateTime.month  -> number   -- 月
+DateTime.day    -> number   -- 日
+DateTime.hour   -> number   -- 时
+DateTime.min    -> number   -- 分
+DateTime.sec    -> number   -- 秒
+
+date(d?: DateTime | number | string | boolean)                  -> dateObject
 
 date.isodate(y, m, d)                                           -> dateObject
 date.diff(var_date1, var_date2)                                 -> dateObject
@@ -40,14 +49,14 @@ dateObject:getminutes()                                         -> number
 dateObject:getseconds()                                         -> number
 dateObject:getticks()                                           -> number
 
-dateObject:getdate()                                            -> year, month, day
-dateObject:gettime()                                            -> hour, minute, second, tick
+dateObject:getdate()                                            -> year: number, month: number, day: number
+dateObject:gettime()                                            -> hours: number, minutes: number, seconds: number, ticks: number
 
 dateObject:getyearday()                                         -> number
 dateObject:getweeknumber()                                      -> number
 dateObject:getweekday()                                         -> number
 
-dateObject:getisodate()                                         -> year, week_of_year, day_of_week
+dateObject:getisodate()                                         -> year: number, week_of_year: number, day_of_week: number
 dateObject:getisoyear()                                         -> number
 dateObject:getisoweeknumber()                                   -> number
 dateObject:getisoweekday()                                      -> number
@@ -56,14 +65,14 @@ dateObject:getbias()                                            -> number
 dateObject:getclockhour()                                       -> number
 dateObject:getfracsec()                                         -> number
 
-dateObject:setyear(int_year, var_month, int_mday)               -> dateObject
-dateObject:setmonth(var_month, int_mday)                        -> dateObject
-dateObject:setday(int_mday)                                     -> dateObject
-dateObject:sethours(num_hour, num_min, num_sec, num_ticks)      -> dateObject
-dateObject:setminutes(num_min, num_sec, num_ticks)              -> dateObject
-dateObject:setseconds(num_sec, num_ticks)                       -> dateObject
-dateObject:setticks(num_ticks)                                  -> dateObject
+dateObject:setyear(int_year?, var_month?, int_mday?)            -> dateObject
+dateObject:setmonth(var_month?, int_mday?)                      -> dateObject
+dateObject:setday(int_mday?)                                    -> dateObject
+dateObject:sethours(num_hour?, num_min?, num_sec?, num_ticks?)  -> dateObject
+dateObject:setminutes(num_min?, num_sec?, num_ticks?)           -> dateObject
+dateObject:setseconds(num_sec?, num_ticks?)                     -> dateObject
+dateObject:setticks(num_ticks?)                                 -> dateObject
 
-dateObject:setisoyear(int_year, int_week, int_wday)             -> dateObject
-dateObject:setisoweeknumber(int_week, int_wday)                 -> dateObject
-dateObject:setisoweekday(int_wday)                              -> dateObject
+dateObject:setisoyear(int_year?, int_week?, int_wday?)          -> dateObject
+dateObject:setisoweeknumber(int_week?, int_wday?)               -> dateObject
+dateObject:setisoweekday(int_wday?)                             -> dateObject
