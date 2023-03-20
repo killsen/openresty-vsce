@@ -1,5 +1,63 @@
 # 升级日志
 
+## v1.10.12
+
+* 新增支持回调函数参数类型检查，演示代码如下：
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+-- 回调函数
+local function callback(log)
+-- @log : string
+    return { log = log }
+end
+
+-- 参数 cb 为回调函数，其后的可变参数 ... 为该回调函数的参数
+local function mycall(cb, ...)
+-- @cb : function*
+    return cb(...)
+end
+
+callback()                      -- callback 最少需要 1 个参数
+mycall(callback)                -- callback 最少需要 1 个参数
+pcall(callback)                 -- callback 最少需要 1 个参数
+ngx.thread.spawn(callback)      -- callback 最少需要 1 个参数
+
+local res = callback("直接调用")
+ngx.say(res.log)
+
+local res = mycall(callback, "通过 mycall 回调")
+ngx.say(res.log)
+
+local ok, res = pcall(callback, "通过 pcall 回调")
+ngx.say(ok and res.log)
+
+local co = ngx.thread.spawn(callback, "通过 ngx.thread.spawn 回调")
+local ok, res = ngx.thread.wait(co)
+ngx.say(ok and res.log)
+
+```
+
+```lua
+-- 本插件仅在文件打开或保存时进行类型检查
+
+-- 延时或定时输出日志
+local function delay_log(premature, log)
+-- @log : string
+    if not premature then
+        ngx.log(ngx.ERR, log)
+    end
+end
+
+delay_log()                         -- delay_log 最少需要 2 个参数
+ngx.timer.at(1, delay_log)          -- delay_log 最少需要 1 个参数
+ngx.timer.every(1, delay_log)       -- delay_log 最少需要 1 个参数
+
+ngx.timer.at(1, delay_log, "通过 ngx.timer.at 回调")
+ngx.timer.every(1, delay_log, "通过 ngx.timer.every 回调")
+
+```
+
 ## v1.10.11
 
 * 完善 utf8 参数类型声明
