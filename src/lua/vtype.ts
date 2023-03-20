@@ -3,7 +3,7 @@ import { Diagnostic, Position, Range } from "vscode";
 import { callFunc } from "./modFunc";
 import { loadNode } from "./parser";
 import { getValue, LuaScope, setChild } from "./scope";
-import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaNever, LuaNumber, LuaString, LuaObject, LuaType } from "./types";
+import { getBasicType, getLuaTypeName, isBasicType, isSameType, LuaAny, LuaBoolean, LuaNever, LuaNumber, LuaString, LuaObject, LuaType, LuaFunction } from "./types";
 import { getItem, isArray, isObject } from "./utils";
 
 const readonly = true;
@@ -988,7 +988,7 @@ export function set_arg_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] =
 // 获取形参类型
 export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope) : any {
 
-    if (typeof funt !== "object") {return;}
+    if ( !funt || !isArray(args) || !isObject(_g) ) { return; }
 
     const func  = funt["()"];
     const $args = func?.$args || funt.$args;
@@ -1016,6 +1016,39 @@ export function get_arg_vtype(funt: any, i = 0, args: Node[] = [], _g: LuaScope)
             //参数向后位移一位哦！！
             return get_arg_vtype(_call, i+1, args, _g);
         }
+    }
+
+}
+
+/** 获取回调函数参数类型 */
+export function get_arg_vtype_callback(
+    i: number, args: (undefined | Node)[], _g: LuaScope,
+    funtIndex = 0, argsOffset = 0) {
+
+    if ( !isArray(args) || !isObject(_g) ) { return; }
+
+    const funtNode = args[funtIndex] as Node;
+
+    let funt = funtNode && _g && loadNode(funtNode, _g); // 回调函数
+    funt = isArray(funt) ? funt[0] : funt;
+
+    let argx = args.slice(funtIndex+1) as Node[];    // 回调函数参数
+
+    if (i === funtIndex) {
+        const nodev = args.length > 1 && args[args.length-1];
+        const vararg = nodev && nodev.type === "VarargLiteral";
+
+        // 最少参数个数检查
+        const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
+        if (argsMin && argsMin - argsOffset > argx.length && !vararg) {
+            addLint(funtNode, "", _g, `最少需要 ${ argsMin - argsOffset } 个参数`);
+        }
+
+        return LuaFunction;
+
+    } else if (i > funtIndex) {
+        const offset = i - 1 - funtIndex + argsOffset;
+        return get_arg_vtype(funt, offset, argx, _g);
     }
 
 }

@@ -1,11 +1,11 @@
 
 import { Node, FunctionDeclaration } from 'luaparse';
 import { newScope, getValue, setValue, LuaScope, setValueTyped } from './scope';
-import { loadBody, loadNode } from './parser';
+import { loadBody } from './parser';
 import { genResArgs } from './parser/genResArgs';
 import { LuaModule, LuaStringOrNil, LuaTable } from './types';
 import { getItem, isArray, isInScope, isObject } from './utils';
-import { addLint, get_arg_vtype, loadReturnTypes, loadType, loadTypex } from './vtype';
+import { get_arg_vtype_callback, loadReturnTypes, loadType, loadTypex } from './vtype';
 
 type ArgsFunc = (i: number, args: (undefined | Node)[], _g_: LuaScope) => any;
 
@@ -173,6 +173,22 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
     myFunc.$$res  = undefined as any;   // api接口返回类型
     myFunc.$$self = undefined as any;   // 面向对象self变量
 
+    // 获取回调函数位置 (fun: function*, ...)
+    let callbackIndex = -1;
+    if (node.parameters.length >= 2) {
+        const params = node.parameters;
+        if (params[params.length - 1].type === "VarargLiteral") {
+            const i = params.length - 2;
+            const p = params[i];
+            if (p && p.type === "Identifier") {
+                const tx = typex[p.name];
+                if (tx && tx.type === "function*") {
+                    callbackIndex = i;
+                }
+            }
+        }
+    }
+
     // 参数类型定义
     myFunc.$args = function (i: number, args: (undefined | Node)[], _g_: LuaScope) {
         i = Number(i) || 0;
@@ -181,37 +197,9 @@ export function makeFunc(node: FunctionDeclaration, _g: LuaScope) {
             return myFunc["$$req"];
         }
 
-        // (fun: function*, ...)
-        const params = node.parameters;
-        if (params.length >= 2 && params[params.length - 1].type === "VarargLiteral") {
-            const j = params.length - 2;
-            const p = params[j];
-            if (i >= j && p.type === "Identifier") {
-                const tx = typex[p.name];
-                const nodej = args[j];
-                if (nodej && tx?.type === "function*" && isArray(args) && isObject(_g_)) {
-
-                    let funt = loadNode(nodej, _g_);
-                    funt = isArray(funt) ? funt[0] : funt;
-
-                    let argx = args.slice(j+1) as Node[];
-
-                    if (i === j) {
-                        const nodev = args.length > 1 && args[args.length-1];
-                        let vararg = nodev && nodev.type === "VarargLiteral";
-
-                        // 最少参数个数检查
-                        const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
-                        if (argsMin && argsMin > argx.length && !vararg) {
-                            addLint(nodej, "", _g_, `最少需要 ${ argsMin } 个参数`);
-                        }
-
-                        return loadType(tx.type, _g, tx.loc);
-                    } else {
-                        return get_arg_vtype(funt, i-j-1, argx, _g_);
-                    }
-                }
-            }
+        // 获取回调函数参数类型 (fun: function*, ...)
+        if (callbackIndex !== -1 && i >= callbackIndex) {
+            return get_arg_vtype_callback(i, args, _g_, callbackIndex, 0);
         }
 
         const p = node.parameters[i];

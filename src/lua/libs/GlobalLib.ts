@@ -1,11 +1,10 @@
 
 import { Node } from 'luaparse';
 import { callFunc } from '../modFunc';
-import { loadNode } from '../parser';
 import { LuaScope } from '../scope';
 import { getLuaTypeName, LuaAny, LuaAnyArray, LuaBoolean, LuaFunction, LuaNil, LuaNumber, LuaTable, LuaString } from '../types';
 import { getItem, isArray, isObject, setItem } from "../utils";
-import { addLint, get_arg_vtype } from '../vtype';
+import { get_arg_vtype_callback } from '../vtype';
 import { _unpack } from "./TableLib";
 
 _ipairs         ["$args"] = [ LuaAnyArray               ];
@@ -174,26 +173,7 @@ function _pcall(fun: any, ...args: any) {
 }
 
 _pcall.$args = function (i: number, args: Node[] = [], _g: LuaScope) {
-
-    let funt = loadNode(args[0], _g);   // 第 1 个参数为函数
-    let argt = args.slice(1);           // 去掉前 1 个参数
-
-    if (i === 0) {
-        const nodev = args.length > 1 && args[args.length-1];
-        let vararg = nodev && nodev.type === "VarargLiteral";
-
-        // 最少参数个数检查
-        const argsMin = typeof funt?.argsMin === "number" ? funt?.argsMin : 0;
-        if (argsMin && argsMin > argt.length && !vararg) {
-            addLint(args[0], "", _g, `最少需要 ${ argsMin } 个参数`);
-        }
-
-        return LuaFunction;
-
-    } else if (i > 0) {
-        return get_arg_vtype(funt, i-1, argt, _g);
-    }
-
+    return get_arg_vtype_callback(i, args, _g, 0, 0);
 };
 
 
