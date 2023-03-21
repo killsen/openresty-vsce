@@ -1,6 +1,6 @@
 
 import { Node, Statement, Comment } from 'luaparse';
-import { getLuaTypeName, LuaAny, LuaCData, LuaModule, LuaNumber, LuaString } from './types';
+import { getLuaTypeName, LuaAny, LuaCData, LuaModule, LuaNumber, LuaString, LuaType } from './types';
 import { newScope, getType, getValue, setValue, setChild, LuaScope, setValueTyped } from './scope';
 import { callFunc, makeFunc, makeNormalCallFunc, makeSelfCallFunc, setArgsCall, setScopeCall } from './modFunc';
 import { getItem, isArray, isDownScope, isInScope, isNil, isFalse, isObject, isTrue } from './utils';
@@ -172,13 +172,26 @@ export function loadNode(node: Node, _g: LuaScope): any {
                     t = isArray(t) ? t[0] : t;
 
                     if (v instanceof Object && typeof v["()"] === "function" ){
-                        // 生成请求参数类型
-                        let $$req = getValue(_g, "$$req");
-                        if ($$req && $$req[k]) {v["()"]["$$req"] = $$req[k];}
+                        const funt = v;
+                        const func = v["()"];
 
-                        // 生成返回值类型 v21.11.25
-                        let $$res = getValue(_g, "$$res");
-                        if ($$res && $$res[k]) {v["()"]["$$res"] = $$res[k];}
+                        const $$req = getValue(_g, "$$req");
+                        const req = ($$req && $$req[k]) as LuaType;  // 请求参数类型
+
+                        const $$res = getValue(_g, "$$res");
+                        const res = ($$res && $$res[k]) as LuaType;  // 返回值类型
+
+                        if (req) {
+                            func.$$req = req;
+                            funt.argsMin = 1;
+                        }
+
+                        if (res) {
+                            func.$$res = res;
+                            if (funt.args && res.type) {
+                                funt.$argx = funt.args + " => " + res.type;
+                            }
+                        }
                     }
 
                     let typeName = getLuaTypeName(t);
