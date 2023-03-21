@@ -83,15 +83,15 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
 
             let doc = apiDocs.join("\n");
 
-            if (isObject(req)) {
-                let doc = title + "\n#### 请求参数：\n" + req["doc"];
-                req = { ...req, doc };   // 克隆: 避免覆盖原类型的 doc
-            }
+            // if (isObject(req)) {
+            //     let doc = title + "\n#### 请求参数：\n" + req["doc"];
+            //     req = { ...req, doc };   // 克隆: 避免覆盖原类型的 doc
+            // }
 
-            if (isObject(res)) {
-                let doc = title + "\n#### 返回参数：\n" + res["doc"];
-                res = { ...res, doc };   // 克隆: 避免覆盖原类型的 doc
-            }
+            // if (isObject(res)) {
+            //     let doc = title + "\n#### 返回参数：\n" + res["doc"];
+            //     res = { ...res, doc };   // 克隆: 避免覆盖原类型的 doc
+            // }
 
             if (!req && !res) {return;}
 

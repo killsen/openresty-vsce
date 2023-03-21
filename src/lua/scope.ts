@@ -87,7 +87,7 @@ export function getValueTyped(vt: LuaType, v: any) : LuaType {
     if (!vt) { return v; }  // 类型未定义
 
     // function* 或 table* 类型
-    if (vt?.passthrough && vt?.type === v?.type) { return v; }
+    if (vt?.passthrough && vt?.type === getLuaTypeName(v)) { return v; }
 
     if (!vt?.types) { return vt; }  // 非联合类型
     if (v === null || v === undefined) { return vt; }
