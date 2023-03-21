@@ -78,6 +78,18 @@ export function loadModuleByCode(ctx: NgxPath, code: string, fileName?: string, 
         setValue(_g, "$$comm", $$comm, true);
         setValue(_g, "$$comments", chunk.comments, true);
 
+        // 导入外部构造函数
+        let firstComm = $$comm && $$comm[1];
+        if (firstComm && firstComm.name === "@@@") {
+            let modName = firstComm.value;
+            if (modName) {
+                let mod = loadModule(ctx, modName);
+                if (mod && mod["@@"]) {
+                    setValue(_g, "@@", mod["@@"], true);  // 外部构造函数
+                }
+            }
+        }
+
         // 初始化返回值数组
         setValue(_g, "$$return", [], true);
 
