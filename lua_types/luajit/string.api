@@ -7,7 +7,7 @@ string.byte (s: string, i?: number, j?: number)                         -> numbe
 string.char (c: number, ...)                                            -> string
 string.dump (f: function)                                               -> string
 string.find (s: string, pattern: string, init=1?, plain=false?)         -> number, number, string?
-string.format (s: string, v?: any, ...)                                 -> string
+string.format (s: string | number, v?: any, ...)                                 -> string
 string.gmatch (s: string, pattern: string)                              -> iterator
 string.gsub (s: string, pattern: string, replace: string | map<string> | function, n?: number)   -> string
 string.len (s: string)                                                  -> number
