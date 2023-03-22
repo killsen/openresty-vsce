@@ -5,10 +5,34 @@ import { isObject, getItem, setItem, delItem, toTable } from './utils';
 import * as lua from './index';
 const readonly = true;
 
+/** 加载类型声明 */
+export function loadApiTable(mod: any) {
+
+    let ti = mod && mod["."];
+    if (!isObject(ti)) { return; }
+
+    let hasTypes = false;
+    let t = {} as any;
+
+    for (let k in ti) {
+        let v = ti[k];
+        if ( (k === "types" || k.endsWith("__")) &&
+            isObject(v) && isObject(v["."]) ) {
+            t[k] = toTable(v);
+            hasTypes = true;
+        }
+    }
+
+    if (hasTypes) {
+        return t;
+    }
+
+}
+
 export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefined {
 
     const API_MOD  = mod;
-    const API_TABLE = toTable(mod);
+    const API_TABLE = loadApiTable(mod);
     const API_TYPES: any = {};  // 自定义类型
     const REQ_TYPES: any = {};  // 请求参数类型
     const RES_TYPES: any = {};  // 返回值类型
