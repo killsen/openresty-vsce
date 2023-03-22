@@ -117,16 +117,7 @@ export function toTable(obj: any, level = 0) {
     let r: any = {};
 
     Object.keys(t).forEach(k => {
-        let v = t[k];
-
-        // 不处理通过 Proxy 加载的模块
-        if (v?.$proxy && k !== "types" && !k.endsWith("__")) {
-            // console.log(k);
-            return;
-        }
-
-        r[k] = toTable(v, level);
-
+        r[k] = toTable(t[k], level);
     });
 
     return r;

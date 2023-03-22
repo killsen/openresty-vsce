@@ -18,7 +18,13 @@ export function loadApiTable(mod: any) {
         let v = ti[k];
         if ( (k === "types" || k.endsWith("__")) &&
             isObject(v) && isObject(v["."]) ) {
-            t[k] = toTable(v);
+            let obj = t[k] = toTable(v);
+            if (obj?.types && k.endsWith("__")) {
+                let types = getItem(v, [".", "types", "."]);
+                if (!isObject(types)) {
+                    delete obj["types"];
+                }
+            }
             hasTypes = true;
         }
     }
