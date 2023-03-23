@@ -1,5 +1,6 @@
 
 import { Node, Comment } from 'luaparse';
+import { getLuaTypeName } from './types';
 
 /** 是否为假: nil 或者 false */
 export function isFalse(t: any) {
@@ -106,21 +107,36 @@ export function copyItems(from: any, to: any) {
 }
 
 // { ".": { key: val } } -->> { key: val }
-export function toTable(obj: any, level = 0) {
-
-    let t = getItem(obj, ["."]);
-    if (!isObject(t)) { return obj; }
+export function toTable(mod: any, level = 0) {
 
     // 避免互相引用或自己引用自己造成死循环
-    if (level++ > 10) {return;}
+    if (level > 10) { return; }
 
-    let r: any = {};
+    const ti = getItem(mod, ["."]);
+    if (!isObject(ti)) { return; }
 
-    Object.keys(t).forEach(k => {
-        r[k] = toTable(t[k], level);
+    const obj: any = {};
+
+    Object.keys(ti).forEach(k => {
+        let v = ti[k];
+        if (v === undefined || v === null) { return; }
+        if (typeof v === "function" || isArray(v)) { return; }
+
+        if (k.startsWith("$") || !isObject(v)) {
+            obj[k] = v;
+            return;
+        }
+
+        let type = getLuaTypeName(v);
+        if (type === "table") {
+            obj[k] = toTable(v, level + 1) || "table";
+        } else {
+            obj[k] = type;
+        }
+
     });
 
-    return r;
+    return obj;
 
 }
 

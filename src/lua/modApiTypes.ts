@@ -1,145 +1,87 @@
 
-import { getBasicType, LuaModule, LuaStringOrNil } from './types';
+import { getBasicType, LuaAny, LuaModule, LuaObject, LuaStringOrNil, LuaTable } from './types';
 import { NgxPath } from "./ngx";
 import { isObject, getItem, setItem, delItem, toTable } from './utils';
 import * as lua from './index';
 const readonly = true;
 
 /** 加载类型声明 */
-export function loadApiTable(mod: any) {
-
-    let ti = mod && mod["."];
-    if (!isObject(ti)) { return; }
-
-    let hasTypes = false;
-    let t = {} as any;
-
-    for (let k in ti) {
-        let v = ti[k];
-        if ( (k === "types" || k.endsWith("__")) &&
-            isObject(v) && isObject(v["."]) ) {
-            let obj = t[k] = toTable(v);
-            if (obj?.types && k.endsWith("__")) {
-                let types = getItem(v, [".", "types", "."]);
-                if (!isObject(types)) {
-                    delete obj["types"];
-                }
-            }
-            hasTypes = true;
-        }
-    }
-
-    if (hasTypes) {
-        return t;
-    }
-
-}
-
 export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefined {
 
     const API_MOD  = mod;
-    const API_TABLE = loadApiTable(mod);
+    const API_TABLE: any = getItem(mod, ["."]);
     const API_TYPES: any = {};  // 自定义类型
     const REQ_TYPES: any = {};  // 请求参数类型
     const RES_TYPES: any = {};  // 返回值类型
 
-    if (!API_TABLE) { return; }
+    if (!isObject(API_TABLE)) { return; }
+    delItem(API_MOD, [".", "__apipath"]);
 
     let modName = ctx.modName || "__";
     let modFile = mod.$file || "";
         modFile = modFile.replace(".editing", "").replace(" ", "");
         modFile = "(file:"+ modFile +")";
-    let modDocs : string[] = [];
-    if (mod.doc) {modDocs.push(mod.doc);}
 
     loadTypes(); // 加载全部类型
 
     // 生成请求参数、返回值类型
-    Object.keys(API_TABLE).forEach(k => {
-        if (typeof k === "string" && k.endsWith("__")) {
+    Object.keys(API_TABLE).forEach(key => {
+        if (!key.endsWith("__")) { return; }
 
-            if (k.startsWith("__")) {
-                // 不处理外部类型引用
-                // delItem(API_MOD, [".", k]);
-                return;
-            }
+        const ti = getItem(API_MOD, [".", key, "."]);
+                   delItem(API_MOD, [".", key]);
+        if (!isObject(ti)) { return; }
 
-            let name = k.substring(0, k.length - 2);
-            let desc = getItem(API_TABLE, [k, "1"]) || "";
+        const name = key.substring(0, key.length - 2);
+        const func = getItem(API_MOD, [".", name, "()"]);
+        if (typeof func !== "function") { return; }
 
-            modDocs.push("* " + name + " ( " + desc + " ) ");
+        let desc = ti["1"], req = ti["req"], res = ti["res"];
 
-            let apiDocs : string[] = [];
+        req  = typeof req  === "string" ? req.trim()  : toTable(req);
+        res  = typeof res  === "string" ? res.trim()  : toTable(res);
+        desc = typeof desc === "string" ? desc.trim() : "";
 
-            let title = "### [" + modName + "]" + modFile + "." + name;
-            apiDocs.push(title);
+        let reqDoc = "", resDoc = "";
 
-            apiDocs.push(desc);
-            apiDocs.push("");
-
-            // 生成请求参数类型
-            let req = getItem(API_TABLE, [k, "req"]);
-            apiDocs.push("#### 请求参数：");
-
-            if (typeof req === "string") {
-                let doc = genApiDoc("", req);
-                doc && apiDocs.push(doc);
-                req = genRefType(name, req) || req;
-
-            } else if (isObject(req)) {
-                req = genType(req, "req<" + modName + "." + name + ">");
-                let doc = req.doc;
-                doc && apiDocs.push(doc);
-            }
-
-            apiDocs.push("");
-
-            // 生成返回值类型
-            let res = getItem(API_TABLE, [k, "res"]);
-            apiDocs.push("#### 返回参数：");
-
-            if (typeof res === "string") {
-                let doc = genApiDoc("", res);
-                doc && apiDocs.push(doc);
-                res = genRefType(name, res) || res;
-
-            } else if (isObject(res)) {
-                res = genType(res, "res<" + modName + "." + name + ">");
-                let doc = res.doc;
-                doc && apiDocs.push(doc);
-            }
-
-            apiDocs.push("");
-
-            let doc = apiDocs.join("\n");
-
-            // if (isObject(req)) {
-            //     let doc = title + "\n#### 请求参数：\n" + req["doc"];
-            //     req = { ...req, doc };   // 克隆: 避免覆盖原类型的 doc
-            // }
-
-            // if (isObject(res)) {
-            //     let doc = title + "\n#### 返回参数：\n" + res["doc"];
-            //     res = { ...res, doc };   // 克隆: 避免覆盖原类型的 doc
-            // }
-
-            if (!req && !res) {return;}
-
-            REQ_TYPES[name] = req;
-            RES_TYPES[name] = res;
-
-            // 为 apicheck 提供参数及返回值类型
-            let func = getItem(API_MOD, [".", name, "()"]);
-            if (typeof func === "function") {
-                func["$$res"] = res;
-                func["$$req"] = req;
-            }
-
-            delItem(API_MOD, [".", k]);
-            setItem(API_MOD, [".", name, "()"   ], [res, LuaStringOrNil]);  // 返回值类型
-            setItem(API_MOD, [".", name, "$args"], [req]);  // 请求参数类型
-            setItem(API_MOD, [".", name, "doc"  ], doc);
+        // 生成请求参数类型
+        if (typeof req === "string") {
+            reqDoc = genApiDoc("", req);
+            req = genRefType(name, req);
+        } else if (isObject(req)) {
+            req = genType(req, "req<" + modName + "." + name + ">");
+            reqDoc = req?.doc || "";
         }
+
+        // 生成返回值类型
+        if (typeof res === "string") {
+            resDoc = genApiDoc("", res);
+            res = genRefType(name, res);
+        } else if (isObject(res)) {
+            res = genType(res, "res<" + modName + "." + name + ">");
+            resDoc = res?.doc || "";
+        }
+
+        const apiDocs = [] as string[];
+        apiDocs.push("### [" + modName + "]" + modFile + "." + name);
+        apiDocs.push(desc);
+        reqDoc && apiDocs.push("", "请求参数：", reqDoc);
+        resDoc && apiDocs.push("", "返回参数：", resDoc);
+        apiDocs.push("");
+
+        const argsMin = req ? 1 : 0;
+
+        req = REQ_TYPES[name] = req || LuaTable;
+        res = RES_TYPES[name] = res || LuaAny;
+
+        // 为 apicheck 提供参数及返回值类型
+        func["$$res"] = res;
+        func["$$req"] = req;
+
+        setItem(API_MOD, [".", name, "()"     ], [res, LuaStringOrNil]);    // 返回值类型
+        setItem(API_MOD, [".", name, "$args"  ], [req]);                    // 请求参数类型
+        setItem(API_MOD, [".", name, "argsMin"], argsMin);                  // 最少参数个数
+        setItem(API_MOD, [".", name, "doc"    ], apiDocs.join("\n"));       // 文档
     });
 
     for (let k in API_TYPES) {
@@ -163,43 +105,45 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
     API_MOD["$req"  ] = REQ_TYPES;  // 请求参数类型
     API_MOD["$res"  ] = RES_TYPES;  // 返回值类型
 
-    API_MOD.doc = modDocs.join("\n");
-
     return API_MOD;
 
     // 加载自定义全部类型
     function loadTypes() {
 
-        let types = getItem(API_TABLE, ["types"]);
-        if (isObject(types)) {
-            let keys = Object.keys(types).filter(key => !key.startsWith("$"));
-            keys.forEach(k=>{
-                API_TYPES["$" + k + "$"] = types["$" + k + "$"];
-                API_TYPES[k] = genTypeProxy(types[k], k);
-            });
-        }
+        let types = getItem(API_MOD, [".", "types", "."]);
+        isObject(types) && Object.keys(types).forEach( k => {
+            if (k.startsWith("$")) { return; }
 
-        Object.keys(API_TABLE).forEach(k=>{
-            if (typeof k === "string" && k.endsWith("__")) {
+            let obj = toTable(types[k]);
+            if (!isObject(obj)) { return; }
 
-                let $types = getItem(API_TABLE, [k, "$types"]);
-                let types  = getItem(API_TABLE, [k, "types"]);
+            API_TYPES["$" + k + "$"] = types["$" + k + "$"];
+            API_TYPES[k] = genTypeProxy(obj, k);
+        });
 
-                if (isObject($types)) {
-                    let keys = Object.keys($types);
-                    keys.forEach(k => {
-                        API_TYPES[k] = $types[k];   // 直接引用外部类型定义 v22.04.07
-                    });
+        let ti = getItem(API_MOD, ["."]);
+        isObject(ti) && Object.keys(ti).forEach( key => {
+            if (!key.endsWith("__")) { return; }
 
-                }else if (isObject(types)) {
-                    let keys = Object.keys(types).filter(key => !key.startsWith("$"));
-                    keys.forEach(k => {
-                        API_TYPES["$" + k + "$"] = types["$" + k + "$"];
-                        API_TYPES[k] = genTypeProxy(types[k], k);
-                    });
-                }
-
+            let $types = getItem(API_MOD, [".", key, ".", "$types"]);
+            if (isObject($types)) {
+                Object.keys($types).forEach(k => {
+                    API_TYPES[k] = $types[k];   // 直接引用外部类型定义 v22.04.07
+                });
+                return;
             }
+
+            let types = getItem(API_MOD, [".", key, ".", "types", "."]);
+            isObject(types) && Object.keys(types).forEach( k => {
+                if (k.startsWith("$")) { return; }
+
+                let obj = toTable(types[k]);
+                if (!isObject(obj)) { return; }
+
+                API_TYPES["$" + k + "$"] = types["$" + k + "$"];
+                API_TYPES[k] = genTypeProxy(obj, k);
+            });
+
         });
 
     }
@@ -472,22 +416,3 @@ function genApiDoc(name: string, typeDesc: string, level: number = 0) {
     }
 
 }
-
-// function loadParentTypes(ctx: NgxPath): any {
-
-//     let names = ctx.modName.split(".")
-
-//     while (true) {
-//         let name = names.pop()
-//         if (!name) return {};
-//         if (name === "d") continue;
-
-//         // 加载同目录的 d.lua 文件
-//         let mod = load(ctx, names.join(".") + ".d")
-//         if (mod) {
-//             let types = mod["$types"] || {}
-//             return { ...types }
-//         }
-//     }
-
-// }
