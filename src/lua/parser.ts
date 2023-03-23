@@ -42,15 +42,14 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
             if (line > lastLine && line <= node.loc!.start.line) {
                 const m = c.raw.match(typeRegx);
                 if (m) {
-                    const key = m[1].replace("@", "");
-                    const typ = m[2] === ":" ? m[3] : `${m[1]} ${m[2]} ${m[3]}`;
-                    const val = loadType(typ, _g, c.loc) as any;
-                    if (val) {
-                        setValueTyped(_g, "$type_" + key, val);
-
+                    let key = m[1].replace("@", "");
+                    let typ = m[2] === ":" ? m[3] : `${m[1]} ${m[2]} ${m[3]}`;
+                    let val = loadType(typ, _g, c.loc) as any;
+                    if (isObject(val)) {
                         // 以大写字母开头的自定义类型注册到 $$types 中
                         if (key.match(/^[A-Z]/) && (m[2] === ":" || m[2] === "&")) {
-                            val.type = key;
+                            // 非基本类型才修改类型别名
+                            val = val.basic ? val : { ...val, type: key };
                             const $$types = getValue(_g, "$$types");
                             if ($$types) {
                                 $$types[key] = val;
@@ -60,6 +59,8 @@ export function loadBody(body: Statement[], _g: LuaScope, loc?: Node["loc"]) {
                                 };
                             }
                         }
+                        // 设置变量类型
+                        setValueTyped(_g, "$type_" + key, val);
                     }
                 }
             }
