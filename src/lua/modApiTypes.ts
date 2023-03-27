@@ -42,6 +42,9 @@ export function loadApiTypes(ctx: NgxPath, mod: LuaModule): LuaModule | undefine
         res  = typeof res  === "string" ? res.trim()  : toTable(res);
         desc = typeof desc === "string" ? desc.trim() : "";
 
+        // 请求参数、返回类型都未声明则退出
+        if (!req && !res) { return; }
+
         let reqDoc = "", resDoc = "";
 
         // 生成请求参数类型
