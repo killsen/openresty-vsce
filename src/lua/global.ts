@@ -1,11 +1,14 @@
 
 import * as lua from './index';
-import { NgxPath } from "./ngx";
-import { LuaScope, newScope, setValue } from "./scope";
+import { NgxPath, getLuaFiles, getClibFiles, getLinkFiles } from "./ngx";
+import { getValue, LuaScope, newScope } from "./scope";
 import { getItem, setItem } from "./utils";
 import { LuaString, LuaObject } from "./types";
 import { _unpack } from "./libs/TableLib";
 import { GlobalLib } from "./libs/GlobalLib";
+import { Node } from 'luaparse';
+import { loadNode } from './parser';
+import { addLint } from './vtype';
 
 // Lua的关键字
 const KeyWords = [
@@ -90,19 +93,38 @@ export function genGlobal(ctx: NgxPath) {
         "()": _require,
         args: '(modname: string)',
         argsMin: 1,
-        $args: [ LuaString ],
-        $argx: '(modname: string) => any',
+        $args: _require_args,
+        $argx: '(modname: string) => module',
         doc: "加载模块",
     };
 
     return _g;
+
+    /** 检查模块文件是否存在 */
+    function _require_args (i: number, args: Node[] = [], _s: LuaScope) {
+        if (i === 0) {
+            if (args.length > 0 && getValue(_s, "$$lints")) {
+                const node = args[0];
+                const name = loadNode(node, _s);
+                if ( typeof name === "string" ) {
+                    if (getLinkFiles(ctx, name).length === 0)  {
+                        // *.lua, *.dll 或 *.so 文件列表
+                        const files = [...getLuaFiles(ctx, name), ...getClibFiles(ctx, name)];
+                        const msg = "未能加载 “" + name + "” 模块，文件不存在：\n" + files.join("\n");
+                        addLint(node, "", _s, msg);
+                    }
+                }
+            }
+            return LuaString;
+        }
+    }
 
     /** 加载模块 */
     function _require(name: string) {
         if ( typeof name !== "string" ) { return; }
         if ( name === "cjson.safe" ) { name = "cjson"; }
 
-        return name in _G ? _G[name]
+        return name in BuildInLibs    ? _G[name]
             :  name === "table.new"   ? getItem(_G, ["table", ".", "new"])
             :  name === "table.nkeys" ? getItem(_G, ["table", ".", "nkeys"])
             :  name === "table.clone" ? getItem(_G, ["table", ".", "clone"])

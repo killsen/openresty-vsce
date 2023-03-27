@@ -21,29 +21,28 @@ export function getFileLink(doc: TextDocument, pos: Position, tok: CancellationT
 }
 
 /** 取得模块链接 */
-function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) {
+function getModLink(doc: TextDocument, pos: Position, regexList: RegExp[]) : LocationLink[] | undefined {
 
     let ctx = ngx.getPath(doc.fileName);
-    if (!ctx) {return;}
+    if (!ctx) { return; }
 
-    let range;
+    let range : Range | undefined;
     for (let regex of regexList) {
         range = doc.getWordRangeAtPosition(pos, regex);
-        if (!range) {return;}
+        if (!range) { return; }
     }
-    if (!range) {return;}     //不匹配则退出
+    if (!range) { return; }
 
-    let text = doc.getText(range);
-    let file = ngx.getModFile(ctx, text);
+    const name  = doc.getText(range);
+    const files = ngx.getLinkFiles(ctx, name);
 
-    if (!file) {return [];}   //文件不存在则返回空数组
-
-    let link: LocationLink = {
-        originSelectionRange: range,
-        targetUri: Uri.file(file),
-        targetRange: new Range(new Position(0, 0), new Position(0, 0)),
-    };
-    return [link];
+    return files.map(file => {
+        return {
+            originSelectionRange: range,
+            targetUri: Uri.file(file),
+            targetRange: new Range(new Position(0, 0), new Position(0, 0)),
+        };
+    });
 
 }
 

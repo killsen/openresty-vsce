@@ -974,11 +974,13 @@ export function get_node_vtype(n: Node, _g: LuaScope) {
 }
 
 // 设置形参类型
-export function set_arg_vtype(funt: any, arg: Node, _g: LuaScope, args: Node[] = [], i = 0) {
+export function set_arg_vtype(funt: any, arg: Node, _g: LuaScope, args?: Node[], i = 0) {
 
     if (typeof funt !== "object") { return; }
 
     const isTable = arg.type === "TableConstructorExpression";
+
+    args = isArray(args) ? args : [ arg ];
 
     let vt = get_arg_vtype(funt, i, args, _g);
     arg.vtype = isTable && vt?.vtype ? vt?.vtype : vt;
