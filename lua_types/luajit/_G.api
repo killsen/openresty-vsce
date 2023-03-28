@@ -2,7 +2,7 @@
 assert(v: any, message?: string)            -- 断言
 collectgarbage(opt?, arg?)                  -- 垃圾回收
 dofile(filename?: string)                   -- 执行文件
-error(message, level?)                      -- 抛出错误信息
+error(message?, level?)                     -- 抛出错误信息
 getfenv(f?)                                 -- 取得环境变量
 getmetatable(t: table)                      -- 取得元表
 ipairs(t: table)                            -- 遍历数组
