@@ -89,14 +89,29 @@ export function genGlobal(ctx: NgxPath) {
     // 注入文件类型
     _G["$type<@file>"] = getItem(_G, [ "io", ".", "$type<@file>" ]);
 
-    _g["_load"] = _g["require"] = {
+    _g["require"] = {
         "()": _require,
         args: '(modname: string)',
         argsMin: 1,
         $args: _require_args,
         $argx: '(modname: string) => module',
         doc: "加载模块",
+        readonly: true,
     };
+
+    // app 项目代码才导入
+    if (ctx.appName) {
+        _g["_load"] = _g["require"];
+        _g["_unload"] = {
+            "()": [],
+            args: '()',
+            argsMin: 0,
+            $args: [],
+            $argx: '() => void',
+            doc: "卸载模块",
+            readonly: true,
+        };
+    }
 
     return _g;
 
