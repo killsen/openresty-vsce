@@ -3,10 +3,17 @@
 import * as vscode from 'vscode';
 import * as ngx from './lua/ngx';
 import * as http from 'http';
+import { join } from 'path';
 
-const DEBUG_CODE = 'require "app.comm.debuger".debug();';
-const WATCH_CODE = 'require "app.comm.debuger".watch(' +
-                   '[=========[word]=========], {word});';
+// # 请在 nginx.conf 配置文件中加入调试路径:
+// location = /debug {
+//     content_by_lua "loadfile(ngx.var.http_debugger)()";
+// }
+
+const DEBUGGER_FILE = join(__dirname, "..", "lua_types", "debugger.lua");
+
+const PRINT_LOCAL = ' do ( _G._PRINT_LOCAL_ or require "app.comm.debuger".debug ) (                      ) end ';
+const PRINT_VALUE = ' do ( _G._PRINT_VALUE_ or require "app.comm.debuger".watch ) ([===[word]===], {word}) end ';
 
 /* eslint-disable no-undef */
 let LAST_TIMER      : NodeJS.Timer       | undefined;
@@ -35,13 +42,13 @@ async function openrestyRun(isAction: boolean) {
     let codes = doc.getText();
     if (!codes.trim()) {return;}
 
-    let path = '/debug';
+    let path = '';
     let fileName = doc.fileName;
 
     let { appName, modName } = ngx.getPath(fileName);
     if ( appName && modName.startsWith("act.")) {
         modName = modName.substring(4);
-        path = `/${appName}/${modName}.jsony`;
+        path = `/${appName}/${modName}.jsony`;  // 改变请求路径
     }
 
     if (isAction) {
@@ -56,9 +63,9 @@ async function openrestyRun(isAction: boolean) {
     let endOffset = doc.offsetAt(line.range.end);
 
     if (text) {
-        text = WATCH_CODE.replace(/(word)/g, text);
+        text = PRINT_VALUE.replace(/(word)/g, text);
     } else {
-        text = DEBUG_CODE;
+        text = PRINT_LOCAL;
     }
 
     codes = [
@@ -87,15 +94,29 @@ async function httpRequest(path: string, codes: string,
         vscode.window.showInformationMessage("上个请求已撤销");
     }
 
-    let opt = {
-        host: "127.0.0.1",
-        path,
-        method: codes ? "POST" : "GET",
-        headers: {
-            "user-agent" : "sublime",
+    const conf = vscode.workspace.getConfiguration();
+    const uri = conf.get<string>("openresty.debug.url") || "http://127.0.0.1/debug";
+    const url = new URL(uri);
+
+    if (path) {
+        url.pathname = path;  // 修改请求路径，不再使用默认路径
+        url.search   = "";
+        url.hash     = "";
+    }
+
+    let opt: http.RequestOptions = {
+        protocol: url.protocol,
+        host    : url.host,
+        hostname: url.hostname,
+        port    : url.port,
+        path    : `${ url.pathname }${ url.search }${ url.hash }`,
+        method  : codes ? "POST" : "GET",
+        headers : {
+            "user-agent" : "sublime",  // 历史遗留问题，后续将改为 vscode
             "app-name"   : appName,
             "mod-name"   : modName,
             "file-name"  : fileName,
+            "debugger"   : DEBUGGER_FILE,
         }
     };
 
@@ -118,7 +139,7 @@ async function httpRequest(path: string, codes: string,
     }
 
     function showMsg(msg: string) {
-        vscode.window.setStatusBarMessage(`请求: http://127.0.0.1${ path }  ( ${ msg } )`);
+        vscode.window.setStatusBarMessage(`请求: ${ url.toString() }  ( ${ msg } )`);
     }
 
     showMsg("连接中");
