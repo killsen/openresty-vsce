@@ -1,6 +1,7 @@
 # 欢迎使用 OpenResty Lua 代码补全插件
 
 ## [升级日志 (CHANGELOG)](https://github.com/killsen/openresty-vsce/blob/master/CHANGELOG.md)
+## [如何使用本插件运行代码和调试](https://github.com/killsen/openresty-vsce/blob/master/DEBUG.md)
 
 ## 功能 (Features)
 

@@ -93,7 +93,8 @@ abc = "2023-03-29 16:42:17"
 
 ## 调试代码
 
-* 在 .vscode/lauch.json 配置文件中，新增启动项目 OpenResty: Attach
+* 在 vscode 中切换到 “运行和调试(Ctrl+Shift+D)”
+* 创建 lauch.json 配置文件，新增启动项目 OpenResty: Attach
 
 ```json
 {
@@ -111,10 +112,8 @@ abc = "2023-03-29 16:42:17"
 }
 ```
 
-* 在 vscode 中切换到 “运行和调试(Ctrl+Shift+D)”，选中以上配置的启动项目，并点击“开始调试”
-
+* 选中以上配置的启动项目，并点击“开始调试” （该快捷键 F5 被 openresty.action占用了）
 * 在代码中添加断点后，执行 openresty.action (默认快捷键 F5) 即可在 OpenResty 的环境下运行代码至该断点处
-
 
 ## 关闭 nginx
 
