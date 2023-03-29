@@ -1,5 +1,19 @@
 # 升级日志
 
+## v1.11.1
+
+* 新增配置 openresty.debug.url 用于设置 openresty.debug 或 openresty.action 操作所请求的服务器链接地址
+* 该配置默认值为 http://127.0.0.1/debug 路径，需要在 nginx.conf 文件中新增该路径
+
+```conf
+location = /debug {
+    allow           127.0.0.1;
+    deny            all;
+    access_log      off;
+    content_by_lua  "loadfile(ngx.var.http_debugger)()";
+}
+```
+
 ## v1.10.17
 
 * 新增检查 require 模块文件是否存在
