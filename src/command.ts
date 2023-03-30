@@ -94,8 +94,8 @@ async function httpRequest(path: string, codes: string,
         vscode.window.showInformationMessage("上个请求已撤销");
     }
 
-    const conf = vscode.workspace.getConfiguration();
-    const uri = conf.get<string>("openresty.debug.url") || "http://127.0.0.1/debug";
+    const conf = vscode.workspace.getConfiguration("openresty");
+    const uri = conf.get<string>("debug.url") || "http://127.0.0.1/debug";
     const url = new URL(uri);
 
     if (path) {

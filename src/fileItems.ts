@@ -8,11 +8,13 @@ import { getLinkText } from './filelink';
 import { loadModuleByCode } from "./lua/modLoader";
 import { loadKeys } from './completion';
 
-function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Position) {
+function requireFiles(ctx: ngx.NgxPath, doc: vscode.TextDocument, pos: vscode.Position) {
 
     // require   "resty.http"
     // require ( "resty.http" )
     // pcall ( require, "resty.http" )
+
+    const { ngxPath, rootPath } = ctx;
 
     let regex1 = /\b(require)\s*,?\s*\(?\s*["']\S+["']\s*\)?/;
     let regex2 = /\w[\w.]*/;
@@ -29,18 +31,21 @@ function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Pos
     name = name.trim().toLowerCase().replace(/\./g,"\\");
     name = _parse(`${ name }.lua`).dir;
 
-    console.log("name -----------------> ", name);
+    // console.log("name -----------------> ", name);
 
-    let items = [] as CompletionItem[];
-    let paths = [] as string[];
+    const map   = new Map<string, boolean>();
+    const items = [] as CompletionItem[];
+    const paths = [] as string[];
 
     function addPath(path = "") {
-        paths.push(_join(ngxPath, path, name));
-        paths.push(_join(ngxPath, "..", "lua_modules", path, name));
+        let p1 = _join(ngxPath, path, name);
+        let p2 = _join(rootPath, "lua_modules", path, name);
+        !paths.includes(p1) && paths.push(p1);
+        !paths.includes(p2) && paths.push(p2);
     }
 
     if (name === "resty" || name.startsWith("resty\\")) {
-        console.log("name!!!!!!!!", name);
+        // console.log("name!!!!!!!!", name);
         addPath();
     }
 
@@ -52,6 +57,21 @@ function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Pos
     addPath("lua"   );
     addPath("lualib");
 
+    const conf = vscode.workspace.getConfiguration("openresty");
+    const package_path  = conf.get<string[]>("package.path" ) || [];
+    const package_cpath = conf.get<string[]>("package.cpath") || [];
+
+    [...package_path, ...package_cpath].forEach(path => {
+        path = path.trim();
+        if (path.match(/^([a-zA-Z]+:)?[/\\]/)) {
+            let p = _join(path, name);
+            !paths.includes(p) && paths.push(p);
+        } else {
+            let p = _join(rootPath, path, name);
+            !paths.includes(p) && paths.push(p);
+        }
+    });
+
     paths.forEach(pPath => {
         try {
             let files = fs.readdirSync(pPath, { withFileTypes: true });
@@ -60,17 +80,23 @@ function requireFiles(ngxPath: string, doc: vscode.TextDocument, pos: vscode.Pos
                     let p = _parse(f.name);
                     if (![".lua", ".dll", ".so"].includes(p.ext)) {return;}
                     if (p.name === "init") {return;}
-                    items.push({
-                        label: p.name,
-                        detail: p.base,
-                        kind : CompletionItemKind.File,
-                    });
+                    if (!map.has(p.name)) {
+                        map.set(p.name, true);
+                        items.push({
+                            label: p.name,
+                            detail: p.base,
+                            kind : CompletionItemKind.File,
+                        });
+                    }
                 } else {
-                    items.push({
-                        label: f.name,
-                        kind : CompletionItemKind.Folder,
-                        commitCharacters: ["."],
-                    });
+                    if (!map.has(f.name)) {
+                        map.set(f.name, true);
+                        items.push({
+                            label: f.name,
+                            kind : CompletionItemKind.Folder,
+                            commitCharacters: ["."],
+                        });
+                    }
                 }
 
             });
@@ -90,7 +116,7 @@ export function loadFileItems(doc: vscode.TextDocument, pos: vscode.Position, to
     let ctx = ngx.getPath(doc.fileName);
     if (!ctx.ngxPath) {return;}
 
-    let files = requireFiles(ctx.ngxPath, doc, pos);
+    let files = requireFiles(ctx, doc, pos);
     if (files) {return files;}
 
     // if (!ctx.appPath) {return;}

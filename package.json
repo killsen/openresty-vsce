@@ -179,6 +179,22 @@
                     "type": "string",
                     "default": "http://127.0.0.1/debug",
                     "description": "执行 openresty.debug 或 openresty.action 命令时请求链接"
+                },
+                "openresty.package.path": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of package path."
+                },
+                "openresty.package.cpath": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "List of package cpath."
                 }
             }
         }

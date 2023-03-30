@@ -217,6 +217,7 @@ export function getLuaApiFile(ctx: NgxPath, name: string) {
 export function getLuaFiles(ctx: NgxPath, name: string) : string[] {
 
     const files = [] as string[];
+    const map = new Map<string, boolean>();
 
     const { rootPath, ngxPath, appPath } = ctx;
 
@@ -232,52 +233,71 @@ export function getLuaFiles(ctx: NgxPath, name: string) : string[] {
     let modFile  = modName.replace(/\./g, "\\") + ".lua";
     let initFile = modName.replace(/\./g, "\\") + "\\init.lua";
 
+    function addFile(...paths: string[]) {
+        let file = _join(...paths);
+        if (!map.has(file.toLowerCase())) {
+            map.set(file.toLowerCase(), true);
+            files.push(file);
+        }
+    }
+
     if (modType === "$") {
         if (appPath) {
-            files.push(_join(appPath, "dao", modFile));
+            addFile(appPath, "dao", modFile);
         }
 
     } else if (modType === "%") {
         if (appPath) {
-            files.push(_join(appPath, "com", apiFile));
-            files.push(_join(appPath, "com", modFile));
-            files.push(_join(appPath, "com", initFile));
-            files.push(_join(ngxPath, "app", "lib", modFile));
-            files.push(_join(ngxPath, "app", "lib", initFile));
-            files.push(_join(rootPath, "lua_modules",  "app", "lib", modFile));
-            files.push(_join(rootPath, "lua_modules",  "app", "lib", initFile));
+            addFile(appPath, "com", apiFile);
+            addFile(appPath, "com", modFile);
+            addFile(appPath, "com", initFile);
+            addFile(ngxPath, "app", "lib", modFile);
+            addFile(ngxPath, "app", "lib", initFile);
+            addFile(rootPath, "lua_modules",  "app", "lib", modFile);
+            addFile(rootPath, "lua_modules",  "app", "lib", initFile);
         }
 
     } else if (modType === "#") {
-        files.push(_join(ngxPath,  "app", "utils", modFile));
-        files.push(_join(ngxPath,  "app", "utils", initFile));
-        files.push(_join(rootPath, "lua_modules",  "app", "utils", modFile));
-        files.push(_join(rootPath, "lua_modules",  "app", "utils", initFile));
+        addFile(ngxPath,  "app", "utils", modFile);
+        addFile(ngxPath,  "app", "utils", initFile);
+        addFile(rootPath, "lua_modules",  "app", "utils", modFile);
+        addFile(rootPath, "lua_modules",  "app", "utils", initFile);
 
     } else {
         if (appPath) {
-            appPath && files.push(_join(appPath, apiFile));
-            appPath && files.push(_join(appPath, modFile));
-            appPath && files.push(_join(appPath, initFile));
+            appPath && addFile(appPath, apiFile);
+            appPath && addFile(appPath, modFile);
+            appPath && addFile(appPath, initFile);
         }
 
-        files.push(_join(ngxPath, modFile));
-        files.push(_join(ngxPath, "lua", modFile));
-        files.push(_join(ngxPath, "lualib", modFile));
+        addFile(ngxPath, modFile);
+        addFile(ngxPath, initFile);
+        addFile(ngxPath, "lua", modFile);
+        addFile(ngxPath, "lua", initFile);
+        addFile(ngxPath, "lualib", modFile);
+        addFile(ngxPath, "lualib", initFile);
 
-        files.push(_join(ngxPath, initFile));
-        files.push(_join(ngxPath, "lua", initFile));
-        files.push(_join(ngxPath, "lualib", initFile));
+        addFile(rootPath, "lua_modules", modFile);
+        addFile(rootPath, "lua_modules", initFile);
+        addFile(rootPath, "lua_modules", "lua", modFile);
+        addFile(rootPath, "lua_modules", "lua", initFile);
+        addFile(rootPath, "lua_modules", "lualib", modFile);
+        addFile(rootPath, "lua_modules", "lualib", initFile);
 
-        if (rootPath) {
-            files.push(_join(rootPath, "lua_modules", modFile));
-            files.push(_join(rootPath, "lua_modules", "lua", modFile));
-            files.push(_join(rootPath, "lua_modules", "lualib", modFile));
+        const conf = vscode.workspace.getConfiguration("openresty");
+        const package_path = conf.get<string[]>("package.path") || [];
+        package_path.forEach(path => {
+            path = path.trim();
+            if (!path) { return; }
+            if (path.match(/^([a-zA-Z]+:)?[/\\]/)) {
+                addFile(path, modFile);
+                addFile(path, initFile);
+            } else {
+                addFile(rootPath, path, modFile);
+                addFile(rootPath, path, initFile);
+            }
+        });
 
-            files.push(_join(rootPath, "lua_modules", initFile));
-            files.push(_join(rootPath, "lua_modules", "lua", initFile));
-            files.push(_join(rootPath, "lua_modules", "lualib", initFile));
-        }
     }
 
     return files;
@@ -312,7 +332,7 @@ export function getLinkFiles(ctx: NgxPath, name: string) : string[] {
     for (let file of getLuaFiles(ctx, name)) {
         if (_exist(file)) {
             files.push(file);
-            break;
+            // break;
         }
     }
 
@@ -324,7 +344,7 @@ export function getLinkFiles(ctx: NgxPath, name: string) : string[] {
     for (let file of getClibFiles(ctx, name)) {
         if (_exist(file)) {
             files.push(file);
-            break;
+            // break;
         }
     }
 
@@ -336,6 +356,7 @@ export function getLinkFiles(ctx: NgxPath, name: string) : string[] {
 export function getClibFiles(ctx: NgxPath, name: string) : string[] {
 
     const files = [] as string[];
+    const map = new Map<string, boolean>();
 
     const { rootPath, ngxPath } = ctx;
 
@@ -350,27 +371,45 @@ export function getClibFiles(ctx: NgxPath, name: string) : string[] {
     let dllFile  = modName.replace(/\./g, "\\") + ".dll";
     let soFile   = modName.replace(/\./g, "\\") + ".so";
 
-    files.push(_join(ngxPath, dllFile));
-    files.push(_join(ngxPath, "lua", dllFile));
-    files.push(_join(ngxPath, "lualib", dllFile));
-    files.push(_join(ngxPath, "clib", dllFile));
-
-    files.push(_join(ngxPath, soFile));
-    files.push(_join(ngxPath, "lua", soFile));
-    files.push(_join(ngxPath, "lualib", soFile));
-    files.push(_join(ngxPath, "clib", soFile));
-
-    if (rootPath) {
-        files.push(_join(rootPath, "lua_modules", dllFile));
-        files.push(_join(rootPath, "lua_modules", "lua", dllFile));
-        files.push(_join(rootPath, "lua_modules", "lualib", dllFile));
-        files.push(_join(rootPath, "lua_modules", "clib", dllFile));
-
-        files.push(_join(rootPath, "lua_modules", soFile));
-        files.push(_join(rootPath, "lua_modules", "lua", soFile));
-        files.push(_join(rootPath, "lua_modules", "lualib", soFile));
-        files.push(_join(rootPath, "lua_modules", "clib", soFile));
+    function addFile(...paths: string[]) {
+        let file = _join(...paths);
+        if (!map.has(file.toLowerCase())) {
+            map.set(file.toLowerCase(), true);
+            files.push(file);
+        }
     }
+
+    addFile(ngxPath, dllFile);
+    addFile(ngxPath, soFile);
+    addFile(ngxPath, "lua", dllFile);
+    addFile(ngxPath, "lua", soFile);
+    addFile(ngxPath, "lualib", dllFile);
+    addFile(ngxPath, "lualib", soFile);
+    addFile(ngxPath, "clib", dllFile);
+    addFile(ngxPath, "clib", soFile);
+
+    addFile(rootPath, "lua_modules", dllFile);
+    addFile(rootPath, "lua_modules", soFile);
+    addFile(rootPath, "lua_modules", "lua", dllFile);
+    addFile(rootPath, "lua_modules", "lua", soFile);
+    addFile(rootPath, "lua_modules", "lualib", dllFile);
+    addFile(rootPath, "lua_modules", "lualib", soFile);
+    addFile(rootPath, "lua_modules", "clib", dllFile);
+    addFile(rootPath, "lua_modules", "clib", soFile);
+
+    const conf = vscode.workspace.getConfiguration("openresty");
+    const package_cpath = conf.get<string[]>("package.cpath") || [];
+    package_cpath.forEach(path => {
+        path = path.trim();
+        if (!path) { return; }
+        if (path.match(/^([a-zA-Z]+:)?[/\\]/)) {
+            addFile(path, dllFile);
+            addFile(path, soFile);
+        } else {
+            addFile(rootPath, path, dllFile);
+            addFile(rootPath, path, soFile);
+        }
+    });
 
     return files;
 
