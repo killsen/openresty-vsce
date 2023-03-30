@@ -1,5 +1,10 @@
 # 升级日志
 
+## v1.11.2
+
+* 新增配置 openresty.package.path 和 openresty.package.cpath
+* 升级 EmmyLuaDebugger 版本为 v1.5.0
+
 ## v1.11.1
 
 * 新增配置 openresty.debug.url 用于设置 openresty.debug 或 openresty.action 操作所请求的服务器链接地址
