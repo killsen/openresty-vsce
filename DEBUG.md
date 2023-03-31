@@ -33,7 +33,13 @@ http {
             allow           127.0.0.1;
             deny            all;
             access_log      off;
-            content_by_lua  "loadfile(ngx.var.http_debugger)()";
+            content_by_lua_block {
+                local  file = ngx.var.http_debugger
+                if not file then return ngx.exit(403) end
+                local  func = loadfile(file)
+                if not func then return ngx.exit(403) end
+                pcall( func )
+            }
         }
     }
 }
