@@ -25,9 +25,10 @@ export function loadModule(ctx: NgxPath, name: string): LuaModule | undefined {
     if (!mod) {return;}
 
     // 注入 DbLib 函数
-    if (name === "%db") {
+    if (name === "%db" || name === "app.lib.db") {
         for (let k in DbLib) {
-            setItem(mod, [".", k, "()"], DbLib[k]);
+            const v = getItem(mod, [".", k, "()"]);
+            v && setItem(mod, [".", k, "()"], DbLib[k]);
         }
     }
 
