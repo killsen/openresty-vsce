@@ -1,0 +1,33 @@
+
+-- https://github.com/openresty/lua-upstream-nginx-module
+
+upstream
+
+server
+server.addr             -> string
+server.backup           -> boolean
+server.fail_timeout     -> number
+server.max_fails        -> number
+server.name             -> string
+server.weight           -> number
+
+peer
+peer.current_weight     -> number
+peer.effective_weight   -> number
+peer.fail_timeout       -> number
+peer.fails              -> number
+peer.id                 -> number
+peer.max_fails          -> number
+peer.name               -> string
+peer.weight             -> number
+peer.accessed           -> number
+peer.checked            -> number
+peer.down               -> boolean
+peer.conns              -> number
+
+upstream.get_upstreams()                            -> names: string[]
+upstream.get_servers(upstream_name: string)         -> servers?: server[], err?: string
+upstream.get_primary_peers(upstream_name: string)   -> peers?: peer[], err?: string
+upstream.get_backup_peers(upstream_name: string)    -> peers?: peer[], err?: string
+upstream.set_peer_down(upstream_name: string, is_backup: boolean, peer_id: number, down_value: boolean)   -> ok: boolean, err?: string
+upstream.current_upstream_name()                    -> name?: string
