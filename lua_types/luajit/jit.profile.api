@@ -1,0 +1,7 @@
+
+-- https://blast.hk/moonloader/luajit/ext_profiler.html
+
+profile
+profile.start()
+profile.stop()
+profile.dumpstack()
