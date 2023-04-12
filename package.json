@@ -72,8 +72,30 @@
             {
                 "command": "openresty.action",
                 "title": "执行 OpenResty Action 请求"
+            },
+            {
+                "command": "openresty.lint",
+                "title": "执行类型检查"
+            },
+            {
+                "command": "openresty.clean",
+                "title": "清除类型检查"
             }
         ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "command": "openresty.lint",
+                    "group": "1_modification",
+                    "when": "explorerResourceIsFolder"
+                },
+                {
+                    "command": "openresty.clean",
+                    "group": "1_modification",
+                    "when": "explorerResourceIsFolder"
+                }
+            ]
+        },
         "keybindings": [
             {
                 "command": "openresty.debug",
