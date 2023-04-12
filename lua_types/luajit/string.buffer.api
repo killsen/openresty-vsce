@@ -1,0 +1,29 @@
+
+-- https://repo.or.cz/w/luajit-2.0.git/blob_plain/v2.1:/doc/ext_buffer.html
+
+buffer
+
+options
+options.dict    -> string[]
+
+buffer.new(size_or_opt?: number | options, opt?: options)   -> buf
+
+buffer.encode(v: any)                           -> string
+buffer.decode(s: string)                        -> any
+
+buf
+buf:encode(v: any)                              -> buf
+buf:decode()                                    -> any
+
+buf:reset()                                     -> buf
+buf:free()                                      -> buf
+buf:put(v: any, ...)                            -> buf
+buf:putf(format: string, v?: any, ...)          -> buf
+buf:putcdata(v: cdata, len?: number)            -> buf
+buf:set(v: string | cdata, len?: number)        -> buf
+buf:commit(used?: number)                       -> buf
+buf:skip(len?: number)                          -> buf
+buf:reserve(size: number)                       -> ptr: cdata, len: number
+buf:ref()                                       -> ptr: cdata, len: number
+buf:get(len?: number, ...)                      -> string, ...
+buf:tostring()                                  -> string
