@@ -2,6 +2,9 @@
 -- jit.* Library
 -- https://luajit.org/ext_jit.html
 
+-- openresty/luajit2
+-- https://github.com/openresty/luajit2
+
 jit
 
 jit.on(func?: function | boolean, opt?: boolean)

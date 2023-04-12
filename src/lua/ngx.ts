@@ -305,11 +305,15 @@ export function getLuaFiles(ctx: NgxPath, name: string) : string[] {
 }
 
 const ModNameMap : Record<string, string> = {
-    ["table.new"  ] : "table",
-    ["table.nkeys"] : "table",
-    ["table.clone"] : "table",
-    ["table.clear"] : "table",
-    ["cjson.safe" ] : "cjson",
+    ["table.isempty"] : "table",
+    ["table.isarray"] : "table",
+    ["table.new"    ] : "table",
+    ["table.nkeys"  ] : "table",
+    ["table.clone"  ] : "table",
+    ["table.clear"  ] : "table",
+    ["thread.exdata"]  : "jit",
+    ["thread.exdata2"] : "jit",
+    ["cjson.safe"   ] : "cjson",
 };
 
 /** 取得接口声明文件及模块文件 */

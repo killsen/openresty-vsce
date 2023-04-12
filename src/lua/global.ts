@@ -3,7 +3,7 @@ import * as lua from './index';
 import { NgxPath, getLuaFiles, getClibFiles, getLinkFiles } from "./ngx";
 import { getValue, LuaScope, newScope } from "./scope";
 import { getItem, setItem } from "./utils";
-import { LuaString, LuaObject } from "./types";
+import { LuaString, LuaObject, LuaBoolean, LuaTable, LuaCData, LuaAny } from "./types";
 import { _unpack } from "./libs/TableLib";
 import { GlobalLib } from "./libs/GlobalLib";
 import { Node } from 'luaparse';
@@ -23,6 +23,37 @@ const BuildInLibs = [
     "package", "debug", "coroutine",
     "ngx", "ndk",
 ];
+
+// 其它内置模块
+const BuildInFuns = {
+    "table.isempty" : {
+        "()": [ LuaBoolean ],
+        args: '(t: table)',
+        argsMin: 1,
+        $args: [ LuaTable ],
+        $argx: '(t: table) => boolean',
+        doc: "检查是否空表",
+        readonly: true,
+    },
+    "table.isarray" : {
+        "()": [ LuaBoolean ],
+        args: '(t: table)',
+        argsMin: 1,
+        $args: [ LuaTable ],
+        $argx: '(t: table) => boolean',
+        doc: "检查是否数组",
+        readonly: true,
+    },
+    "thread.exdata" : {
+        "()": [ LuaCData ],
+        args: '(data?)',
+        argsMin: 0,
+        $args: [ LuaAny ],
+        $argx: '(data?) => cdata',
+        doc: "获取当前线程的扩展数据",
+        readonly: true,
+    }
+};
 
 /** 加载全局库 */
 function loadGlobal(ctx: NgxPath) {
@@ -139,11 +170,15 @@ export function genGlobal(ctx: NgxPath) {
         if ( typeof name !== "string" ) { return; }
         if ( name === "cjson.safe" ) { name = "cjson"; }
 
-        return name in BuildInLibs    ? _G[name]
-            :  name === "table.new"   ? getItem(_G, ["table", ".", "new"])
-            :  name === "table.nkeys" ? getItem(_G, ["table", ".", "nkeys"])
-            :  name === "table.clone" ? getItem(_G, ["table", ".", "clone"])
-            :  name === "table.clear" ? getItem(_G, ["table", ".", "clear"])
+        return name in BuildInLibs      ? _G[name]
+            :  name === "table.new"     ? getItem(_G, ["table", ".", "new"])
+            :  name === "table.nkeys"   ? getItem(_G, ["table", ".", "nkeys"])
+            :  name === "table.clone"   ? getItem(_G, ["table", ".", "clone"])
+            :  name === "table.clear"   ? getItem(_G, ["table", ".", "clear"])
+            :  name === "table.isempty" ? BuildInFuns["table.isempty"]
+            :  name === "table.isarray" ? BuildInFuns["table.isarray"]
+            :  name === "thread.exdata" ? BuildInFuns["thread.exdata"]
+            :  name === "thread.exdata2"? BuildInFuns["thread.exdata"]
             :  lua.load(ctx, name);
     }
 
