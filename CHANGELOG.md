@@ -1,5 +1,10 @@
 # 升级日志
 
+## v1.11.3
+
+* 新增命令 openresty.lint  对所选目录全部 lua 文件执行类型检查
+* 新增命令 openresty.clean 清除所选目录全部 lua 文件类型检查错误
+
 ## v1.11.2
 
 * 新增配置 openresty.package.path 和 openresty.package.cpath
