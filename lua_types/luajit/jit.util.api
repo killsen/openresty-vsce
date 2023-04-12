@@ -1,0 +1,21 @@
+
+-- https://luajit.org/ext_jit.html
+-- jit.util.* — JIT compiler introspection
+-- This submodule holds functions to introspect the bytecode, generated traces, the IR and the generated machine code.
+-- The functionality provided by this module is still in flux and therefore undocumented.
+-- The debug modules -jbc, -jv and -jdump make extensive use of these functions.
+-- Please check out their source code, if you want to know more.
+
+jitutil
+
+jitutil.funcbc        ()
+jitutil.funcinfo      ()
+jitutil.funck         ()
+jitutil.funcuvname    ()
+jitutil.ircalladdr    ()
+jitutil.traceexitstub ()
+jitutil.traceinfo     ()
+jitutil.traceir       ()
+jitutil.tracek        ()
+jitutil.tracemc       ()
+jitutil.tracesnap     ()
