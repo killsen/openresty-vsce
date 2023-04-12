@@ -1,9 +1,11 @@
 # 升级日志
 
-## v1.11.3
+## v1.11.4
 
 * 新增命令 openresty.lint  对所选目录全部 lua 文件执行类型检查
 * 新增命令 openresty.clean 清除所选目录全部 lua 文件类型检查错误
+* 新增接口声明: ngx.upstream, jit.util
+* 新增接口声明: table.isempty, table.isarray, thread.exdata, thread.exdata2
 
 ## v1.11.2
 
