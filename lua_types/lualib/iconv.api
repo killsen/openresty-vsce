@@ -1,0 +1,17 @@
+
+-- Lua-iconv: performs character set conversions in Lua
+-- (c) 2005-11 Alexandre Erwin Ittner <alexandre@ittner.com.br>
+-- Project page: http://ittner.github.com/lua-iconv/
+
+iconv
+iconv.VERSION           -> string       -- iconv 7
+iconv.ERROR_NO_MEMORY   -> 1            -- Failed to allocate enough memory in the conversion process.
+iconv.ERROR_INVALID     -> 2            -- An invalid character was found in the input sequence.
+iconv.ERROR_INCOMPLETE  -> 3            -- An incomplete character was found in the input sequence.
+iconv.ERROR_UNKNOWN     -> 4            -- There was an unknown error.
+iconv.ERROR_FINALIZED   -> 5            -- Trying to use an already-finalized converter. This usually means that the user was tweaking the garbage collector private methods.
+
+iconv.new(to: string, from: string)     -> cd, err?: string
+iconv.open(to: string, from: string)    -> cd, err?: string
+
+cd:iconv(str: string)   -> nstr?: string, err?: number
