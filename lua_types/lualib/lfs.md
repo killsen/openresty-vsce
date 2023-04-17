@@ -100,7 +100,7 @@ UNIX 中 I/O 的块大小
 ## lfs.rmdir (dirname)
 移除已存在的目录
 
-## lfs.setmode (file, mode)
+## lfs.setmode (filehandle, mode)
 设置文件写入模式，mode 字符串可以是binary或text
 
 ## lfs.symlinkattributes (filepath [, request_name])
@@ -109,5 +109,5 @@ UNIX 中 I/O 的块大小
 ## lfs.touch (filepath [, atime [, mtime]])
 设置上次使用和修改文件的时间值
 
-## lfs.unlock (filehandle[, start[, length]])
+## lfs.unlock (filehandle [, start[, length]])
 解锁文件或解锁文件的部分内容

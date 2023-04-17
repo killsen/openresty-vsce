@@ -1,33 +1,51 @@
 
+-- https://lunarmodules.github.io/luafilesystem/
+-- https://github.com/lunarmodules/luafilesystem
+
 lfs
 
+lfs._VERSION        -> string   -- LuaFileSystem 1.8.0
+
 attr
-attr.dev
-attr.ino
-attr.mode
-attr.nlink
-attr.uid
-attr.gid
-attr.rdev
-attr.access
-attr.modification
-attr.change
-attr.size
-attr.permissions
---  attr.blocks
---  attr.blksize
 
-lfs.attributes(filepath: string, aname?: string)  -> attr
-lfs.symlinkattributes (filepath: string, aname?: string)  -> attr
+attr.mode           -> string   -- string representing the associated protection mode (the values could be file, directory, link, socket, named pipe, char device, block device or other)
+attr.permissions    -> string   -- file permissions string
 
-lfs.chdir (path: string)
-lfs.currentdir ()
-lfs.dir (path: string)
-lfs.link (old: string, new: string, symlink?)
-lfs.lock (filehandle, mode: string, start?, length?)
-lfs.lock_dir(path: string, seconds_stale?)
-lfs.mkdir (dirname: string)
-lfs.rmdir (dirname: string)
-lfs.setmode (file: string, mode: string)
-lfs.touch (filepath: string, atime?, mtime?)
-lfs.unlock (filehandle, start?, length?)
+attr.dev            -> number   -- on Unix systems, this represents the device that the inode resides on. On Windows systems, represents the drive number of the disk containing the file
+attr.ino            -> number   -- on Unix systems, this represents the inode number. On Windows systems this has no meaning
+attr.nlink          -> number   -- number of hard links to the file
+attr.uid            -> number   -- user-id of owner (Unix only, always 0 on Windows)
+attr.gid            -> number   -- group-id of owner (Unix only, always 0 on Windows)
+attr.rdev           -> number   -- on Unix systems, represents the device type, for special file inodes. On Windows systems represents the same as dev
+attr.access         -> number   -- time of last access
+attr.modification   -> number   -- time of last data modification
+attr.change         -> number   -- time of last file status change
+attr.size           -> number   -- file size, in bytes
+
+attr.blocks         -> number   -- block allocated for file; (Unix only)
+attr.blksize        -> number   -- optimal file system I/O blocksize; (Unix only)
+
+attr.target         -> string   -- containing the file name that the symlink points to
+
+lfs.attributes(filepath: string, aname?: string)            -> attr, err?: string
+lfs.symlinkattributes (filepath: string, aname?: string)    -> attr, err?: string
+
+lfs.chdir (path: string)        -> ok?: boolean, err?: string
+lfs.currentdir ()               -> dir?: string, err?: string
+
+lfs.dir (path: string)          -> dir_iter, dir_obj
+dir_iter(dir_obj)               -> string?
+dir_obj:next()                  -> string?
+dir_obj:close()
+
+lfs.mkdir (dirname: string)     -> ok?: boolean, err?: string
+lfs.rmdir (dirname: string)     -> ok?: boolean, err?: string
+
+lfs.lock (filehandle: file, mode: string, start?: number, length?: number)  -> ok?: boolean, err?: string
+lfs.unlock (filehandle: file, start?: number, length?: number)              -> ok?: boolean, err?: string
+lfs.lock_dir(path: string, seconds_stale?: number)                          -> dir_lock, err?: string
+dir_lock:free()
+
+lfs.setmode (filehandle: file, mode: string)                    -> ok?: boolean, previous_mode_or_err: string
+lfs.touch (filepath: string, atime?: number, mtime?: number)    -> ok?: boolean, err?: string
+lfs.link (old: string, new: string, symlink?: boolean)          -> ok?: boolean, err?: string
