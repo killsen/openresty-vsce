@@ -1,34 +1,37 @@
 
+-- Lua - 数学库
+-- https://www.w3schools.cn/lua/lua_math_library.asp
+
 math
 
-math.huge   -> number
-math.pi     -> number
+math.huge                               -> number   -- 值 HUGE_VAL, 大于或等于任何其他数值的值
+math.pi                                 -> number   -- 圆周率 π 的值 3.1415926535898
 
-math.abs ( x: number )
-math.acos ( x: number )
-math.asin ( x: number )
-math.atan ( x: number )
-math.atan2 ( y: number, x: number )
-math.ceil ( x: number )
-math.cos ( x: number )
-math.cosh ( x: number )
-math.deg ( x: number )
-math.exp ( x: number )
-math.floor ( x: number )
-math.fmod ( x: number, y: number )
-math.frexp ( x: number )
-math.ldexp (m, e)
-math.log ( x: number )
-math.log10 ( x: number )
-math.max ( x: number, ... )
-math.min ( x: number, ... )
-math.modf ( x: number )
-math.pow ( x: number, y: number )
-math.rad ( x: number )
-math.random ( m?: number, n?: number )
-math.randomseed ( x: number )
-math.sin ( x: number )
-math.sinh ( x: number )
-math.sqrt ( x: number )
-math.tan ( x: number )
-math.tanh ( x: number )
+math.abs    (x: number)                 -> number   -- 返回 x 的绝对值
+math.acos   (x: number)                 -> number   -- 返回 x 的反余弦值 (以弧度为单位)
+math.asin   (x: number)                 -> number   -- 返回 x 的反正弦 (以弧度为单位)
+math.atan   (x: number)                 -> number   -- 返回 x 的反正切 (以弧度为单位)
+math.atan2  (x: number, y: number)      -> number   -- 返回 x/y 的反正切 (以弧度为单位), 但使用两个参数的符号来查找结果的象限 (它还可以正确处理 y 为零的情况)
+math.ceil   (x: number)                 -> number   -- 返回大于或等于 x 的最小整数 (向上取整)
+math.cos    (x: number)                 -> number   -- 返回 x 的余弦 (假定为弧度)
+math.cosh   (x: number)                 -> number   -- 返回 x 的双曲余弦值
+math.deg    (x: number)                 -> number   -- 返回以度为单位的角度 x (以弧度为单位)
+math.exp    (x: number)                 -> number   -- 返回值 e 幂 x
+math.floor  (x: number)                 -> number   -- 返回小于或等于 x 的最大整数 (向下取整)
+math.fmod   (x: number, y: number)      -> number   -- 返回 x 除以 y 的余数, 该余数将商向零舍入
+math.frexp  (x: number)                 -> m: number, e: number  -- 返回 m 和 e 使得 x = m * 2^e, e 是一个整数并且 m 的绝对值在 [0.5, 1) 范围内 (或者当 x 为零时为零)
+math.ldexp  (m: number, e: number)      -> number   -- 返回 m * 2^e (e 应该是一个整数)
+math.log    (x: number)                 -> number   -- 返回 x 的自然对数
+math.log10  (x: number)                 -> number   -- 返回 x 的以 10 为底的对数
+math.max    (x: number, ...)            -> number   -- 返回其参数中的最大值
+math.min    (x: number, ...)            -> number   -- 返回其参数中的最小值
+math.modf   (x: number)                 -> n: number, f: number  -- 返回 x 的整数部分和 x 的小数部分
+math.pow    (x: number, y: number)      -> number   -- 返回 x 的 y 次方 (x^y)
+math.rad    (x: number)                 -> number   -- 返回以弧度为单位的角度 x (以度为单位)
+math.random (m?: number, n?: number)    -> number   -- 此函数是 ANSI C 提供的简单伪随机生成器函数 rand 的接口: \n * 当不带参数调用时, 返回范围 [0,1) 内的统一伪随机实数; \n * 当使用整数 m 调用时, math.random 返回范围 [1, m] 内的统一伪随机整数; \n * 当使用两个整数 m 和 n 调用时, math.random 返回范围 [m, n] 内的统一伪随机整数
+math.randomseed (x: number)                         -- 将 x 设置为伪随机生成器的"种子" (相等的种子产生相等的数字序列)
+math.sin    (x: number)                 -> number   -- 返回 x 的正弦值 (假定为弧度)
+math.sinh   (x: number)                 -> number   -- 返回 x 的双曲正弦值
+math.sqrt   (x: number)                 -> number   -- 返回 x 的平方根 (x^0.5)
+math.tan    (x: number)                 -> number   -- 返回 x 的正切 (假定为弧度)
+math.tanh   (x: number)                 -> number   -- 返回 x 的双曲正切

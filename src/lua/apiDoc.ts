@@ -72,6 +72,9 @@ function genApi(name: string): LuaApi | undefined {
     if (doc.includes("<")) {
         doc = doc.replace("<", "\\<");  // md文档转义
     }
+    if (doc.includes("\\n")) {
+        doc = doc.replace(/\\n/g, "\n");  // 换行符转义
+    }
 
     return {
         text, name, args, res, desc, kind,
