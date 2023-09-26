@@ -1,5 +1,9 @@
 # 升级日志
 
+## v1.11.8
+
+* 升级 EmmyLuaDebugger 版本至 v1.7.1
+
 ## v1.11.7
 
 * 新增命令 openresty.lint  对所选目录全部 lua 文件执行类型检查
