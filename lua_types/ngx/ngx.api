@@ -178,7 +178,7 @@ ngx.shared.my_dns                                   -> DICT
     DICT:safe_add(key: string | number, val: DictValue, exptime?: number, flags?: number)    -> ok, err, boolean     -- ngx.shared.DICT.safe_add
     DICT:replace(key: string | number, val: DictValue, exptime?: number, flags?: number)     -> ok, err, boolean     -- ngx.shared.DICT.replace
     DICT:delete(key: string | number)                                            -- ngx.shared.DICT.delete
-    DICT:incr(key: string | number, val: number, init?: number) -> number, err   -- ngx.shared.DICT.incr
+    DICT:incr(key: string | number, val: number, init?: number, init_ttl?: number) -> number, err   -- ngx.shared.DICT.incr
     DICT:lpush(key: string | number, val: DictValue)     -> number, err          -- ngx.shared.DICT.lpush
     DICT:rpush(key: string | number, val: DictValue)     -> number, err          -- ngx.shared.DICT.rpush
     DICT:lpop(key: string | number)                      -> DictValue, err       -- ngx.shared.DICT.lpop
