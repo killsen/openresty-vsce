@@ -156,7 +156,7 @@ function initDao(_g: LuaScope, dao: LuaDao) {
 }
 
 /** 生成指定字段查询结果 */
-function gen_dao_fields(t: any, dao: LuaDao) : LuaType | undefined {
+function gen_dao_fields(t: any, dao: LuaDao, $row: LuaType) : LuaType | undefined {
 
     if (!isObject(t) || !isObject(t["."])) { return; }
 
@@ -164,35 +164,49 @@ function gen_dao_fields(t: any, dao: LuaDao) : LuaType | undefined {
         + "[" + dao.name + "](file:"+ dao.$file +")"
         + " ( " + dao.desc + " ) " ;
 
-    for (let i=1; i<100; i++) {
-        let f = t["."][i];
-        if (f === null || f === undefined) { return; }
-        if (!isObject(f["."])) { continue; }
+    const f = t["."][1];
+    if (f === null || f === undefined) { return; }
+    if (f.type === "any") { return; }
+    if (!isObject(f["."])) { return; }
 
-        const ti = {} as any;
+    const ti = {} as any;
+    let has_keys = false;
 
-        for (let k in f["."]) {
-            const v = f["."][k];
-            if (Number(k)) {
-                typeof v === "string" && v.split(",").forEach(name => {
-                    name = name.trim();
-                    let namex = name;
-                    if (name.includes(" as ")) {
-                        let arr = name.split(" as ");
-                        namex = arr[0].trim();
-                        name  = arr[1].trim();
+    for (let k in f["."]) {
+        const v = f["."][k];
+        if (Number(k)) {
+            typeof v === "string" && v.split(",").forEach(name => {
+                name = name.trim();
+
+                let namex = name;
+                if (name.includes(" as ")) {
+                    let arr = name.split(" as ");
+                    namex = arr[0].trim();
+                    name  = arr[1].trim();
+                }
+
+                if (!name) {return;}
+                has_keys = true;
+
+                if (name === "*") {  // 全部字段
+                    for (let k2 in $row["."]) {
+                        ti[k2] = $row["."][k2];
                     }
-                    ti[name] = dao.row[namex] || LuaAny;
-                    ti["$" + name + "$"] = f["."]["$" + k + "$"];
-                });
-            } else if (!k.startsWith("$")) {
-                ti[k] = dao.row[v] || LuaAny;
-                ti["$" + k + "$"] = f["."]["$" + k + "$"];
-            }
-        }
+                    return;
+                }
 
-        return { type: "table", doc, readonly, ".": ti };
+                ti[name] = dao.row[namex] || LuaAny;
+                ti["$" + name + "$"] = f["."]["$" + k + "$"];
+            });
+        } else if (!k.startsWith("$")) {
+            ti[k] = dao.row[v] || LuaAny;
+            ti["$" + k + "$"] = f["."]["$" + k + "$"];
+        }
     }
+
+    if (!has_keys) {return;}
+
+    return { type: "table", doc, readonly, ".": ti };
 
 }
 
@@ -200,12 +214,12 @@ function gen_dao_fields(t: any, dao: LuaDao) : LuaType | undefined {
 function gen_dao_func(mod: LuaModule, dao: LuaDao, $row: LuaType, $rows: LuaType) {
 
     setItem(mod, [".", "get", "()"], (t: any) => {
-        const row = gen_dao_fields(t, dao) || $row;
+        const row = gen_dao_fields(t, dao, $row) || $row;
         return [ row, LuaStringOrNil ];
     });
 
     setItem(mod, [".", "list", "()"], (t: any) => {
-        const row = gen_dao_fields(t, dao);
+        const row = gen_dao_fields(t, dao, $row);
         const rows = row && { "[]": row, type: "table[]", readonly, doc: row.doc } || $rows;
         return [ rows, LuaStringOrNil ];
     });
@@ -218,7 +232,7 @@ function gen_dao_func(mod: LuaModule, dao: LuaDao, $row: LuaType, $rows: LuaType
         + " ( " + dao.desc + " ) " ;
 
     function gen_sql_query(t: any) {
-        const row = gen_dao_fields(t, dao);
+        const row = gen_dao_fields(t, dao, $row);
         const rows = row && { "[]": row, type: "table[]", readonly, doc: row.doc } || $rows;
         const sql_query = {
             type: "string", readonly, basic,
