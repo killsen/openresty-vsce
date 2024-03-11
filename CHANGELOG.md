@@ -1,5 +1,9 @@
 # 升级日志
 
+## v1.11.9
+
+* 更新 [ngx.shared.DICT.incr](https://github.com/openresty/lua-nginx-module?tab=readme-ov-file#ngxshareddictincr) 接口参数声明及文档
+
 ## v1.11.8
 
 * 升级 EmmyLuaDebugger 版本至 v1.7.1
