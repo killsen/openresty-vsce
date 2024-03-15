@@ -16,17 +16,9 @@ interface LuaScopeOption {
 
 /** 出错信息对应代码替换 */
 const ERRORS: { [key: string] : string } = {
-    [`'then' expected`              ] : `()   then end ------ `,
-    [`'end' expected`               ] : `()        end ------ `,
-    [`'do' expected`                ] : `()   do   end ------ `,
-
-    [`')' expected near 'then'`     ] : `() ) then end ------ `,
-    [`')' expected near 'end'`      ] : `() )      end ------ `,
-    [`')' expected near 'do'`       ] : `() ) do   end ------ `,
-
-    [`'}' expected near '='`        ] : `(), _ `,  // { _____(), _ = ... }  // 光标在 {} 表达式等号(=)前面
-    [`'}' expected near`            ] : `(), `  ,  // { _____(), ...     }  // 光标在 {} 表达式逗号(,)前面
-    [`unexpected symbol`            ] : `(). _ `,  // { _____(). _ = ... }  // 光标在赋值语句等号(=)前面
+    [`'}' expected near '='`] : `(), _ `,  // { _____(), _ = ... }  // 光标在 {} 表达式等号(=)前面
+    [`'}' expected near`    ] : `(), `  ,  // { _____(), ...     }  // 光标在 {} 表达式逗号(,)前面
+    [`unexpected symbol`    ] : `(). _ `,  // { _____(). _ = ... }  // 光标在赋值语句等号(=)前面
 };
 
 /** 取得上量或成员变量 */
@@ -63,8 +55,8 @@ export function getUpValues(doc: TextDocument, pos: Position) {
         }
     }
 
-    // 尝试运行3次
-    for (let i=0; i<3; i++) {
+    // 尝试运行 5 次
+    for (let i = 0; i < 5; i++) {
 
         try {
             let scope = loadScope({ ctx, codes, findNode });
@@ -74,19 +66,39 @@ export function getUpValues(doc: TextDocument, pos: Position) {
             if (!(err instanceof SyntaxError)) {return;}
 
             let msg = err.message;
-            // console.log(codes[1], codes[2], "\t", msg)
-
-            let code2;
+            // console.log(msg);
 
             for (let key in ERRORS) {
                 if (msg.includes(key) ) {
-                    code2 = ERRORS[key];
-                    break;
+                    codes[2] = ERRORS[key];
+                    continue;
                 }
             }
 
-            if (!code2) {return;}
-            codes[2] = code2;
+            let m = msg.match(/'(.+)' expected near '(.+)'/) ||
+                    msg.match(/(<expression>) expected near '(.+)'/);
+            if (!m) { return; }
+
+            let m1 = m[1];
+            let m2 = m[2];
+
+            if (m1 === "<expression>") {
+                m1 = " ... ";
+            } else {
+                m1 = " " + m1 + " ";
+            }
+
+            let code3 = codes[3];
+
+            if (m2 === "<eof>") {
+                code3 = code3 + m1;
+            } else {
+                let pos = code3.indexOf(m2);
+                if (pos === -1) { return; }
+                code3 = code3.substring(0, pos) + m1 + code3.substring(pos);
+            }
+
+            codes[3] = code3;
         }
     }
 
