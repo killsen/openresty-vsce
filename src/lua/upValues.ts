@@ -68,11 +68,18 @@ export function getUpValues(doc: TextDocument, pos: Position) {
             let msg = err.message;
             // console.log(msg);
 
+            let code2;
+
             for (let key in ERRORS) {
                 if (msg.includes(key) ) {
-                    codes[2] = ERRORS[key];
-                    continue;
+                    code2 = ERRORS[key];
+                    break;
                 }
+            }
+
+            if (code2) {
+                codes[2] = code2;
+                continue;
             }
 
             let m = msg.match(/'(.+)' expected near '(.+)'/) ||
