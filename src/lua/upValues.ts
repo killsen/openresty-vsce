@@ -41,11 +41,19 @@ export function getUpValues(doc: TextDocument, pos: Position) {
         endOffset = doc.offsetAt(range.end);
     }
 
-    let codes = [
-        docText.substring(0, startOffset),
-        identifier, "()",
-        docText.substring(endOffset),
-    ];
+    const codes: string[] = [];
+
+        codes[0] = docText.substring(0, startOffset);
+        codes[1] = identifier;
+        codes[2] = "()";
+        codes[3] = "";
+        codes[4] = docText.substring(endOffset);
+
+    let idx = codes[4].indexOf("\n");
+    if (idx !== -1) {
+        codes[3] = codes[4].substring(0, idx);
+        codes[4] = codes[4].substring(idx);
+    }
 
     function findNode(node: luaparse.Node) {
         if (node.type === 'Identifier' &&
@@ -90,7 +98,7 @@ export function getUpValues(doc: TextDocument, pos: Position) {
             let m2 = m[2];
 
             if (m1 === "<expression>") {
-                m1 = " ... ";
+                m1 = " ____() ";
             } else {
                 m1 = " " + m1 + " ";
             }
@@ -101,8 +109,11 @@ export function getUpValues(doc: TextDocument, pos: Position) {
                 code3 = code3 + m1;
             } else {
                 let pos = code3.indexOf(m2);
-                if (pos === -1) { return; }
-                code3 = code3.substring(0, pos) + m1 + code3.substring(pos);
+                if (pos === -1) {
+                    code3 = code3 + m1;
+                } else {
+                    code3 = code3.substring(0, pos) + m1 + code3.substring(pos);
+                }
             }
 
             codes[3] = code3;
