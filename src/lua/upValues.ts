@@ -46,13 +46,13 @@ export function getUpValues(doc: TextDocument, pos: Position) {
         codes[0] = docText.substring(0, startOffset);
         codes[1] = identifier;
         codes[2] = "()";
-        codes[3] = "";
-        codes[4] = docText.substring(endOffset);
+        codes[3] = docText.substring(endOffset);
+        codes[4] = "";
 
-    let idx = codes[4].indexOf("\n");
+    const idx = codes[3].indexOf("\n");
     if (idx !== -1) {
-        codes[3] = codes[4].substring(0, idx);
-        codes[4] = codes[4].substring(idx);
+        codes[4] = codes[3].substring(idx);
+        codes[3] = codes[3].substring(0, idx);
     }
 
     function findNode(node: luaparse.Node) {
